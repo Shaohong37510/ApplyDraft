@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Kit</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ═══ Tab Bar ════════════════════════════════════════════ -->
+<div class="tab-bar" id="tabBar">
+  <div class="tab-add" id="addProjectBtn" title="New Project">+</div>
+</div>
+
+<!-- ═══ Main Content ══════════════════════════════════════ -->
+<div class="main" id="mainContent">
+  <div class="empty-state" id="emptyState">
+    <h2>Job Application Kit</h2>
+    <p>Create a project to get started</p>
+    <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
+  </div>
+</div>
+
+<!-- ═══ Toast Container ═══════════════════════════════════ -->
+<div class="toast-container" id="toasts"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

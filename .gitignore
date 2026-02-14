@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+global_config.json
+projects/
+*.egg-info/
+dist/
+build/

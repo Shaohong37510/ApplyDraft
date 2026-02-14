@@ -1,0 +1,320 @@
+/* ═══════════════════════════════════════════════════════════
+   Job Application Kit - UI Styles
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg: #0f1117;
+  --bg2: #1a1d27;
+  --bg3: #242836;
+  --border: #2e3348;
+  --text: #e1e4ed;
+  --text2: #8b90a5;
+  --accent: #6c8cff;
+  --accent-hover: #8ba4ff;
+  --green: #4ade80;
+  --red: #f87171;
+  --orange: #fb923c;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  gap: 2px;
+  height: 44px;
+  overflow-x: auto;
+}
+.tab {
+  padding: 8px 18px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab:hover { color: var(--text); background: var(--bg3); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab .close-tab {
+  font-size: 11px;
+  opacity: 0.4;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.tab .close-tab:hover { opacity: 1; background: var(--red); color: #fff; }
+.tab-add {
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 18px;
+  border-radius: var(--radius);
+}
+.tab-add:hover { color: var(--accent); background: var(--bg3); }
+
+/* ── Main Layout ──────────────────────────────────────────── */
+.main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+.section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.section-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-header .arrow {
+  font-size: 11px;
+  color: var(--text2);
+  transition: transform .2s;
+}
+.section.collapsed .section-body { display: none; }
+.section.collapsed .arrow { transform: rotate(-90deg); }
+.section-body { padding: 0 18px 18px; }
+
+/* ── Form Elements ────────────────────────────────────────── */
+label {
+  font-size: 12px;
+  color: var(--text2);
+  display: block;
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+label:first-child { margin-top: 0; }
+input[type="text"], input[type="password"], input[type="email"],
+input[type="number"], textarea, select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 70px; }
+
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); }
+.btn-run {
+  background: linear-gradient(135deg, #6c8cff, #a78bfa);
+  color: #fff;
+  font-size: 15px;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.btn-run:hover { filter: brightness(1.1); }
+.btn-run:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover { filter: brightness(1.1); }
+
+/* ── Run Bar ──────────────────────────────────────────────── */
+.run-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+}
+.count-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.count-selector select {
+  width: 70px;
+}
+
+/* ── File chips ───────────────────────────────────────────── */
+.file-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  font-size: 12px;
+}
+.file-chip .remove {
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 14px;
+}
+.file-chip .remove:hover { color: var(--red); }
+
+/* ── Link row ─────────────────────────────────────────────── */
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s;
+  font-size: 13px;
+  color: var(--accent);
+}
+.link-row:hover { background: var(--bg3); }
+.link-row .icon { font-size: 16px; }
+
+/* ── Template editor ──────────────────────────────────────── */
+.template-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
+  color: var(--text2);
+  margin-top: 8px;
+}
+
+/* ── Results ──────────────────────────────────────────────── */
+.result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.result-item:last-child { border-bottom: none; }
+.result-item .status-icon { font-size: 16px; }
+.result-item .firm-name { font-weight: 500; flex: 1; }
+.badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-ok { background: rgba(74,222,128,.15); color: var(--green); }
+.badge-warn { background: rgba(251,146,60,.15); color: var(--orange); }
+.badge-err { background: rgba(248,113,113,.15); color: var(--red); }
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  padding: 10px 18px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  animation: slideIn .2s;
+  max-width: 360px;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Loading spinner ──────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ──────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text2);
+}
+.empty-state h2 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 13px; margin-bottom: 20px; }
+
+/* ── Upload area ──────────────────────────────────────────── */
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s;
+  margin-top: 8px;
+}
+.upload-area:hover { border-color: var(--accent); }
+.upload-area input { display: none; }
+.upload-area p { font-size: 12px; color: var(--text2); }
