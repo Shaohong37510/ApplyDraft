@@ -221,6 +221,55 @@ textarea { resize: vertical; min-height: 70px; }
 .link-row:hover { background: var(--bg3); }
 .link-row .icon { font-size: 16px; }
 
+/* ── Customize Files ──────────────────────────────────────── */
+.customize-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+.add-type-btn { white-space: nowrap; }
+.customize-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.customize-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.customize-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.customize-card-remove {
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.customize-card-remove:hover { color: var(--red); background: rgba(248,113,113,.1); }
+
+.filename-format-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.filename-format-row input { flex: 1; }
+.format-hint {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
 /* ── Template editor ──────────────────────────────────────── */
 .template-preview {
   background: var(--bg);
@@ -234,6 +283,15 @@ textarea { resize: vertical; min-height: 70px; }
   overflow-y: auto;
   color: var(--text2);
   margin-top: 8px;
+}
+.customize-card .template-preview {
+  background: var(--bg2);
+}
+.customize-card .link-row {
+  background: var(--bg2);
+}
+.customize-card .upload-area {
+  border-color: var(--border);
 }
 
 /* ── Results ──────────────────────────────────────────────── */

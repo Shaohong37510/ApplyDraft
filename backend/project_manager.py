@@ -69,8 +69,18 @@ def create_project(name: str) -> dict:
         "job_requirements": "",
         "name": "",
         "phone": "",
+        "filename_format": "{{NAME}}-{{FIRM_NAME}}-{{FILE_TYPE}}",
+        "customize_files": [
+            {"id": "cover_letter", "label": "Cover Letter"},
+            {"id": "email_body", "label": "Email Body"},
+        ],
     }
     _save_project_config(project_dir, config)
+
+    # Create default template directories
+    for cf in config["customize_files"]:
+        (project_dir / "templates" / cf["id"] / "examples").mkdir(parents=True, exist_ok=True)
+
     (project_dir / "targets.json").write_text("[]", encoding="utf-8")
     (project_dir / "tracker.csv").write_text(
         "Firm,Location,Position,OpenDate,AppliedDate,Email,Source,Status\n",
@@ -200,11 +210,28 @@ def _count_tracker(project_dir: Path) -> int:
 
 
 def _list_templates(project_dir: Path) -> dict:
+    """Load templates for all customize file types."""
     tpl_dir = project_dir / "templates"
+    config = _load_project_config(project_dir)
+    customize_files = config.get("customize_files", [])
+
     result = {}
+    for cf in customize_files:
+        cf_id = cf["id"]
+        type_dir = tpl_dir / cf_id
+        template_path = type_dir / "template.txt"
+        definitions_path = type_dir / "definitions.txt"
+        result[cf_id] = {
+            "template": template_path.read_text(encoding="utf-8") if template_path.exists() else "",
+            "definitions": definitions_path.read_text(encoding="utf-8") if definitions_path.exists() else "",
+        }
+
+    # Backward compat: also read old flat files if they exist
     for name in ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]:
         path = tpl_dir / name
-        result[name] = path.read_text(encoding="utf-8") if path.exists() else ""
+        if path.exists():
+            result["_legacy_" + name] = path.read_text(encoding="utf-8")
+
     return result
 
 
@@ -213,3 +240,56 @@ def _list_materials(project_dir: Path) -> list[str]:
     if not mat_dir.exists():
         return []
     return [f.name for f in mat_dir.iterdir() if f.is_file()]
+
+
+def list_type_examples(project_id: str, type_id: str) -> list[str]:
+    """List uploaded example files for a given customize file type."""
+    examples_dir = PROJECTS_DIR / project_id / "templates" / type_id / "examples"
+    if not examples_dir.exists():
+        return []
+    return [f.name for f in examples_dir.iterdir() if f.is_file()]
+
+
+def add_customize_file(project_id: str, label: str) -> dict:
+    """Add a new customize file type to the project."""
+    project_dir = PROJECTS_DIR / project_id
+    config = _load_project_config(project_dir)
+    customize_files = config.get("customize_files", [])
+
+    # Generate ID from label
+    type_id = _sanitize_name(label).lower().replace(" ", "_").replace("-", "_")
+    if not type_id:
+        type_id = "custom_file"
+    # Ensure unique
+    existing_ids = [cf["id"] for cf in customize_files]
+    base_id = type_id
+    counter = 1
+    while type_id in existing_ids:
+        type_id = f"{base_id}_{counter}"
+        counter += 1
+
+    new_entry = {"id": type_id, "label": label}
+    customize_files.append(new_entry)
+    config["customize_files"] = customize_files
+    _save_project_config(project_dir, config)
+
+    # Create directory
+    (project_dir / "templates" / type_id / "examples").mkdir(parents=True, exist_ok=True)
+
+    return new_entry
+
+
+def remove_customize_file(project_id: str, type_id: str) -> bool:
+    """Remove a customize file type from the project."""
+    import shutil as _shutil
+    project_dir = PROJECTS_DIR / project_id
+    config = _load_project_config(project_dir)
+    customize_files = config.get("customize_files", [])
+    config["customize_files"] = [cf for cf in customize_files if cf["id"] != type_id]
+    _save_project_config(project_dir, config)
+
+    # Remove directory
+    type_dir = project_dir / "templates" / type_id
+    if type_dir.exists():
+        _shutil.rmtree(type_dir)
+    return True

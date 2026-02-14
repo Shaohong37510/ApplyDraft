@@ -102,13 +102,33 @@ def delete_material(project_id: str, filename: str):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  Template Editor
+#  Customize Files Management
 # ═══════════════════════════════════════════════════════════════
 
-@router.post("/projects/{project_id}/upload-example")
-async def upload_example(project_id: str, file: UploadFile = File(...)):
-    """Upload an example cover letter for template generation."""
-    examples_dir = pm.get_project_dir(project_id) / "templates" / "examples"
+@router.post("/projects/{project_id}/customize-files")
+def add_customize_file(project_id: str, data: dict):
+    """Add a new customize file type."""
+    label = data.get("label", "")
+    if not label:
+        raise HTTPException(400, "Label is required")
+    entry = pm.add_customize_file(project_id, label)
+    return entry
+
+
+@router.delete("/projects/{project_id}/customize-files/{type_id}")
+def remove_customize_file(project_id: str, type_id: str):
+    pm.remove_customize_file(project_id, type_id)
+    return {"ok": True}
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Template Editor (per file type)
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/projects/{project_id}/customize/{type_id}/upload-example")
+async def upload_example(project_id: str, type_id: str, file: UploadFile = File(...)):
+    """Upload an example file for a given customize file type."""
+    examples_dir = pm.get_project_dir(project_id) / "templates" / type_id / "examples"
     examples_dir.mkdir(parents=True, exist_ok=True)
     dest = examples_dir / file.filename
     with open(dest, "wb") as f:
@@ -117,48 +137,48 @@ async def upload_example(project_id: str, file: UploadFile = File(...)):
     return {"filename": file.filename, "size": len(content)}
 
 
-@router.get("/projects/{project_id}/examples")
-def list_examples(project_id: str):
-    examples_dir = pm.get_project_dir(project_id) / "templates" / "examples"
-    if not examples_dir.exists():
-        return []
-    return [f.name for f in examples_dir.iterdir() if f.is_file()]
+@router.get("/projects/{project_id}/customize/{type_id}/examples")
+def list_examples(project_id: str, type_id: str):
+    return pm.list_type_examples(project_id, type_id)
 
 
-@router.delete("/projects/{project_id}/examples/{filename}")
-def delete_example(project_id: str, filename: str):
-    path = pm.get_project_dir(project_id) / "templates" / "examples" / filename
+@router.delete("/projects/{project_id}/customize/{type_id}/examples/{filename}")
+def delete_example(project_id: str, type_id: str, filename: str):
+    path = pm.get_project_dir(project_id) / "templates" / type_id / "examples" / filename
     if path.exists():
         path.unlink()
         return {"ok": True}
     raise HTTPException(404)
 
 
-@router.post("/projects/{project_id}/generate-template")
-def generate_template(project_id: str):
-    """AI reads uploaded example cover letters and generates template + definitions."""
+@router.post("/projects/{project_id}/customize/{type_id}/generate-template")
+def generate_template(project_id: str, type_id: str):
+    """AI reads uploaded examples and generates template + definitions for this file type."""
     gcfg = pm.load_global_config()
     api_key = gcfg.get("api_key", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    examples_dir = pm.get_project_dir(project_id) / "templates" / "examples"
+    examples_dir = pm.get_project_dir(project_id) / "templates" / type_id / "examples"
     if not examples_dir.exists():
         raise HTTPException(400, "No examples uploaded")
 
-    # Read example files (txt or pdf text extraction)
+    # Get the label for this type
+    proj = pm.get_project(project_id)
+    customize_files = proj["config"].get("customize_files", [])
+    type_label = type_id
+    for cf in customize_files:
+        if cf["id"] == type_id:
+            type_label = cf["label"]
+            break
+
+    # Read example files
     example_texts = []
     for f in sorted(examples_dir.iterdir()):
         if f.suffix.lower() == ".txt":
             example_texts.append(f.read_text(encoding="utf-8"))
         elif f.suffix.lower() == ".pdf":
-            # Simple text extraction: read raw and attempt decode
-            try:
-                import subprocess as sp
-                # Use Edge to print PDF content isn't great; store as-is for now
-                example_texts.append(f"[PDF content from {f.name} - please provide .txt files for best results]")
-            except Exception:
-                pass
+            example_texts.append(f"[PDF content from {f.name} - please provide .txt files for best results]")
         else:
             try:
                 example_texts.append(f.read_text(encoding="utf-8", errors="ignore"))
@@ -168,69 +188,31 @@ def generate_template(project_id: str):
     if len(example_texts) < 1:
         raise HTTPException(400, "Need at least 1 example file (.txt recommended)")
 
-    result = ai.generate_template_from_examples(api_key, example_texts)
+    result = ai.generate_template_from_examples(api_key, example_texts, type_label)
 
-    # Save generated files
-    tpl_dir = pm.get_project_dir(project_id) / "templates"
-    (tpl_dir / "cover_letter.txt").write_text(result["template"], encoding="utf-8")
-    (tpl_dir / "custom_definitions.txt").write_text(result["definitions"], encoding="utf-8")
-
-    return result
-
-
-@router.post("/projects/{project_id}/generate-email-template")
-def generate_email_template(project_id: str, data: dict):
-    """Generate email template from an example."""
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
-    if not api_key:
-        raise HTTPException(400, "API Key not configured")
-
-    example = data.get("example", "")
-    if not example:
-        raise HTTPException(400, "No example provided")
-
-    result = ai.generate_email_template(api_key, example)
-
-    tpl_dir = pm.get_project_dir(project_id) / "templates"
-    (tpl_dir / "email_body.txt").write_text(result["template"], encoding="utf-8")
+    # Save generated files in type-specific directory
+    type_dir = pm.get_project_dir(project_id) / "templates" / type_id
+    type_dir.mkdir(parents=True, exist_ok=True)
+    (type_dir / "template.txt").write_text(result["template"], encoding="utf-8")
+    (type_dir / "definitions.txt").write_text(result["definitions"], encoding="utf-8")
 
     return result
 
 
-@router.get("/projects/{project_id}/templates")
-def get_templates(project_id: str):
-    proj = pm.get_project(project_id)
-    if not proj:
-        raise HTTPException(404)
-    return proj["templates"]
-
-
-@router.put("/projects/{project_id}/templates/{filename}")
-def update_template(project_id: str, filename: str, data: dict):
-    """Save edited template content."""
-    tpl_dir = pm.get_project_dir(project_id) / "templates"
-    allowed = ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]
-    if filename not in allowed:
-        raise HTTPException(400, f"Invalid template file: {filename}")
-    (tpl_dir / filename).write_text(data.get("content", ""), encoding="utf-8")
-    return {"ok": True}
-
-
-@router.post("/projects/{project_id}/preview-template")
-def preview_template(project_id: str):
+@router.post("/projects/{project_id}/customize/{type_id}/preview")
+def preview_template(project_id: str, type_id: str):
     """Preview: AI fills template with sample content, generates a PDF."""
     gcfg = pm.load_global_config()
     api_key = gcfg.get("api_key", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    tpl_dir = pm.get_project_dir(project_id) / "templates"
-    template_path = tpl_dir / "cover_letter.txt"
-    definitions_path = tpl_dir / "custom_definitions.txt"
+    type_dir = pm.get_project_dir(project_id) / "templates" / type_id
+    template_path = type_dir / "template.txt"
+    definitions_path = type_dir / "definitions.txt"
 
     if not template_path.exists():
-        raise HTTPException(400, "No cover letter template found")
+        raise HTTPException(400, "No template found. Generate one first.")
 
     template = template_path.read_text(encoding="utf-8")
     definitions = definitions_path.read_text(encoding="utf-8") if definitions_path.exists() else ""
@@ -250,7 +232,7 @@ p {{ margin: 0 0 13px 0; text-align: justify; }}
 
     preview_dir = pm.get_project_dir(project_id) / "Email" / "CoverLetters"
     preview_dir.mkdir(parents=True, exist_ok=True)
-    preview_path = str(preview_dir / "PREVIEW_CoverLetter.pdf")
+    preview_path = str(preview_dir / f"PREVIEW_{type_id}.pdf")
 
     ok = pdf.generate_pdf(html, preview_path)
     if not ok:
@@ -259,22 +241,34 @@ p {{ margin: 0 0 13px 0; text-align: justify; }}
     return {"pdf_path": preview_path, "filled_text": filled}
 
 
+@router.get("/projects/{project_id}/templates")
+def get_templates(project_id: str):
+    proj = pm.get_project(project_id)
+    if not proj:
+        raise HTTPException(404)
+    return proj["templates"]
+
+
 @router.post("/projects/{project_id}/open-file")
 def open_file(project_id: str, data: dict):
     """Open a file with the system default application."""
     filename = data.get("filename", "")
-    # Determine full path
-    if filename in ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]:
-        full_path = pm.get_project_dir(project_id) / "templates" / filename
+    type_id = data.get("type_id", "")
+
+    # Per-type template/definitions files
+    if type_id and filename in ["template.txt", "definitions.txt"]:
+        full_path = pm.get_project_dir(project_id) / "templates" / type_id / filename
     elif filename == "tracker.csv":
         full_path = pm.get_project_dir(project_id) / "tracker.csv"
     elif filename == "project.md":
         full_path = pm.get_project_dir(project_id) / "project.md"
+    # Backward compat for legacy flat files
+    elif filename in ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]:
+        full_path = pm.get_project_dir(project_id) / "templates" / filename
     else:
         raise HTTPException(400, "Unknown file")
 
     if not full_path.exists():
-        # Create empty file if it doesn't exist
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text("", encoding="utf-8")
 
@@ -318,6 +312,16 @@ def generate_project_md(project_id: str):
 #  RUN: Search + Generate + Email
 # ═══════════════════════════════════════════════════════════════
 
+def _build_filename(fmt: str, replacements: dict, file_type_label: str) -> str:
+    """Build a filename from the user's format template, e.g. '{{NAME}}-{{FIRM_NAME}}-CoverLetter'."""
+    result = fmt
+    replacements_with_type = {**replacements, "FILE_TYPE": file_type_label}
+    for k, v in replacements_with_type.items():
+        result = result.replace("{{" + k + "}}", v or "")
+    # Sanitize for filesystem
+    return pdf.safe_filename(result)
+
+
 @router.post("/projects/{project_id}/run")
 def run_pipeline(project_id: str, data: dict):
     """Main pipeline: search firms -> generate content -> PDF -> Gmail draft."""
@@ -342,22 +346,25 @@ def run_pipeline(project_id: str, data: dict):
 
     project_dir = pm.get_project_dir(project_id)
     tpl_dir = project_dir / "templates"
+    filename_format = proj_config.get("filename_format", "{{NAME}}-{{FIRM_NAME}}-{{FILE_TYPE}}")
 
-    # Load templates
-    cover_tpl = ""
-    cover_tpl_path = tpl_dir / "cover_letter.txt"
-    if cover_tpl_path.exists():
-        cover_tpl = cover_tpl_path.read_text(encoding="utf-8")
+    # Load all customize file templates
+    customize_files = proj_config.get("customize_files", [])
+    file_templates = {}  # type_id -> {"template": str, "definitions": str, "label": str}
+    all_definitions = []
+    for cf in customize_files:
+        cf_id = cf["id"]
+        cf_label = cf["label"]
+        type_dir = tpl_dir / cf_id
+        tpl_path = type_dir / "template.txt"
+        defs_path = type_dir / "definitions.txt"
+        tpl_text = tpl_path.read_text(encoding="utf-8") if tpl_path.exists() else ""
+        defs_text = defs_path.read_text(encoding="utf-8") if defs_path.exists() else ""
+        file_templates[cf_id] = {"template": tpl_text, "definitions": defs_text, "label": cf_label}
+        if defs_text:
+            all_definitions.append(f"[{cf_label}]\n{defs_text}")
 
-    email_tpl = ""
-    email_tpl_path = tpl_dir / "email_body.txt"
-    if email_tpl_path.exists():
-        email_tpl = email_tpl_path.read_text(encoding="utf-8")
-
-    custom_defs = ""
-    custom_defs_path = tpl_dir / "custom_definitions.txt"
-    if custom_defs_path.exists():
-        custom_defs = custom_defs_path.read_text(encoding="utf-8")
+    combined_definitions = "\n\n".join(all_definitions)
 
     project_md = pm.load_project_md(project_id)
 
@@ -370,7 +377,7 @@ def run_pipeline(project_id: str, data: dict):
 
     # Step 1: AI search and generate targets
     search_result = ai.search_and_generate_targets(
-        api_key, project_md, custom_defs, job_req, count,
+        api_key, project_md, combined_definitions, job_req, count,
         existing_firms + generated_firms,
     )
 
@@ -390,8 +397,8 @@ def run_pipeline(project_id: str, data: dict):
     user_phone = proj_config.get("phone", "")
     user_email = gmail_user
 
-    cl_dir = project_dir / "Email" / "CoverLetters"
-    cl_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = project_dir / "Email" / "CoverLetters"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     materials = [
         pm.get_project_dir(project_id) / "Material" / f
@@ -401,29 +408,44 @@ def run_pipeline(project_id: str, data: dict):
     for target in new_targets:
         firm = target.get("firm", "Unknown")
         firm_safe = pdf.safe_filename(firm)
-        status = {"firm": firm, "pdf": False, "draft": False, "error": None}
+        status = {"firm": firm, "pdfs": [], "draft": False, "error": None}
 
-        # Fill cover letter template
-        if cover_tpl:
-            replacements = {
-                "NAME": user_name,
-                "PHONE": user_phone,
-                "EMAIL": user_email,
-                "FIRM_NAME": firm,
-                "POSITION": target.get("position", ""),
-            }
-            # Add custom_pX placeholders
-            for key in target:
-                if key.startswith("custom_"):
-                    placeholder = key.upper()
-                    replacements[placeholder] = target[key]
+        base_replacements = {
+            "NAME": user_name,
+            "PHONE": user_phone,
+            "EMAIL": user_email,
+            "FIRM_NAME": firm,
+            "POSITION": target.get("position", ""),
+        }
+        # Add custom_pX placeholders
+        for key in target:
+            if key.startswith("custom_"):
+                base_replacements[key.upper()] = target[key]
 
-            filled_html = cover_tpl
-            for k, v in replacements.items():
-                filled_html = filled_html.replace("{{" + k + "}}", v or "")
+        generated_pdfs = []
+        email_body = None
 
-            # Wrap in HTML if not already
-            if "<html" not in filled_html.lower():
+        # Process each customize file type
+        for cf in customize_files:
+            cf_id = cf["id"]
+            cf_label = cf["label"]
+            ft = file_templates.get(cf_id, {})
+            tpl_text = ft.get("template", "")
+            if not tpl_text:
+                continue
+
+            # Fill template
+            filled = tpl_text
+            for k, v in base_replacements.items():
+                filled = filled.replace("{{" + k + "}}", v or "")
+
+            # Determine if this type is an "email body" type (no PDF, used as email text)
+            if cf_id == "email_body":
+                email_body = filled
+                continue
+
+            # Generate PDF for this file type
+            if "<html" not in filled.lower():
                 filled_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -432,30 +454,22 @@ body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height
 p {{ margin: 0 0 13px 0; text-align: justify; }}
 .signature {{ margin-top: 24px; font-weight: 600; }}
 </style></head><body>
-{filled_html}
+{filled}
 </body></html>"""
+            else:
+                filled_html = filled
 
-            pdf_path = str(cl_dir / f"{firm_safe}_CoverLetter.pdf")
-            status["pdf"] = pdf.generate_pdf(filled_html, pdf_path)
-        else:
-            pdf_path = None
+            # Build filename from format
+            out_filename = _build_filename(filename_format, base_replacements, cf_label)
+            pdf_path = str(output_dir / f"{out_filename}.pdf")
+            if pdf.generate_pdf(filled_html, pdf_path):
+                generated_pdfs.append({"type": cf_label, "path": pdf_path, "filename": f"{out_filename}.pdf"})
 
-        # Build email body
-        if email_tpl:
-            email_body = email_tpl
-            email_replacements = {
-                "NAME": user_name,
-                "PHONE": user_phone,
-                "EMAIL": user_email,
-                "FIRM_NAME": firm,
-                "POSITION": target.get("position", ""),
-            }
-            for key in target:
-                if key.startswith("custom_"):
-                    email_replacements[key.upper()] = target[key]
-            for k, v in email_replacements.items():
-                email_body = email_body.replace("{{" + k + "}}", v or "")
-        else:
+        status["pdfs"] = [p["type"] for p in generated_pdfs]
+        status["pdf"] = len(generated_pdfs) > 0
+
+        # Fallback email body if no email_body template
+        if email_body is None:
             email_body = f"""Dear Hiring Manager,
 
 I am writing to apply for the {target.get('position', 'open')} position at {firm}.
@@ -477,8 +491,9 @@ Best regards,
             for mat_file in materials:
                 if mat_file.exists():
                     attachments.append({"filename": mat_file.name, "path": str(mat_file)})
-            if pdf_path and Path(pdf_path).exists():
-                attachments.append({"filename": f"{firm_safe}_CoverLetter.pdf", "path": pdf_path})
+            for gp in generated_pdfs:
+                if Path(gp["path"]).exists():
+                    attachments.append({"filename": gp["filename"], "path": gp["path"]})
 
             status["draft"] = email_svc.create_gmail_draft(
                 gmail_user=gmail_user,

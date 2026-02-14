@@ -110,9 +110,69 @@ document.getElementById("addProjectBtn").onclick = promptNewProject;
 
 async function renderProject(id) {
   const proj = await api("GET", `/projects/${id}`);
-  const examples = await api("GET", `/projects/${id}/examples`).catch(() => []);
   const cfg = proj.config || {};
   const tpls = proj.templates || {};
+  const customizeFiles = cfg.customize_files || [];
+
+  // Fetch examples for each customize file type in parallel
+  const examplesMap = {};
+  await Promise.all(customizeFiles.map(async (cf) => {
+    examplesMap[cf.id] = await api("GET", `/projects/${id}/customize/${cf.id}/examples`).catch(() => []);
+  }));
+
+  // Build customize files HTML
+  let customizeHtml = "";
+  customizeFiles.forEach((cf, idx) => {
+    const typeExamples = examplesMap[cf.id] || [];
+    const typeTpl = tpls[cf.id] || {};
+    const tplText = typeTpl.template || "";
+    const defsText = typeTpl.definitions || "";
+    const inputId = `exInput_${cf.id}`;
+
+    customizeHtml += `
+      <div class="customize-card" data-type-id="${esc(cf.id)}">
+        <div class="customize-card-header">
+          <span class="customize-card-title">${esc(cf.label)}</span>
+          <span class="customize-card-remove" onclick="removeCustomizeFile('${id}','${esc(cf.id)}','${esc(cf.label)}')" title="Remove">&times;</span>
+        </div>
+
+        <label>Examples (upload 2-3 for AI analysis)</label>
+        <div class="file-list">
+          ${typeExamples.map(f => `
+            <span class="file-chip">
+              &#128196; ${esc(f)}
+              <span class="remove" onclick="deleteTypeExample('${id}','${esc(cf.id)}','${esc(f)}')">&times;</span>
+            </span>
+          `).join("")}
+        </div>
+        <div class="upload-area" onclick="document.getElementById('${inputId}').click()">
+          <input type="file" id="${inputId}" multiple accept=".txt,.pdf,.docx" onchange="uploadTypeExamples('${id}','${esc(cf.id)}', this.files)">
+          <p>+ Upload example ${esc(cf.label.toLowerCase())} files (.txt recommended)</p>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="generateTypeTemplate('${id}','${esc(cf.id)}')">
+            &#9998; Generate Template
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="previewTypeTemplate('${id}','${esc(cf.id)}')">
+            &#128065; Preview PDF
+          </button>
+        </div>
+
+        <label>Template</label>
+        <div class="template-preview">${esc(tplText || "(not generated yet)")}</div>
+        <div class="link-row" onclick="openTypeFile('${id}','${esc(cf.id)}','template.txt')">
+          <span class="icon">&#128196;</span> Open template.txt
+        </div>
+
+        <label>Custom Definitions</label>
+        <div class="template-preview">${esc(defsText || "(not generated yet)")}</div>
+        <div class="link-row" onclick="openTypeFile('${id}','${esc(cf.id)}','definitions.txt')">
+          <span class="icon">&#128196;</span> Open definitions.txt
+        </div>
+      </div>
+    `;
+  });
 
   document.getElementById("mainContent").innerHTML = `
 
@@ -187,54 +247,31 @@ async function renderProject(id) {
     </div>
   </div>
 
-  <!-- ═══ Section: Templates ═══════════════════════════════ -->
+  <!-- ═══ Section: Customize Files ═════════════════════════ -->
   <div class="section">
     <div class="section-header" onclick="toggleSection(this)">
-      <h3><span>&#128203;</span> Templates</h3>
+      <h3><span>&#128203;</span> Customize Files</h3>
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
 
-      <label>Example Cover Letters (upload 2-3 for AI analysis)</label>
-      <div class="file-list" id="exampleList">
-        ${examples.map(f => `
-          <span class="file-chip">
-            &#128196; ${esc(f)}
-            <span class="remove" onclick="deleteExample('${id}','${esc(f)}')">&times;</span>
-          </span>
-        `).join("")}
+      <label>File Name Format</label>
+      <div class="filename-format-row">
+        <input type="text" id="filenameFormat" value="${esc(cfg.filename_format || "{{NAME}}-{{FIRM_NAME}}-{{FILE_TYPE}}")}"
+          placeholder="{{NAME}}-{{FIRM_NAME}}-{{FILE_TYPE}}">
+        <button class="btn btn-secondary btn-sm" onclick="saveFilenameFormat('${id}')" title="Save format">Save</button>
       </div>
-      <div class="upload-area" onclick="document.getElementById('exampleInput').click()">
-        <input type="file" id="exampleInput" multiple accept=".txt,.pdf,.docx" onchange="uploadExamples('${id}', this.files)">
-        <p>+ Upload example cover letters (.txt recommended)</p>
+      <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{FILE_TYPE}}</div>
+
+      <div class="customize-files-header">
+        <label style="margin:0">File Types</label>
+        <button class="btn btn-secondary btn-sm add-type-btn" onclick="promptAddCustomizeFile('${id}')">+ Add Type</button>
       </div>
 
-      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-primary btn-sm" onclick="generateTemplate('${id}')">
-          &#9998; Generate Cover Letter Template
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="previewTemplate('${id}')">
-          &#128065; Preview PDF
-        </button>
+      <div id="customizeFilesContainer">
+        ${customizeHtml}
       </div>
 
-      <label>Cover Letter Template</label>
-      <div class="template-preview" id="tplCoverLetter">${esc(tpls["cover_letter.txt"] || "(not generated yet)")}</div>
-      <div class="link-row" onclick="openFile('${id}','cover_letter.txt')">
-        <span class="icon">&#128196;</span> Open cover_letter.txt
-      </div>
-
-      <label>Custom Definitions</label>
-      <div class="template-preview" id="tplCustomDefs">${esc(tpls["custom_definitions.txt"] || "(not generated yet)")}</div>
-      <div class="link-row" onclick="openFile('${id}','custom_definitions.txt')">
-        <span class="icon">&#128196;</span> Open custom_definitions.txt
-      </div>
-
-      <label>Email Body Template</label>
-      <div class="template-preview" id="tplEmailBody">${esc(tpls["email_body.txt"] || "(not generated yet)")}</div>
-      <div class="link-row" onclick="openFile('${id}','email_body.txt')">
-        <span class="icon">&#128196;</span> Open email_body.txt
-      </div>
     </div>
   </div>
 
@@ -314,28 +351,59 @@ async function deleteMaterial(id, filename) {
   renderProject(id);
 }
 
-// ── Examples ──────────────────────────────────────────────
+// ── Customize File Types ─────────────────────────────────
 
-async function uploadExamples(id, files) {
+async function promptAddCustomizeFile(id) {
+  const label = prompt("File type name (e.g. Work Sample, Thank You Letter):");
+  if (!label) return;
+  try {
+    await api("POST", `/projects/${id}/customize-files`, { label });
+    toast(`"${label}" added`);
+    renderProject(id);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function removeCustomizeFile(id, typeId, label) {
+  if (!confirm(`Remove "${label}" and all its templates/examples?`)) return;
+  try {
+    await api("DELETE", `/projects/${id}/customize-files/${typeId}`);
+    toast(`"${label}" removed`);
+    renderProject(id);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function saveFilenameFormat(id) {
+  const fmt = document.getElementById("filenameFormat").value;
+  await api("PUT", `/projects/${id}/config`, { filename_format: fmt });
+  toast("Filename format saved");
+}
+
+// ── Per-type Examples ────────────────────────────────────
+
+async function uploadTypeExamples(id, typeId, files) {
   for (const file of files) {
-    await uploadFile(`/projects/${id}/upload-example`, file);
+    await uploadFile(`/projects/${id}/customize/${typeId}/upload-example`, file);
   }
   toast(`${files.length} example(s) uploaded`);
   renderProject(id);
 }
 
-async function deleteExample(id, filename) {
-  await api("DELETE", `/projects/${id}/examples/${filename}`);
+async function deleteTypeExample(id, typeId, filename) {
+  await api("DELETE", `/projects/${id}/customize/${typeId}/examples/${filename}`);
   toast("Example removed");
   renderProject(id);
 }
 
-// ── Template generation ───────────────────────────────────
+// ── Per-type Template generation ─────────────────────────
 
-async function generateTemplate(id) {
+async function generateTypeTemplate(id, typeId) {
   try {
     toast("Generating template... (this may take a moment)", "success");
-    const result = await api("POST", `/projects/${id}/generate-template`);
+    await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
     toast("Template generated!");
     renderProject(id);
   } catch (e) {
@@ -343,13 +411,11 @@ async function generateTemplate(id) {
   }
 }
 
-async function previewTemplate(id) {
+async function previewTypeTemplate(id, typeId) {
   try {
     toast("Generating preview PDF...", "success");
-    const result = await api("POST", `/projects/${id}/preview-template`);
+    const result = await api("POST", `/projects/${id}/customize/${typeId}/preview`);
     toast(`Preview saved: ${result.pdf_path}`);
-    // Auto-open the PDF
-    await api("POST", `/projects/${id}/open-file`, { filename: "preview" }).catch(() => {});
   } catch (e) {
     toast(e.message, "error");
   }
@@ -374,6 +440,14 @@ async function generateProjectMd(id) {
 async function openFile(id, filename) {
   try {
     await api("POST", `/projects/${id}/open-file`, { filename });
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function openTypeFile(id, typeId, filename) {
+  try {
+    await api("POST", `/projects/${id}/open-file`, { filename, type_id: typeId });
   } catch (e) {
     toast(e.message, "error");
   }

@@ -58,22 +58,22 @@ User Profile:
 
 # ── Generate template from example cover letters ───────────────
 
-def generate_template_from_examples(api_key: str, examples: list[str]) -> dict:
-    """Analyze multiple cover letter examples and generate a template with {{CUSTOM_X}} placeholders.
+def generate_template_from_examples(api_key: str, examples: list[str], file_type_label: str = "Cover Letter") -> dict:
+    """Analyze multiple example files and generate a template with {{CUSTOM_X}} placeholders.
 
     Returns:
         {
-            "template": "HTML template with {{CUSTOM_X}} placeholders",
+            "template": "Template with {{CUSTOM_X}} placeholders",
             "definitions": "Description of each CUSTOM_X placeholder"
         }
     """
-    system = """You are an expert at analyzing cover letters and creating reusable templates.
+    system = f"""You are an expert at analyzing {file_type_label} documents and creating reusable templates.
 Compare the provided examples to identify:
 - FIXED parts (identical or nearly identical across all examples)
-- VARIABLE parts (different in each example, customized per firm)
+- VARIABLE parts (different in each example, customized per firm/position)
 
-Replace each variable section with a {{CUSTOM_X}} placeholder (numbered sequentially).
-Also support {{NAME}}, {{PHONE}}, {{EMAIL}}, {{FIRM_NAME}}, {{POSITION}} as standard placeholders.
+Replace each variable section with a {{{{CUSTOM_X}}}} placeholder (numbered sequentially).
+Also support {{{{NAME}}}}, {{{{PHONE}}}}, {{{{EMAIL}}}}, {{{{FIRM_NAME}}}}, {{{{POSITION}}}} as standard placeholders.
 
 You must return valid JSON with exactly two keys:
 - "template": the full template text with placeholders
@@ -84,7 +84,7 @@ You must return valid JSON with exactly two keys:
     for i, ex in enumerate(examples, 1):
         examples_text += f"\n--- Example {i} ---\n{ex}\n"
 
-    user_msg = f"""Analyze these {len(examples)} cover letter examples and create a reusable template:
+    user_msg = f"""Analyze these {len(examples)} {file_type_label} examples and create a reusable template:
 {examples_text}
 
 Return JSON with "template" and "definitions" keys."""
