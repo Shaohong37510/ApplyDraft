@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 60px 65px 60px 65px; size: letter; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 10pt;
+    line-height: 1.65;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+  .info {
+    margin-bottom: 20px;
+  }
+  .info .name {
+    font-weight: 600;
+  }
+  .firm { margin-bottom: 8px; }
+  .salutation { margin-bottom: 16px; }
+  .body p {
+    margin: 0 0 13px 0;
+    text-align: justify;
+  }
+  .closing { margin-top: 24px; }
+  .signature { margin-top: 4px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="info">
+  <div class="name">{{NAME}}</div>
+  <div>{{PHONE}}</div>
+  <div>{{EMAIL}}</div>
+</div>
+
+<div class="firm">{{FIRM_NAME}}</div>
+
+<div class="salutation">Dear Hiring Manager,</div>
+
+<div class="body">
+  <!-- CUSTOMIZE: Replace the paragraphs below with your own cover letter body.
+       Available placeholders: {{NAME}}, {{PHONE}}, {{EMAIL}}, {{FIRM_NAME}}, {{POSITION}}, {{CUSTOM_P1}}, {{CUSTOM_P2}}
+  -->
+
+  <p>I am writing to apply for the {{POSITION}} position at {{FIRM_NAME}}. I am particularly drawn to {{FIRM_NAME}} for its focus on {{CUSTOM_P1}}</p>
+
+  <p>[Your experience paragraph 1 - describe your most relevant professional experience]</p>
+
+  <p>[Your experience paragraph 2 - describe another relevant experience or project]</p>
+
+  <p>{{CUSTOM_P2}}</p>
+
+  <p>Thank you for your time and consideration. I would welcome the opportunity to discuss how my background could contribute to {{FIRM_NAME}}'s work.</p>
+</div>
+
+<div class="closing">
+  Sincerely,
+  <div class="signature">{{NAME}}</div>
+</div>
+
+</body>
+</html>

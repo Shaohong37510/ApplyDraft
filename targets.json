@@ -1,0 +1,15 @@
+[
+  {
+    "firm": "Example Architecture Firm",
+    "email": "careers@example-firm.com",
+    "location": "New York, NY",
+    "position": "Junior Architectural Designer",
+    "openDate": "2026-02",
+    "subject": "Application for Junior Architectural Designer - Your Name",
+    "custom_p1": "its commitment to [firm's unique design trait from their website, ~15-20 words].",
+    "custom_p2": "I am particularly drawn to [Firm Name]'s [trait]. I am especially interested in [Project Name], where [your evaluation of the project]. My experience [why your background fits], 70-80 words total.",
+    "custom_p3": "My experience at [Previous Firm A] and [Previous Firm B] has provided me with a strong foundation in [relevant skills matched to job posting]. I have supported design teams through [specific contributions].",
+    "custom_p4": "I am particularly drawn to [Firm Name]'s focus on [what attracts you], your emphasis on [design quality], and your [studio culture trait]",
+    "source": "https://example-firm.com/careers"
+  }
+]
