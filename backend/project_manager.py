@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import csv
+from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -69,10 +70,9 @@ def create_project(name: str) -> dict:
         "job_requirements": "",
         "name": "",
         "phone": "",
-        "filename_format": "{{NAME}}-{{FIRM_NAME}}-{{FILE_TYPE}}",
         "customize_files": [
-            {"id": "cover_letter", "label": "Cover Letter"},
-            {"id": "email_body", "label": "Email Body"},
+            {"id": "cover_letter", "label": "Cover Letter", "filename_format": "{{NAME}}-{{FIRM_NAME}}-Cover Letter", "is_attachment": True},
+            {"id": "email_body", "label": "Email Body", "filename_format": "", "is_attachment": False},
         ],
     }
     _save_project_config(project_dir, config)
@@ -268,7 +268,7 @@ def add_customize_file(project_id: str, label: str) -> dict:
         type_id = f"{base_id}_{counter}"
         counter += 1
 
-    new_entry = {"id": type_id, "label": label}
+    new_entry = {"id": type_id, "label": label, "filename_format": "{{NAME}}-{{FIRM_NAME}}-" + label, "is_attachment": True}
     customize_files.append(new_entry)
     config["customize_files"] = customize_files
     _save_project_config(project_dir, config)
@@ -293,3 +293,51 @@ def remove_customize_file(project_id: str, type_id: str) -> bool:
     if type_dir.exists():
         _shutil.rmtree(type_dir)
     return True
+
+
+# ── Token Usage Log ───────────────────────────────────────────
+
+def append_token_usage(project_id: str, operation: str, usage: dict):
+    """Append a token usage entry to the project's token log."""
+    path = PROJECTS_DIR / project_id / "token_log.json"
+    log = []
+    if path.exists():
+        try:
+            log = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            log = []
+
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "operation": operation,
+        "input_tokens": usage.get("input_tokens", 0),
+        "output_tokens": usage.get("output_tokens", 0),
+        "api_calls": usage.get("api_calls", 0),
+    }
+    log.append(entry)
+    path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+    return entry
+
+
+def load_token_usage(project_id: str) -> dict:
+    """Load token usage log and compute totals."""
+    path = PROJECTS_DIR / project_id / "token_log.json"
+    log = []
+    if path.exists():
+        try:
+            log = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            log = []
+
+    totals = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    for entry in log:
+        totals["input_tokens"] += entry.get("input_tokens", 0)
+        totals["output_tokens"] += entry.get("output_tokens", 0)
+        totals["api_calls"] += entry.get("api_calls", 0)
+
+    # Cost calculation: Haiku input=$0.80/M, output=$4/M
+    totals["input_cost"] = round(totals["input_tokens"] * 0.80 / 1_000_000, 4)
+    totals["output_cost"] = round(totals["output_tokens"] * 4 / 1_000_000, 4)
+    totals["total_cost"] = round(totals["input_cost"] + totals["output_cost"], 4)
+
+    return {"totals": totals, "log": log}

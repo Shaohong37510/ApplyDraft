@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=3">
 </head>
 <body>
 
@@ -22,9 +22,22 @@
   </div>
 </div>
 
+<!-- ═══ Progress Modal ═══════════════════════════════════ -->
+<div class="progress-overlay" id="progressOverlay" style="display:none">
+  <div class="progress-modal">
+    <h3 id="progressTitle">Processing...</h3>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+    <div class="progress-status" id="progressStatus"></div>
+    <div class="progress-detail" id="progressDetail"></div>
+    <div class="progress-steps" id="progressSteps"></div>
+  </div>
+</div>
+
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=3"></script>
 </body>
 </html>

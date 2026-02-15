@@ -1,39 +1,96 @@
 """
 AI service: Claude API integration for job search, template generation, and content generation.
-Uses DuckDuckGo for web searching (no extra API key needed).
+Uses Anthropic's built-in web search tool for reliable searching.
+All public functions return (result, token_usage) tuples for token tracking.
 """
 import json
 import re
-from anthropic import Anthropic
-from duckduckgo_search import DDGS
+import time
+from anthropic import Anthropic, RateLimitError
 
 
-def _search_web(query: str, max_results: int = 8) -> list[dict]:
-    """Search the web using DuckDuckGo."""
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-        return [{"title": r["title"], "url": r["href"], "snippet": r["body"]} for r in results]
-    except Exception as e:
-        return [{"title": "Search error", "url": "", "snippet": str(e)}]
+def _merge_usage(*usages):
+    """Merge multiple usage dicts into one cumulative total."""
+    total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
+    for u in usages:
+        if u:
+            total["input_tokens"] += u.get("input_tokens", 0)
+            total["output_tokens"] += u.get("output_tokens", 0)
+            total["api_calls"] += u.get("api_calls", 1)
+    return total
 
 
-def _call_claude(api_key: str, system: str, user_msg: str, max_tokens: int = 4096) -> str:
-    """Call Claude API and return the text response."""
+def _call_claude(api_key: str, system: str, user_msg: str, max_tokens: int = 4096) -> tuple[str, dict]:
+    """Call Claude API and return (text_response, token_usage).
+    Retries up to 3 times on rate limit errors."""
     client = Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=max_tokens,
-        system=system,
-        messages=[{"role": "user", "content": user_msg}],
-    )
-    return response.content[0].text
+
+    for attempt in range(3):
+        try:
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            break
+        except RateLimitError:
+            if attempt < 2:
+                time.sleep(30 * (attempt + 1))  # 30s, 60s
+            else:
+                raise
+
+    usage = {
+        "input_tokens": response.usage.input_tokens,
+        "output_tokens": response.usage.output_tokens,
+        "api_calls": 1,
+    }
+    return response.content[0].text, usage
+
+
+def _call_claude_with_search(api_key: str, system: str, user_msg: str, max_tokens: int = 8000, max_searches: int = 10) -> tuple[str, dict]:
+    """Call Claude API with web search tool enabled. Returns (text_response, token_usage).
+    Retries up to 3 times on rate limit errors with increasing delays."""
+    client = Anthropic(api_key=api_key)
+
+    for attempt in range(3):
+        try:
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=max_tokens,
+                system=system,
+                tools=[{
+                    "type": "web_search_20250305",
+                    "name": "web_search",
+                    "max_uses": max_searches,
+                }],
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            break
+        except RateLimitError:
+            if attempt < 2:
+                time.sleep(30 * (attempt + 1))  # 30s, 60s
+            else:
+                raise
+
+    # Extract text from response (may contain multiple content blocks)
+    text_parts = []
+    for block in response.content:
+        if hasattr(block, "text") and block.text:
+            text_parts.append(block.text)
+
+    usage = {
+        "input_tokens": response.usage.input_tokens,
+        "output_tokens": response.usage.output_tokens,
+        "api_calls": 1,
+    }
+    return "\n".join(text_parts) if text_parts else "", usage
 
 
 # ── Generate project.md from job requirements ──────────────────
 
-def generate_project_md(api_key: str, job_requirements: str, user_profile: dict) -> str:
-    """Generate a project.md instruction file based on natural language job requirements."""
+def generate_project_md(api_key: str, job_requirements: str, user_profile: dict) -> tuple[str, dict]:
+    """Generate a project.md instruction file. Returns (md_content, token_usage)."""
     system = """You are an expert job search assistant. Generate a structured markdown instruction file
 for an AI agent that will search for jobs and write tailored application materials.
 Output ONLY the markdown content, no code fences."""
@@ -58,26 +115,31 @@ User Profile:
 
 # ── Generate template from example cover letters ───────────────
 
-def generate_template_from_examples(api_key: str, examples: list[str], file_type_label: str = "Cover Letter") -> dict:
-    """Analyze multiple example files and generate a template with {{CUSTOM_X}} placeholders.
-
-    Returns:
-        {
-            "template": "Template with {{CUSTOM_X}} placeholders",
-            "definitions": "Description of each CUSTOM_X placeholder"
-        }
-    """
+def generate_template_from_examples(api_key: str, examples: list[str], file_type_label: str = "Cover Letter") -> tuple[dict, dict]:
+    """Analyze examples and generate template. Returns (result_dict, token_usage)."""
     system = f"""You are an expert at analyzing {file_type_label} documents and creating reusable templates.
 Compare the provided examples to identify:
 - FIXED parts (identical or nearly identical across all examples)
 - VARIABLE parts (different in each example, customized per firm/position)
 
-Replace each variable section with a {{{{CUSTOM_X}}}} placeholder (numbered sequentially).
+Replace each variable section with a {{{{CUSTOM_X}}}} placeholder (numbered sequentially: CUSTOM_1, CUSTOM_2, CUSTOM_3...).
 Also support {{{{NAME}}}}, {{{{PHONE}}}}, {{{{EMAIL}}}}, {{{{FIRM_NAME}}}}, {{{{POSITION}}}} as standard placeholders.
 
 You must return valid JSON with exactly two keys:
 - "template": the full template text with placeholders
-- "definitions": a description of each CUSTOM_X placeholder, one per line, format: "CUSTOM_X: description"
+- "definitions": a structured description of each CUSTOM_X placeholder using this EXACT format:
+
+[CUSTOM_1]: <brief description of what this section is about>
+Prompt: <detailed instruction for AI to generate this content for a specific firm>
+Examples: <one real example extracted from the provided samples>
+Constrains: <word count and sentence limits, e.g. "30 words. two sentences">
+
+[CUSTOM_2]: <brief description>
+Prompt: <detailed instruction>
+Examples: <example>
+Constrains: <constraints>
+
+(continue for all CUSTOM_X placeholders, each block separated by a blank line)
 """
 
     examples_text = ""
@@ -89,28 +151,27 @@ You must return valid JSON with exactly two keys:
 
 Return JSON with "template" and "definitions" keys."""
 
-    result = _call_claude(api_key, system, user_msg, max_tokens=8000)
+    result, usage = _call_claude(api_key, system, user_msg, max_tokens=8000)
 
     # Parse JSON from response
     try:
-        # Try to find JSON in the response
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             parsed = json.loads(json_match.group())
             return {
                 "template": parsed.get("template", ""),
                 "definitions": parsed.get("definitions", ""),
-            }
+            }, usage
     except json.JSONDecodeError:
         pass
 
-    return {"template": result, "definitions": "Could not parse definitions. Please edit manually."}
+    return {"template": result, "definitions": "Could not parse definitions. Please edit manually."}, usage
 
 
 # ── Generate email template from example ───────────────────────
 
-def generate_email_template(api_key: str, example: str) -> dict:
-    """Generate an email body template from a single example."""
+def generate_email_template(api_key: str, example: str) -> tuple[dict, dict]:
+    """Generate email body template. Returns (result_dict, token_usage)."""
     system = """You are an expert at analyzing emails and creating reusable templates.
 Identify the variable parts and replace them with {{CUSTOM_X}} placeholders.
 Standard placeholders: {{NAME}}, {{PHONE}}, {{EMAIL}}, {{FIRM_NAME}}, {{POSITION}}.
@@ -121,7 +182,7 @@ Return valid JSON with:
 """
     user_msg = f"""Analyze this email example and create a reusable template:\n\n{example}\n\nReturn JSON."""
 
-    result = _call_claude(api_key, system, user_msg)
+    result, usage = _call_claude(api_key, system, user_msg)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
@@ -129,37 +190,10 @@ Return valid JSON with:
             return {
                 "template": parsed.get("template", ""),
                 "definitions": parsed.get("definitions", ""),
-            }
+            }, usage
     except json.JSONDecodeError:
         pass
-    return {"template": result, "definitions": ""}
-
-
-# ── Preview: fill template with sample content ─────────────────
-
-def preview_template(api_key: str, template: str, definitions: str, firm_name: str = "Example Studio") -> str:
-    """Fill a template with AI-generated sample content for preview."""
-    system = "You generate realistic sample content to fill cover letter template placeholders. Output ONLY the filled text, no explanation."
-
-    user_msg = f"""Fill the following template placeholders with realistic sample content.
-
-Template:
-{template}
-
-Placeholder definitions:
-{definitions}
-
-Use these values:
-- {{{{NAME}}}}: Jane Doe
-- {{{{PHONE}}}}: 555-123-4567
-- {{{{EMAIL}}}}: jane.doe@email.com
-- {{{{FIRM_NAME}}}}: {firm_name}
-- {{{{POSITION}}}}: Architectural Designer
-
-For each {{{{CUSTOM_X}}}} placeholder, generate appropriate content based on its definition.
-Return ONLY the filled template text."""
-
-    return _call_claude(api_key, system, user_msg)
+    return {"template": result, "definitions": ""}, usage
 
 
 # ── Search for firms and generate targets ──────────────────────
@@ -171,72 +205,79 @@ def search_and_generate_targets(
     job_requirements: str,
     count: int,
     existing_firms: list[str],
-) -> list[dict]:
-    """Search for firms and generate complete target entries."""
+) -> tuple[dict, dict]:
+    """Search for firms using Claude's built-in web search and generate targets."""
 
-    # Step 1: Search the web
-    search_queries = _generate_search_queries(api_key, job_requirements, count)
-    all_results = []
-    for query in search_queries:
-        results = _search_web(query)
-        all_results.extend(results)
-
-    search_context = json.dumps(all_results[:30], ensure_ascii=False, indent=1)
-
-    # Step 2: Ask Claude to analyze results and generate targets
-    system = f"""You are a job application assistant. Based on web search results, generate exactly {count} job application target entries.
+    system = f"""You are a job application assistant. Use web search to find real job openings, then generate exactly {count} application target entries.
 
 PROJECT INSTRUCTIONS:
 {project_md}
 
-CUSTOM PLACEHOLDER DEFINITIONS (for generating custom_p1, custom_p2, etc.):
+CUSTOM PLACEHOLDER DEFINITIONS:
 {custom_definitions}
 
 RULES:
-- Each entry must be a JSON object with: firm, email, location, position, openDate, subject, custom_p1, custom_p2, custom_p3, custom_p4, source
+- Search the web for real, current job openings matching the requirements
+- Each entry must be a JSON object with: firm, email, location, position, openDate, subject, source, and custom content fields
+- For custom content: read the CUSTOM PLACEHOLDER DEFINITIONS above. For each [CUSTOM_X] defined, include a "custom_X" field (e.g. custom_1, custom_2, custom_3...) with content generated according to its Prompt and Constrains
 - SKIP firms that only accept applications through web portals (Greenhouse, Workday, etc.) with no email alternative
 - If a firm must be skipped, include it in a separate "skipped" array with reason and portal URL
 - Do NOT include firms already applied to: {json.dumps(existing_firms)}
 - For email: find the careers/jobs email from the firm's website. Use patterns like jobs@, careers@, hr@, info@, office@
 - For subject: check if job posting specifies a required format. Otherwise use "Application for [Position] - [Applicant Name]"
-- Fill custom_p1 through custom_p4 according to the placeholder definitions above
 - Return valid JSON: {{"targets": [...], "skipped": [...]}}"""
 
-    user_msg = f"""Job requirements: {job_requirements}
+    user_msg = f"""Search the web for {count} job openings matching these requirements:
 
-Web search results:
-{search_context}
+{job_requirements}
 
-Generate {count} target entries. Return JSON only."""
+Find real firms with open positions and generate {count} target entries. Return JSON only."""
 
-    result = _call_claude(api_key, system, user_msg, max_tokens=8000)
+    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=8000, max_searches=count + 5)
 
+    if not result or not result.strip():
+        return {"targets": [], "skipped": [], "error": "AI returned empty response. Try again."}, usage
+
+    # Try to find JSON with targets array
+    try:
+        json_match = re.search(r'\{[\s\S]*"targets"[\s\S]*\}', result)
+        if json_match:
+            parsed = json.loads(json_match.group())
+            return parsed, usage
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: try any JSON object
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             parsed = json.loads(json_match.group())
-            return parsed
+            if "targets" in parsed:
+                return parsed, usage
+            # Maybe targets are at top level as a list
+            return {"targets": [parsed] if "firm" in parsed else [], "skipped": []}, usage
     except json.JSONDecodeError:
         pass
 
-    return {"targets": [], "skipped": [], "error": "Failed to parse AI response"}
+    # Try JSON array directly
+    try:
+        arr_match = re.search(r'\[[\s\S]*\]', result)
+        if arr_match:
+            parsed = json.loads(arr_match.group())
+            if isinstance(parsed, list) and len(parsed) > 0:
+                return {"targets": parsed, "skipped": []}, usage
+    except json.JSONDecodeError:
+        pass
 
-
-def _generate_search_queries(api_key: str, job_requirements: str, count: int) -> list[str]:
-    """Generate web search queries based on job requirements."""
-    system = "Generate 3-5 web search queries to find job openings. Return one query per line, no numbering, no quotes."
-    user_msg = f"I need to find {count} job openings matching: {job_requirements}"
-
-    result = _call_claude(api_key, system, user_msg, max_tokens=500)
-    queries = [line.strip() for line in result.strip().split("\n") if line.strip()]
-    return queries[:5]
+    snippet = result[:300].replace('\n', ' ')
+    return {"targets": [], "skipped": [], "error": f"Could not parse AI response: {snippet}..."}, usage
 
 
 # ── Generate custom content for a single firm ──────────────────
 
-def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> dict:
-    """Generate custom_p1 through custom_p4 for a specific firm."""
-    system = f"""Generate custom cover letter and email content for a specific firm.
+def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:
+    """Generate custom content for a firm. Returns (content_dict, token_usage)."""
+    system = f"""Generate custom content for a specific firm based on the placeholder definitions.
 
 PROJECT INSTRUCTIONS:
 {project_md}
@@ -244,7 +285,7 @@ PROJECT INSTRUCTIONS:
 PLACEHOLDER DEFINITIONS:
 {custom_definitions}
 
-Return valid JSON with keys: custom_p1, custom_p2, custom_p3, custom_p4"""
+Return valid JSON. For each [CUSTOM_X] in the definitions, include a "custom_X" key (e.g. custom_1, custom_2...) with content following its Prompt and Constrains."""
 
     user_msg = f"""Generate custom content for:
 Firm: {firm_info.get('firm', '')}
@@ -253,11 +294,11 @@ Location: {firm_info.get('location', '')}
 
 Return JSON only."""
 
-    result = _call_claude(api_key, system, user_msg)
+    result, usage = _call_claude(api_key, system, user_msg)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
-            return json.loads(json_match.group())
+            return json.loads(json_match.group()), usage
     except json.JSONDecodeError:
         pass
-    return {}
+    return {}, usage

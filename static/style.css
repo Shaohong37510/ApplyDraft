@@ -315,6 +315,7 @@ textarea { resize: vertical; min-height: 70px; }
 .badge-ok { background: rgba(74,222,128,.15); color: var(--green); }
 .badge-warn { background: rgba(251,146,60,.15); color: var(--orange); }
 .badge-err { background: rgba(248,113,113,.15); color: var(--red); }
+.draft-error { font-size: 11px; color: var(--red); margin-top: 2px; width: 100%; }
 
 /* ── Toast ────────────────────────────────────────────────── */
 .toast-container {
@@ -376,3 +377,285 @@ textarea { resize: vertical; min-height: 70px; }
 .upload-area:hover { border-color: var(--accent); }
 .upload-area input { display: none; }
 .upload-area p { font-size: 12px; color: var(--text2); }
+
+/* ── Attachment Checkboxes ───────────────────────────────── */
+.attach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.attach-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color .15s;
+}
+.attach-check:hover { border-color: var(--accent); }
+.attach-check input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Preview Path ────────────────────────────────────────── */
+.preview-path {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text2);
+}
+.preview-path a {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+.preview-path a:hover { text-decoration: underline; }
+
+/* ── Search Results Panel ────────────────────────────────── */
+.search-results-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 12px;
+}
+.search-results-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-count {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 400;
+}
+.search-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  transition: border-color .15s;
+}
+.search-result-row:hover { border-color: var(--accent); }
+.search-result-info {
+  flex: 1;
+  min-width: 0;
+}
+.search-result-info strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.search-detail {
+  font-size: 12px;
+  color: var(--text2);
+}
+.search-results-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+.search-results-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.btn-remove-target {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-remove-target:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: rgba(248,113,113,.1);
+}
+
+/* ── Token Usage ─────────────────────────────────────────── */
+.token-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(108,140,255,.1);
+  border: 1px solid rgba(108,140,255,.25);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+.token-usage-inline {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.token-summary {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.token-stat {
+  flex: 1;
+  min-width: 120px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.token-stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.token-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+.token-stat-total {
+  color: var(--accent);
+}
+.token-stat-cost {
+  font-size: 12px;
+  color: var(--text2);
+}
+.token-log-details {
+  margin-top: 12px;
+}
+.token-log-details summary {
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.token-log-details summary:hover { color: var(--accent); }
+.token-log {
+  margin-top: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+.token-log-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.token-log-row:last-child { border-bottom: none; }
+.token-log-time {
+  color: var(--text2);
+  min-width: 140px;
+  font-size: 11px;
+}
+.token-log-op {
+  color: var(--accent);
+  font-weight: 500;
+  min-width: 140px;
+}
+.token-log-tokens {
+  color: var(--text);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Progress Modal ──────────────────────────────────────── */
+.progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+.progress-modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 36px;
+  width: 440px;
+  max-width: 90vw;
+  text-align: center;
+}
+.progress-modal h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+.progress-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6c8cff, #a78bfa);
+  border-radius: 4px;
+  transition: width .4s ease;
+  width: 0%;
+}
+.progress-bar-fill.indeterminate {
+  width: 30% !important;
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+@keyframes indeterminate {
+  0% { margin-left: 0; }
+  50% { margin-left: 70%; }
+  100% { margin-left: 0; }
+}
+.progress-status {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 6px;
+  min-height: 20px;
+}
+.progress-detail {
+  font-size: 12px;
+  color: var(--text2);
+  min-height: 18px;
+}
+.progress-steps {
+  margin-top: 16px;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+  color: var(--text2);
+}
+.progress-step.active { color: var(--accent); font-weight: 500; }
+.progress-step.done { color: var(--green); }
+.progress-step .step-icon { width: 16px; text-align: center; }
