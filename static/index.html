@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=5">
+  <link rel="stylesheet" href="/static/style.css?v=6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -73,9 +73,26 @@
   </div>
 </div>
 
+<!-- ═══ Celebration Modal ═══════════════════════════════════ -->
+<div class="celebration-overlay" id="celebrationOverlay" style="display:none">
+  <div class="celebration-modal">
+    <div class="celebration-checkmark">
+      <svg viewBox="0 0 52 52" class="checkmark-svg">
+        <circle cx="26" cy="26" r="25" fill="none" class="checkmark-circle"/>
+        <path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" class="checkmark-check"/>
+      </svg>
+    </div>
+    <h2 class="celebration-title" id="celebrationTitle">All Done!</h2>
+    <p class="celebration-msg" id="celebrationMsg">Your applications have been generated successfully.</p>
+    <div class="celebration-stats" id="celebrationStats"></div>
+    <button class="btn btn-primary celebration-close" onclick="hideCelebration()">Continue</button>
+  </div>
+  <div class="confetti-container" id="confettiContainer"></div>
+</div>
+
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
-<script src="/static/app.js?v=7"></script>
+<script src="/static/app.js?v=8"></script>
 </body>
 </html>

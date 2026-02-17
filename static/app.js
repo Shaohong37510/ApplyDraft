@@ -6,6 +6,7 @@ let projects = [];
 let activeProjectId = null;
 let globalConfig = {};
 let pendingTargets = []; // search results awaiting confirmation
+let manualTargets = []; // manually added targets
 let supabaseClient = null;
 let accessToken = null;
 let currentUser = null;
@@ -578,6 +579,44 @@ async function renderProject(id) {
         </button>
       </div>
 
+      <!-- Manual Entry -->
+      <div class="manual-entry-section">
+        <div class="manual-entry-toggle" onclick="toggleManualEntry()">
+          <span class="arrow-icon">&#9654;</span>
+          <span>&#43; Add Position Manually</span>
+        </div>
+        <div class="manual-entry-form" id="manualEntryForm">
+          <div class="row">
+            <div>
+              <label>Company Name *</label>
+              <input type="text" id="manualFirm" placeholder="e.g. Foster + Partners">
+            </div>
+            <div>
+              <label>Email *</label>
+              <input type="email" id="manualEmail" placeholder="careers@firm.com">
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Position</label>
+              <input type="text" id="manualPosition" placeholder="e.g. Junior Architect">
+            </div>
+            <div>
+              <label>Location</label>
+              <input type="text" id="manualLocation" placeholder="e.g. New York, NY">
+            </div>
+          </div>
+          <label>Website</label>
+          <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
+          <div class="manual-entry-actions">
+            <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
+            <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
+          </div>
+        </div>
+        <div class="manual-entries-list" id="manualEntriesList"></div>
+        <div id="generateManualBtnContainer"></div>
+      </div>
+
       <div id="runResults"></div>
 
       <div class="link-row" onclick="openTracker('${id}')" style="margin-top:8px">
@@ -602,6 +641,10 @@ async function renderProject(id) {
 
   // Load token usage data
   loadTokenUsage(id);
+
+  // Re-render manual entries if any
+  renderManualEntries();
+  updateGenerateManualBtn(id);
 }
 
 // ── Section toggle ────────────────────────────────────────
@@ -981,8 +1024,26 @@ async function runSearch(id) {
     }
 
     // Show search results for user review
+    const totalReady = manualTargets.length + pendingTargets.length;
     let html = '<div class="search-results-panel">';
     html += '<div class="search-results-title">Search Results - Review & Confirm</div>';
+
+    // Show manual entries first (prioritized)
+    if (manualTargets.length > 0) {
+      manualTargets.forEach((t, i) => {
+        html += `<div class="manual-entry-row" id="manualConfirmRow_${i}">
+          <div class="search-result-info">
+            <span class="firm-name">${esc(t.firm)}</span>
+            <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+          </div>
+          <span class="manual-badge">Manual</span>
+          <button class="btn-remove-target" onclick="removeManualEntry(${i});updateConfirmCount('${id}')" title="Remove">&times;</button>
+        </div>`;
+      });
+      if (pendingTargets.length > 0) {
+        html += '<div class="search-results-divider" style="font-size:12px;color:var(--text2);padding-top:8px">AI Search Results</div>';
+      }
+    }
 
     if (pendingTargets.length > 0) {
       pendingTargets.forEach((t, i) => {
@@ -1014,7 +1075,7 @@ async function runSearch(id) {
     }
 
     html += `<div class="search-results-actions">
-      <span class="search-count">${pendingTargets.length} position(s) ready</span>
+      <span class="search-count" id="confirmCount">${totalReady} position(s) ready</span>
       <button class="btn btn-run" onclick="confirmAndGenerate('${id}')" id="confirmBtn">
         &#9654; Confirm & Generate
       </button>
@@ -1037,17 +1098,23 @@ function removeSearchTarget(index) {
   pendingTargets.splice(index, 1);
   const row = document.getElementById(`searchRow_${index}`);
   if (row) row.remove();
-  // Update count
-  const countEl = document.querySelector(".search-count");
-  if (countEl) countEl.textContent = `${pendingTargets.length} position(s) ready`;
-  if (pendingTargets.length === 0) {
+  updateConfirmCount();
+}
+
+function updateConfirmCount() {
+  const total = manualTargets.length + pendingTargets.length;
+  const countEl = document.getElementById("confirmCount") || document.querySelector(".search-count");
+  if (countEl) countEl.textContent = `${total} position(s) ready`;
+  if (total === 0) {
     const confirmBtn = document.getElementById("confirmBtn");
     if (confirmBtn) confirmBtn.disabled = true;
   }
 }
 
 async function confirmAndGenerate(id) {
-  if (pendingTargets.length === 0) {
+  // Merge manual (prioritized first) + searched targets
+  const allTargets = [...manualTargets, ...pendingTargets];
+  if (allTargets.length === 0) {
     toast("No positions to generate", "error");
     return;
   }
@@ -1056,7 +1123,7 @@ async function confirmAndGenerate(id) {
   confirmBtn.disabled = true;
   confirmBtn.innerHTML = '<span class="spinner"></span> Generating...';
 
-  showProgress("Generating Applications", `0 / ${pendingTargets.length} positions`, false);
+  showProgress("Generating Applications", `0 / ${allTargets.length} positions`, false);
   updateProgress(0);
 
   try {
@@ -1065,7 +1132,7 @@ async function confirmAndGenerate(id) {
     const response = await fetch(`/api/projects/${id}/generate-stream`, {
       method: "POST",
       headers: streamHeaders,
-      body: JSON.stringify({ targets: pendingTargets }),
+      body: JSON.stringify({ targets: allTargets }),
     });
 
     if (!response.ok) {
@@ -1135,15 +1202,18 @@ async function confirmAndGenerate(id) {
         html += `<div class="token-usage-inline">${renderTokenBadge(usage)}</div>`;
       }
 
-      toast(`Done: ${finalResult.generated.length} generated`);
       if (usage) showTokenUsage(usage);
       if (finalResult.save_error) {
         toast(finalResult.save_error, "error");
       }
+
+      // Show celebration popup
+      showCelebration(finalResult.generated);
     }
 
     document.getElementById("runResults").innerHTML = html;
     pendingTargets = [];
+    manualTargets = [];
     renderProject(id);
   } catch (e) {
     hideProgress();
@@ -1227,6 +1297,181 @@ async function loadTokenUsage(id) {
   } catch (e) {
     // silently ignore
   }
+}
+
+// ── Celebration Modal ─────────────────────────────────────
+
+function showCelebration(results) {
+  const totalGenerated = results.length;
+  const pdfCount = results.filter(r => r.pdf).length;
+  const draftCount = results.filter(r => r.draft).length;
+
+  document.getElementById("celebrationTitle").textContent =
+    totalGenerated === 1 ? "Application Complete!" : `${totalGenerated} Applications Complete!`;
+
+  const msgs = [
+    "Great job! Keep the momentum going!",
+    "You're one step closer to your dream job!",
+    "Amazing progress! Your hard work will pay off!",
+    "Well done! Every application counts!",
+    "Fantastic! You're building great opportunities!",
+  ];
+  document.getElementById("celebrationMsg").textContent = msgs[Math.floor(Math.random() * msgs.length)];
+
+  document.getElementById("celebrationStats").innerHTML = `
+    <div class="celeb-stat">
+      <span class="celeb-stat-num">${totalGenerated}</span>
+      <span class="celeb-stat-label">Generated</span>
+    </div>
+    <div class="celeb-stat">
+      <span class="celeb-stat-num">${pdfCount}</span>
+      <span class="celeb-stat-label">PDFs</span>
+    </div>
+    <div class="celeb-stat">
+      <span class="celeb-stat-num">${draftCount}</span>
+      <span class="celeb-stat-label">Drafts</span>
+    </div>
+  `;
+
+  document.getElementById("celebrationOverlay").style.display = "";
+  launchConfetti();
+}
+
+function hideCelebration() {
+  document.getElementById("celebrationOverlay").style.display = "none";
+  document.getElementById("confettiContainer").innerHTML = "";
+}
+
+function launchConfetti() {
+  const container = document.getElementById("confettiContainer");
+  container.innerHTML = "";
+  const colors = ["#6c8cff", "#a78bfa", "#4ade80", "#fb923c", "#f87171", "#fbbf24", "#34d399", "#818cf8"];
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.setProperty("--fall-duration", (2 + Math.random() * 2) + "s");
+    piece.style.setProperty("--rotation", (360 + Math.random() * 720) + "deg");
+    piece.style.animationDelay = Math.random() * 0.8 + "s";
+    piece.style.width = (6 + Math.random() * 8) + "px";
+    piece.style.height = (6 + Math.random() * 8) + "px";
+    piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+    container.appendChild(piece);
+  }
+}
+
+// ── Manual Entry ──────────────────────────────────────────
+
+function toggleManualEntry() {
+  const toggle = document.querySelector(".manual-entry-toggle");
+  const form = document.getElementById("manualEntryForm");
+  toggle.classList.toggle("expanded");
+  form.classList.toggle("visible");
+}
+
+function addManualEntry(projectId) {
+  const firm = document.getElementById("manualFirm").value.trim();
+  const email = document.getElementById("manualEmail").value.trim();
+  const position = document.getElementById("manualPosition").value.trim();
+  const location = document.getElementById("manualLocation").value.trim();
+  const website = document.getElementById("manualWebsite").value.trim();
+
+  if (!firm) { toast("Company name is required", "error"); return; }
+  if (!email) { toast("Email is required", "error"); return; }
+
+  const entry = {
+    firm,
+    email,
+    position: position || "Architect",
+    location: location || "",
+    website: website || "",
+    source: "manual",
+    openDate: new Date().toISOString().slice(0, 7),
+    salutation: "Hiring Manager",
+    subject: `Application for ${position || "Architect"} Position - ${globalConfig.name || "Applicant"}`,
+    _manual: true,
+  };
+
+  manualTargets.push(entry);
+  renderManualEntries();
+  updateGenerateManualBtn(projectId);
+
+  // Clear form
+  document.getElementById("manualFirm").value = "";
+  document.getElementById("manualEmail").value = "";
+  document.getElementById("manualPosition").value = "";
+  document.getElementById("manualLocation").value = "";
+  document.getElementById("manualWebsite").value = "";
+
+  toast(`Added ${firm} (manual)`);
+}
+
+function updateGenerateManualBtn(projectId) {
+  const container = document.getElementById("generateManualBtnContainer");
+  if (!container) return;
+  if (manualTargets.length > 0) {
+    container.innerHTML = `<button class="btn btn-run" onclick="generateManualOnly('${projectId}')" style="margin-top:12px">
+      &#9654; Generate ${manualTargets.length} Manual Position${manualTargets.length > 1 ? "s" : ""}
+    </button>`;
+  } else {
+    container.innerHTML = "";
+  }
+}
+
+async function generateManualOnly(id) {
+  // Skip search, go straight to generate with manual targets only
+  pendingTargets = [];
+  const resultsDiv = document.getElementById("runResults");
+  resultsDiv.innerHTML = "";
+
+  // Show a simplified confirm view then auto-generate
+  const totalReady = manualTargets.length;
+  let html = '<div class="search-results-panel">';
+  html += '<div class="search-results-title">Manual Positions - Generating</div>';
+  manualTargets.forEach((t, i) => {
+    html += `<div class="manual-entry-row">
+      <div class="search-result-info">
+        <span class="firm-name">${esc(t.firm)}</span>
+        <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+      </div>
+      <span class="manual-badge">Manual</span>
+    </div>`;
+  });
+  html += `<div class="search-results-actions">
+    <span class="search-count" id="confirmCount">${totalReady} position(s)</span>
+    <button class="btn btn-run" id="confirmBtn" disabled>
+      <span class="spinner"></span> Generating...
+    </button>
+  </div></div>`;
+  resultsDiv.innerHTML = html;
+
+  // Directly call confirmAndGenerate
+  await confirmAndGenerate(id);
+}
+
+function removeManualEntry(index) {
+  manualTargets.splice(index, 1);
+  renderManualEntries();
+}
+
+function renderManualEntries() {
+  const container = document.getElementById("manualEntriesList");
+  if (!container) return;
+  if (manualTargets.length === 0) {
+    container.innerHTML = "";
+    return;
+  }
+  container.innerHTML = manualTargets.map((t, i) => `
+    <div class="manual-entry-row" id="manualRow_${i}">
+      <div class="search-result-info">
+        <span class="firm-name">${esc(t.firm)}</span>
+        <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+      </div>
+      <span class="manual-badge">Manual</span>
+      <button class="btn-remove-target" onclick="removeManualEntry(${i})" title="Remove">&times;</button>
+    </div>
+  `).join("");
 }
 
 // ── Utility ───────────────────────────────────────────────

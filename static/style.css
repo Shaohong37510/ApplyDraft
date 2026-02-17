@@ -735,3 +735,192 @@ textarea { resize: vertical; min-height: 70px; }
   cursor: pointer;
 }
 .btn-logout:hover { background: var(--bg3); }
+
+/* ── Celebration Modal ──────────────────────────────────── */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+  animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.celebration-modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 48px;
+  width: 420px;
+  max-width: 90vw;
+  text-align: center;
+  animation: celebPop .4s cubic-bezier(.175,.885,.32,1.275);
+  position: relative;
+  z-index: 2;
+}
+@keyframes celebPop {
+  from { opacity: 0; transform: scale(0.7) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.celebration-checkmark {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+}
+.checkmark-svg {
+  width: 72px;
+  height: 72px;
+}
+.checkmark-circle {
+  stroke: var(--green);
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: checkStroke .6s cubic-bezier(.65,0,.45,1) .2s forwards;
+}
+.checkmark-check {
+  stroke: var(--green);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkStroke .4s cubic-bezier(.65,0,.45,1) .6s forwards;
+}
+@keyframes checkStroke {
+  to { stroke-dashoffset: 0; }
+}
+.celebration-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+.celebration-msg {
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 20px;
+}
+.celebration-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.celeb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.celeb-stat-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.celeb-stat-label {
+  font-size: 11px;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.celebration-close {
+  padding: 10px 36px;
+  font-size: 14px;
+}
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -10px;
+  border-radius: 2px;
+  animation: confettiFall var(--fall-duration, 3s) linear forwards;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(100vh) rotate(var(--rotation, 720deg)); opacity: 0; }
+}
+
+/* ── Manual Entry Form ─────────────────────────────────── */
+.manual-entry-section {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.manual-entry-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  padding: 6px 0;
+  user-select: none;
+}
+.manual-entry-toggle:hover { color: var(--accent-hover); }
+.manual-entry-toggle .arrow-icon {
+  font-size: 10px;
+  transition: transform .2s;
+}
+.manual-entry-toggle.expanded .arrow-icon {
+  transform: rotate(90deg);
+}
+.manual-entry-form {
+  display: none;
+  margin-top: 12px;
+}
+.manual-entry-form.visible {
+  display: block;
+}
+.manual-entry-form .row {
+  margin-bottom: 8px;
+}
+.manual-entry-form label {
+  margin-top: 8px;
+  margin-bottom: 3px;
+}
+.manual-entry-form label:first-child {
+  margin-top: 0;
+}
+.manual-entry-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.manual-entries-list {
+  margin-top: 12px;
+}
+.manual-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  border-left: 3px solid var(--orange);
+}
+.manual-entry-row .search-result-info { flex: 1; min-width: 0; }
+.manual-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(251,146,60,.15);
+  color: var(--orange);
+  white-space: nowrap;
+}
