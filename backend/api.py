@@ -8,38 +8,296 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 
 from . import project_manager as pm
 from . import ai_service as ai
 from . import pdf_service as pdf
 from . import email_service as email_svc
+from . import outlook_service as outlook_svc
+from . import supabase_client as db
+from . import stripe_service as stripe_svc
+from .auth_middleware import get_current_user
 
 router = APIRouter(prefix="/api")
 
 
 # ═══════════════════════════════════════════════════════════════
-#  Global Config
+#  Public config (no auth required)
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/config/public")
+def get_public_config():
+    """Return public Supabase config for frontend initialization."""
+    return {
+        "supabase_url": os.environ.get("SUPABASE_URL", ""),
+        "supabase_anon_key": os.environ.get("SUPABASE_ANON_KEY", ""),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Helpers: user config from Supabase + env vars
+# ═══════════════════════════════════════════════════════════════
+
+def _get_user_config(user_id: str) -> dict:
+    """Build a config dict merging server env vars + per-user Supabase settings.
+
+    Replaces the old file-based global_config.json.
+    """
+    settings = db.get_user_settings(user_id)
+    return {
+        # Server-side (env vars)
+        "api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
+        "ms_client_id": os.environ.get("MS_CLIENT_ID", ""),
+        "ms_client_secret": os.environ.get("MS_CLIENT_SECRET", ""),
+        # Per-user (Supabase)
+        "email_provider": settings.get("email_provider", "none"),
+        "email": settings.get("gmail_email", ""),
+        "gmail_app_password": settings.get("gmail_app_password", ""),
+        "outlook_tokens": settings.get("outlook_tokens") or {},
+        "outlook_email": settings.get("outlook_email", ""),
+    }
+
+
+def _save_user_config(user_id: str, cfg: dict):
+    """Persist user-specific settings back to Supabase."""
+    db.save_user_settings(user_id, {
+        "email_provider": cfg.get("email_provider", "none"),
+        "gmail_email": cfg.get("email", ""),
+        "gmail_app_password": cfg.get("gmail_app_password", ""),
+        "outlook_tokens": cfg.get("outlook_tokens"),
+        "outlook_email": cfg.get("outlook_email", ""),
+    })
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Auth & User
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/auth/me")
+def get_me(user_id: str = Depends(get_current_user)):
+    """Get current user info + credits."""
+    credits = db.get_user_credits(user_id)
+    settings = db.get_user_settings(user_id)
+    return {
+        "user_id": user_id,
+        "credits": credits,
+        "email_provider": settings.get("email_provider", "none"),
+        "outlook_connected": bool((settings.get("outlook_tokens") or {}).get("refresh_token")),
+        "outlook_email": settings.get("outlook_email", ""),
+        "gmail_email": settings.get("gmail_email", ""),
+    }
+
+
+@router.get("/auth/credits/history")
+def get_credit_history(user_id: str = Depends(get_current_user)):
+    return db.get_credit_history(user_id)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Stripe
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/stripe/checkout")
+def create_checkout(data: dict, request: Request, user_id: str = Depends(get_current_user)):
+    """Create a Stripe Checkout session for purchasing credits."""
+    credits = int(data.get("credits", 100))
+    if credits < 10:
+        raise HTTPException(400, "Minimum 10 credits")
+    host = request.headers.get("host", "localhost:8899")
+    scheme = "https" if "localhost" not in host else "http"
+    base_url = f"{scheme}://{host}"
+    url = stripe_svc.create_checkout_session(
+        user_id=user_id,
+        credits=credits,
+        success_url=f"{base_url}/?payment=success",
+        cancel_url=f"{base_url}/?payment=cancelled",
+    )
+    return {"checkout_url": url}
+
+
+@router.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook — NO auth required (Stripe calls this)."""
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    result = stripe_svc.handle_webhook(payload, sig)
+    if not result.get("ok"):
+        raise HTTPException(400, result.get("error", "Webhook failed"))
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════
+#  User Settings (replaces global-config)
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/global-config")
-def get_global_config():
-    cfg = pm.load_global_config()
-    # Mask sensitive fields for display
+def get_global_config(user_id: str = Depends(get_current_user)):
+    cfg = _get_user_config(user_id)
     masked = {**cfg}
+    # Mask sensitive fields for display
     if masked.get("api_key"):
         k = masked["api_key"]
         masked["api_key_display"] = k[:12] + "..." + k[-4:] if len(k) > 20 else "***"
+        del masked["api_key"]
     if masked.get("gmail_app_password"):
         masked["gmail_app_password_display"] = "****"
+    # Never expose OAuth tokens to frontend
+    if "outlook_tokens" in masked:
+        masked["outlook_connected"] = bool(masked["outlook_tokens"].get("refresh_token"))
+        del masked["outlook_tokens"]
+    if "ms_client_secret" in masked:
+        del masked["ms_client_secret"]
+    if "ms_client_id" in masked:
+        del masked["ms_client_id"]
     return masked
 
 
 @router.post("/global-config")
-def save_global_config(data: dict):
-    pm.save_global_config(data)
+def save_global_config(data: dict, user_id: str = Depends(get_current_user)):
+    # Only save user-editable fields
+    settings = db.get_user_settings(user_id)
+    if "email" in data:
+        settings["gmail_email"] = data["email"]
+    if "gmail_app_password" in data and data["gmail_app_password"] != "****":
+        settings["gmail_app_password"] = data["gmail_app_password"]
+    if "email_provider" in data:
+        settings["email_provider"] = data["email_provider"]
+    db.save_user_settings(user_id, settings)
     return {"ok": True}
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Outlook OAuth 2.0
+# ═══════════════════════════════════════════════════════════════
+
+def _get_redirect_uri(request) -> str:
+    """Build OAuth redirect URI from the current request's host."""
+    host = request.headers.get("host", "localhost:8899")
+    scheme = "https" if "localhost" not in host else "http"
+    return f"{scheme}://{host}/api/oauth/outlook/callback"
+
+
+@router.get("/oauth/outlook/authorize")
+def outlook_authorize(request: Request, user_id: str = Depends(get_current_user)):
+    """Return the Microsoft OAuth authorization URL."""
+    client_id = os.environ.get("MS_CLIENT_ID", "") or outlook_svc.MS_CLIENT_ID
+    if not client_id:
+        raise HTTPException(400, "Microsoft Client ID not configured")
+    redirect_uri = _get_redirect_uri(request)
+    # Pass user_id in state so callback can associate tokens
+    url = outlook_svc.get_auth_url(redirect_uri, client_id, state=user_id)
+    return {"auth_url": url}
+
+
+@router.get("/oauth/outlook/callback")
+def outlook_callback(request: Request, code: str = "", error: str = "", state: str = ""):
+    """Handle OAuth callback from Microsoft."""
+    if error:
+        return HTMLResponse(f"""<html><body><h2>Authorization Failed</h2>
+            <p>{error}</p><script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    user_id = state
+    if not user_id:
+        return HTMLResponse("""<html><body><h2>Error</h2>
+            <p>Missing user context. Please try again.</p>
+            <script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    client_id = os.environ.get("MS_CLIENT_ID", "") or outlook_svc.MS_CLIENT_ID
+    client_secret = os.environ.get("MS_CLIENT_SECRET", "")
+    redirect_uri = _get_redirect_uri(request)
+
+    ok, token_data = outlook_svc.exchange_code_for_tokens(
+        code, redirect_uri, client_id, client_secret
+    )
+    if not ok:
+        return HTMLResponse(f"""<html><body><h2>Token Exchange Failed</h2>
+            <p>{token_data.get('error', 'Unknown error')}</p>
+            <script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    # Get user email
+    email_ok, user_email, token_data = outlook_svc.get_user_email(
+        token_data, client_id, client_secret
+    )
+
+    # Save tokens to user settings in Supabase
+    _save_user_config(user_id, {
+        "outlook_tokens": token_data,
+        "outlook_email": user_email if email_ok else "",
+        "email_provider": "outlook",
+    })
+
+    return HTMLResponse(f"""<html><body>
+        <h2>Outlook Connected!</h2>
+        <p>Logged in as: {user_email if email_ok else '(unknown)'}</p>
+        <p>You can close this window.</p>
+        <script>
+            if (window.opener) {{ window.opener.location.reload(); }}
+            setTimeout(()=>window.close(), 2000);
+        </script>
+    </body></html>""")
+
+
+@router.post("/oauth/outlook/disconnect")
+def outlook_disconnect(user_id: str = Depends(get_current_user)):
+    """Remove Outlook OAuth tokens."""
+    settings = db.get_user_settings(user_id)
+    settings.pop("outlook_tokens", None)
+    settings.pop("outlook_email", None)
+    if settings.get("email_provider") == "outlook":
+        settings["email_provider"] = "none"
+    db.save_user_settings(user_id, settings)
+    return {"ok": True}
+
+
+def _create_draft(gcfg, target, email_body, user_name, attachments):
+    """Create email draft using configured provider (Gmail or Outlook).
+
+    Returns (draft_ok, draft_error, updated_gcfg_or_None).
+    """
+    provider = gcfg.get("email_provider", "gmail")
+
+    if provider == "outlook":
+        tokens = gcfg.get("outlook_tokens", {})
+        if not tokens.get("refresh_token"):
+            return False, "Outlook not connected", None
+        client_id = gcfg.get("ms_client_id", "") or outlook_svc.MS_CLIENT_ID
+        client_secret = gcfg.get("ms_client_secret", "")
+        draft_ok, draft_err, updated_tokens = outlook_svc.create_outlook_draft(
+            tokens=tokens,
+            to_email=target.get("email", ""),
+            subject=target.get("subject", f"Application - {user_name}"),
+            body_text=email_body,
+            from_name=user_name,
+            attachments=attachments,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        # Update tokens if refreshed
+        if updated_tokens != tokens:
+            gcfg["outlook_tokens"] = updated_tokens
+            return draft_ok, draft_err, gcfg
+        return draft_ok, draft_err, None
+
+    elif provider == "gmail":
+        gmail_user = gcfg.get("email", "")
+        gmail_pass = gcfg.get("gmail_app_password", "")
+        if not gmail_user or not gmail_pass:
+            return False, "Gmail not configured", None
+        draft_ok, draft_err = email_svc.create_gmail_draft(
+            gmail_user=gmail_user,
+            gmail_app_password=gmail_pass,
+            to_email=target.get("email", ""),
+            subject=target.get("subject", f"Application - {user_name}"),
+            body_text=email_body,
+            from_name=user_name,
+            attachments=attachments,
+        )
+        return draft_ok, draft_err, None
+
+    else:
+        return False, "No email provider configured", None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -47,32 +305,32 @@ def save_global_config(data: dict):
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/projects")
-def list_projects():
-    return pm.list_projects()
+def list_projects(user_id: str = Depends(get_current_user)):
+    return pm.list_projects(user_id)
 
 
 @router.post("/projects")
-def create_project(data: dict):
+def create_project(data: dict, user_id: str = Depends(get_current_user)):
     name = data.get("name", "New Project")
-    return pm.create_project(name)
+    return pm.create_project(user_id, name)
 
 
 @router.get("/projects/{project_id}")
-def get_project(project_id: str):
-    proj = pm.get_project(project_id)
+def get_project(project_id: str, user_id: str = Depends(get_current_user)):
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
     return proj
 
 
 @router.put("/projects/{project_id}/config")
-def update_project_config(project_id: str, data: dict):
-    return pm.update_project_config(project_id, data)
+def update_project_config(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
+    return pm.update_project_config(user_id, project_id, data)
 
 
 @router.delete("/projects/{project_id}")
-def delete_project(project_id: str):
-    if pm.delete_project(project_id):
+def delete_project(project_id: str, user_id: str = Depends(get_current_user)):
+    if pm.delete_project(user_id, project_id):
         return {"ok": True}
     raise HTTPException(404, "Project not found")
 
@@ -82,8 +340,8 @@ def delete_project(project_id: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/upload-material")
-async def upload_material(project_id: str, file: UploadFile = File(...)):
-    mat_dir = pm.get_project_dir(project_id) / "Material"
+async def upload_material(project_id: str, file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
+    mat_dir = pm.get_project_dir(user_id, project_id) / "Material"
     mat_dir.mkdir(parents=True, exist_ok=True)
     dest = mat_dir / file.filename
     with open(dest, "wb") as f:
@@ -93,8 +351,8 @@ async def upload_material(project_id: str, file: UploadFile = File(...)):
 
 
 @router.delete("/projects/{project_id}/material/{filename}")
-def delete_material(project_id: str, filename: str):
-    path = pm.get_project_dir(project_id) / "Material" / filename
+def delete_material(project_id: str, filename: str, user_id: str = Depends(get_current_user)):
+    path = pm.get_project_dir(user_id, project_id) / "Material" / filename
     if path.exists():
         path.unlink()
         return {"ok": True}
@@ -106,18 +364,18 @@ def delete_material(project_id: str, filename: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/customize-files")
-def add_customize_file(project_id: str, data: dict):
+def add_customize_file(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Add a new customize file type."""
     label = data.get("label", "")
     if not label:
         raise HTTPException(400, "Label is required")
-    entry = pm.add_customize_file(project_id, label)
+    entry = pm.add_customize_file(user_id, project_id, label)
     return entry
 
 
 @router.delete("/projects/{project_id}/customize-files/{type_id}")
-def remove_customize_file(project_id: str, type_id: str):
-    pm.remove_customize_file(project_id, type_id)
+def remove_customize_file(project_id: str, type_id: str, user_id: str = Depends(get_current_user)):
+    pm.remove_customize_file(user_id, project_id, type_id)
     return {"ok": True}
 
 
@@ -126,9 +384,9 @@ def remove_customize_file(project_id: str, type_id: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/customize/{type_id}/upload-example")
-async def upload_example(project_id: str, type_id: str, file: UploadFile = File(...)):
+async def upload_example(project_id: str, type_id: str, file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
     """Upload an example file for a given customize file type."""
-    examples_dir = pm.get_project_dir(project_id) / "templates" / type_id / "examples"
+    examples_dir = pm.get_project_dir(user_id, project_id) / "templates" / type_id / "examples"
     examples_dir.mkdir(parents=True, exist_ok=True)
     dest = examples_dir / file.filename
     with open(dest, "wb") as f:
@@ -138,13 +396,13 @@ async def upload_example(project_id: str, type_id: str, file: UploadFile = File(
 
 
 @router.get("/projects/{project_id}/customize/{type_id}/examples")
-def list_examples(project_id: str, type_id: str):
-    return pm.list_type_examples(project_id, type_id)
+def list_examples(project_id: str, type_id: str, user_id: str = Depends(get_current_user)):
+    return pm.list_type_examples(user_id, project_id, type_id)
 
 
 @router.delete("/projects/{project_id}/customize/{type_id}/examples/{filename}")
-def delete_example(project_id: str, type_id: str, filename: str):
-    path = pm.get_project_dir(project_id) / "templates" / type_id / "examples" / filename
+def delete_example(project_id: str, type_id: str, filename: str, user_id: str = Depends(get_current_user)):
+    path = pm.get_project_dir(user_id, project_id) / "templates" / type_id / "examples" / filename
     if path.exists():
         path.unlink()
         return {"ok": True}
@@ -152,19 +410,18 @@ def delete_example(project_id: str, type_id: str, filename: str):
 
 
 @router.post("/projects/{project_id}/customize/{type_id}/generate-template")
-def generate_template(project_id: str, type_id: str):
+def generate_template(project_id: str, type_id: str, user_id: str = Depends(get_current_user)):
     """AI reads uploaded examples and generates template + definitions for this file type."""
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    examples_dir = pm.get_project_dir(project_id) / "templates" / type_id / "examples"
+    examples_dir = pm.get_project_dir(user_id, project_id) / "templates" / type_id / "examples"
     if not examples_dir.exists():
         raise HTTPException(400, "No examples uploaded")
 
     # Get the label for this type
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     customize_files = proj["config"].get("customize_files", [])
     type_label = type_id
     for cf in customize_files:
@@ -199,10 +456,10 @@ def generate_template(project_id: str, type_id: str):
         raise HTTPException(400, "Need at least 1 example file (.txt recommended)")
 
     result, usage = ai.generate_template_from_examples(api_key, example_texts, type_label)
-    pm.append_token_usage(project_id, f"generate_template:{type_id}", usage)
+    pm.append_token_usage(user_id, project_id, f"generate_template:{type_id}", usage)
 
     # Save generated files in type-specific directory
-    type_dir = pm.get_project_dir(project_id) / "templates" / type_id
+    type_dir = pm.get_project_dir(user_id, project_id) / "templates" / type_id
     type_dir.mkdir(parents=True, exist_ok=True)
     (type_dir / "template.txt").write_text(result["template"], encoding="utf-8")
     (type_dir / "definitions.txt").write_text(result["definitions"], encoding="utf-8")
@@ -212,16 +469,15 @@ def generate_template(project_id: str, type_id: str):
 
 
 @router.post("/projects/{project_id}/customize/{type_id}/preview")
-def preview_template(project_id: str, type_id: str):
+def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_current_user)):
     """Preview: fill template with sample content locally (no API call), then generate PDF."""
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
-    gcfg = pm.load_global_config()
     proj_config = proj["config"]
 
-    type_dir = pm.get_project_dir(project_id) / "templates" / type_id
+    type_dir = pm.get_project_dir(user_id, project_id) / "templates" / type_id
     template_path = type_dir / "template.txt"
     definitions_path = type_dir / "definitions.txt"
 
@@ -239,9 +495,9 @@ def preview_template(project_id: str, type_id: str):
 
     # Fill template with sample/real values locally — no API call needed
     filled = template
-    filled = filled.replace("{{NAME}}", proj_config.get("name", gcfg.get("name", "Jane Doe")))
-    filled = filled.replace("{{PHONE}}", proj_config.get("phone", gcfg.get("phone", "555-123-4567")))
-    filled = filled.replace("{{EMAIL}}", gcfg.get("email", "jane.doe@email.com"))
+    filled = filled.replace("{{NAME}}", proj_config.get("name", "Jane Doe"))
+    filled = filled.replace("{{PHONE}}", proj_config.get("phone", "555-123-4567"))
+    filled = filled.replace("{{EMAIL}}", "jane.doe@email.com")
     filled = filled.replace("{{FIRM_NAME}}", "Example Studio")
     filled = filled.replace("{{POSITION}}", "Designer")
 
@@ -262,7 +518,7 @@ p {{ margin: 0 0 13px 0; text-align: justify; }}
 {filled.replace(chr(10), '<br>')}
 </body></html>"""
 
-    preview_dir = pm.get_project_dir(project_id) / "Email" / "CoverLetters"
+    preview_dir = pm.get_project_dir(user_id, project_id) / "Email" / "CoverLetters"
     preview_dir.mkdir(parents=True, exist_ok=True)
     preview_path = str(preview_dir / f"PREVIEW_{type_id}.pdf")
 
@@ -278,9 +534,9 @@ p {{ margin: 0 0 13px 0; text-align: justify; }}
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/email-template")
-def get_email_template(project_id: str):
+def get_email_template(project_id: str, user_id: str = Depends(get_current_user)):
     """Get current email template and definitions."""
-    tpl_dir = pm.get_project_dir(project_id) / "templates" / "email_body"
+    tpl_dir = pm.get_project_dir(user_id, project_id) / "templates" / "email_body"
     tpl_path = tpl_dir / "template.txt"
     defs_path = tpl_dir / "definitions.txt"
     example_path = tpl_dir / "example.txt"
@@ -292,70 +548,69 @@ def get_email_template(project_id: str):
 
 
 @router.post("/projects/{project_id}/email-template/save-example")
-def save_email_example(project_id: str, data: dict):
+def save_email_example(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Save pasted email example text."""
     text = data.get("text", "").strip()
     if not text:
         raise HTTPException(400, "No email text provided")
-    tpl_dir = pm.get_project_dir(project_id) / "templates" / "email_body"
+    tpl_dir = pm.get_project_dir(user_id, project_id) / "templates" / "email_body"
     tpl_dir.mkdir(parents=True, exist_ok=True)
     (tpl_dir / "example.txt").write_text(text, encoding="utf-8")
     return {"ok": True}
 
 
 @router.post("/projects/{project_id}/email-template/generate")
-def generate_email_template(project_id: str):
+def generate_email_template(project_id: str, user_id: str = Depends(get_current_user)):
     """Generate email template from saved example."""
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    tpl_dir = pm.get_project_dir(project_id) / "templates" / "email_body"
+    tpl_dir = pm.get_project_dir(user_id, project_id) / "templates" / "email_body"
     example_path = tpl_dir / "example.txt"
     if not example_path.exists():
         raise HTTPException(400, "No email example saved. Paste an example first.")
 
     example = example_path.read_text(encoding="utf-8")
     result, usage = ai.generate_template_from_examples(api_key, [example], "Email")
-    pm.append_token_usage(project_id, "generate_email_template", usage)
+    pm.append_token_usage(user_id, project_id, "generate_email_template", usage)
 
     tpl_dir.mkdir(parents=True, exist_ok=True)
     (tpl_dir / "template.txt").write_text(result["template"], encoding="utf-8")
     (tpl_dir / "definitions.txt").write_text(result["definitions"], encoding="utf-8")
 
     # Ensure email_body is in customize_files list for the generate flow
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     customize_files = proj["config"].get("customize_files", [])
     if not any(cf["id"] == "email_body" for cf in customize_files):
         customize_files.append({"id": "email_body", "label": "Email Body", "is_attachment": False})
-        pm.update_project_config(project_id, {"customize_files": customize_files})
+        pm.update_project_config(user_id, project_id, {"customize_files": customize_files})
 
     result["token_usage"] = usage
     return result
 
 
 @router.get("/projects/{project_id}/templates")
-def get_templates(project_id: str):
-    proj = pm.get_project(project_id)
+def get_templates(project_id: str, user_id: str = Depends(get_current_user)):
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404)
     return proj["templates"]
 
 
 @router.post("/projects/{project_id}/open-file")
-def open_file(project_id: str, data: dict):
+def open_file(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Open a file with the system default application."""
     filename = data.get("filename", "")
     type_id = data.get("type_id", "")
 
     # Per-type template/definitions files
     if type_id and filename in ["template.txt", "definitions.txt"]:
-        full_path = pm.get_project_dir(project_id) / "templates" / type_id / filename
+        full_path = pm.get_project_dir(user_id, project_id) / "templates" / type_id / filename
     elif filename == "tracker.csv":
-        full_path = pm.get_project_dir(project_id) / "tracker.csv"
+        full_path = pm.get_project_dir(user_id, project_id) / "tracker.csv"
     elif filename == "project.md":
-        full_path = pm.get_project_dir(project_id) / "project.md"
+        full_path = pm.get_project_dir(user_id, project_id) / "project.md"
     elif filename.endswith(".pdf"):
         # Open a specific PDF by path
         full_path = Path(filename)
@@ -363,7 +618,7 @@ def open_file(project_id: str, data: dict):
             raise HTTPException(404, "PDF not found")
     # Backward compat for legacy flat files
     elif filename in ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]:
-        full_path = pm.get_project_dir(project_id) / "templates" / filename
+        full_path = pm.get_project_dir(user_id, project_id) / "templates" / filename
     else:
         raise HTTPException(400, "Unknown file")
 
@@ -380,31 +635,30 @@ def open_file(project_id: str, data: dict):
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/project-md")
-def get_project_md(project_id: str):
-    return {"content": pm.load_project_md(project_id)}
+def get_project_md(project_id: str, user_id: str = Depends(get_current_user)):
+    return {"content": pm.load_project_md(user_id, project_id)}
 
 
 @router.post("/projects/{project_id}/generate-project-md")
-def generate_project_md(project_id: str):
+def generate_project_md(project_id: str, user_id: str = Depends(get_current_user)):
     """Generate project.md from job requirements."""
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    proj_config = pm.get_project(project_id)["config"]
+    proj_config = pm.get_project(user_id, project_id)["config"]
     job_req = proj_config.get("job_requirements", "")
     if not job_req:
         raise HTTPException(400, "No job requirements specified")
 
     user_profile = {
-        "name": proj_config.get("name", gcfg.get("name", "")),
-        "phone": proj_config.get("phone", gcfg.get("phone", "")),
+        "name": proj_config.get("name", ""),
+        "phone": proj_config.get("phone", ""),
     }
 
     md_content, usage = ai.generate_project_md(api_key, job_req, user_profile)
-    pm.save_project_md(project_id, md_content)
-    pm.append_token_usage(project_id, "generate_project_md", usage)
+    pm.save_project_md(user_id, project_id, md_content)
+    pm.append_token_usage(user_id, project_id, "generate_project_md", usage)
     return {"content": md_content, "token_usage": usage}
 
 
@@ -413,16 +667,15 @@ def generate_project_md(project_id: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/search")
-def search_positions(project_id: str, data: dict):
+def search_positions(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Search for positions. Returns candidates for user to review before generation."""
     count = min(int(data.get("count", 5)), 10)
 
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         raise HTTPException(400, "API Key not configured")
 
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
@@ -431,7 +684,7 @@ def search_positions(project_id: str, data: dict):
     if not job_req:
         raise HTTPException(400, "No job requirements specified")
 
-    project_dir = pm.get_project_dir(project_id)
+    project_dir = pm.get_project_dir(user_id, project_id)
     tpl_dir = project_dir / "templates"
 
     # Collect definitions from all file types
@@ -445,12 +698,12 @@ def search_positions(project_id: str, data: dict):
                 all_definitions.append(f"[{cf['label']}]\n{defs_text}")
     combined_definitions = "\n\n".join(all_definitions)
 
-    project_md = pm.load_project_md(project_id)
+    project_md = pm.load_project_md(user_id, project_id)
 
     # Get existing firms to avoid duplicates
-    existing_targets = pm.load_targets(project_id)
+    existing_targets = pm.load_targets(user_id, project_id)
     existing_firms = [t["firm"] for t in existing_targets]
-    tracker_rows = pm.load_tracker(project_id)
+    tracker_rows = pm.load_tracker(user_id, project_id)
     generated_firms = [r["Firm"] for r in tracker_rows if r.get("Status") == "Generated"]
 
     try:
@@ -464,7 +717,7 @@ def search_positions(project_id: str, data: dict):
             raise HTTPException(429, "API rate limit reached. Please wait 1-2 minutes and try again.")
         raise HTTPException(500, f"Search failed: {err_msg[:200]}")
 
-    pm.append_token_usage(project_id, "search", usage)
+    pm.append_token_usage(user_id, project_id, "search", usage)
 
     search_result["token_usage"] = usage
     return search_result
@@ -483,23 +736,20 @@ def _build_filename(fmt: str, replacements: dict) -> str:
 
 
 @router.post("/projects/{project_id}/generate")
-def generate_from_targets(project_id: str, data: dict):
+def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Generate PDFs + Gmail drafts from user-confirmed target list."""
     confirmed_targets = data.get("targets", [])
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
 
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
-    gmail_user = gcfg.get("email", "")
-    gmail_pass = gcfg.get("gmail_app_password", "")
+    gcfg = _get_user_config(user_id)
 
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
     proj_config = proj["config"]
-    project_dir = pm.get_project_dir(project_id)
+    project_dir = pm.get_project_dir(user_id, project_id)
     tpl_dir = project_dir / "templates"
 
     # Load customize file templates
@@ -518,20 +768,20 @@ def generate_from_targets(project_id: str, data: dict):
         }
 
     results = []
-    user_name = proj_config.get("name", gcfg.get("name", "Applicant"))
+    user_name = proj_config.get("name", "Applicant")
     user_phone = proj_config.get("phone", "")
-    user_email = gmail_user
+    user_email = gcfg.get("email", "") or gcfg.get("outlook_email", "")
 
     output_dir = project_dir / "Email" / "CoverLetters"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     materials = [
-        pm.get_project_dir(project_id) / "Material" / f
+        pm.get_project_dir(user_id, project_id) / "Material" / f
         for f in (proj.get("materials") or [])
     ]
 
-    existing_targets = pm.load_targets(project_id)
-    tracker_rows = pm.load_tracker(project_id)
+    existing_targets = pm.load_targets(user_id, project_id)
+    tracker_rows = pm.load_tracker(user_id, project_id)
 
     total_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
 
@@ -609,7 +859,7 @@ Best regards,
 {user_phone}
 {user_email}"""
 
-        if gmail_user and gmail_pass:
+        if gcfg.get("email_provider", "gmail") != "none":
             attachments = []
             for mat_file in materials:
                 if mat_file.exists():
@@ -618,15 +868,15 @@ Best regards,
                 if Path(gp["path"]).exists():
                     attachments.append({"filename": gp["filename"], "path": gp["path"]})
 
-            status["draft"] = email_svc.create_gmail_draft(
-                gmail_user=gmail_user,
-                gmail_app_password=gmail_pass,
-                to_email=target.get("email", ""),
-                subject=target.get("subject", f"Application - {user_name}"),
-                body_text=email_body,
-                from_name=user_name,
-                attachments=attachments,
+            draft_ok, draft_err, updated_gcfg = _create_draft(
+                gcfg, target, email_body, user_name, attachments
             )
+            status["draft"] = draft_ok
+            if draft_err:
+                status["draft_error"] = draft_err
+            if updated_gcfg:
+                gcfg = updated_gcfg
+                _save_user_config(user_id, gcfg)
 
         tracker_rows.append({
             "Firm": firm,
@@ -642,11 +892,11 @@ Best regards,
         results.append(status)
 
     existing_targets.extend(confirmed_targets)
-    pm.save_targets(project_id, existing_targets)
-    pm.save_tracker(project_id, tracker_rows)
+    pm.save_targets(user_id, project_id, existing_targets)
+    pm.save_tracker(user_id, project_id, tracker_rows)
 
     if total_usage["api_calls"] > 0:
-        pm.append_token_usage(project_id, "generate", total_usage)
+        pm.append_token_usage(user_id, project_id, "generate", total_usage)
 
     return {"generated": results, "token_usage": total_usage}
 
@@ -656,23 +906,20 @@ Best regards,
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/generate-stream")
-def generate_stream(project_id: str, data: dict):
+def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
     """Generate PDFs + Gmail drafts with Server-Sent Events for progress."""
     confirmed_targets = data.get("targets", [])
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
 
-    gcfg = pm.load_global_config()
-    api_key = gcfg.get("api_key", "")
-    gmail_user = gcfg.get("email", "")
-    gmail_pass = gcfg.get("gmail_app_password", "")
+    gcfg = _get_user_config(user_id)
 
-    proj = pm.get_project(project_id)
+    proj = pm.get_project(user_id, project_id)
     if not proj:
         raise HTTPException(404, "Project not found")
 
     proj_config = proj["config"]
-    project_dir = pm.get_project_dir(project_id)
+    project_dir = pm.get_project_dir(user_id, project_id)
     tpl_dir = project_dir / "templates"
 
     customize_files = proj_config.get("customize_files", [])
@@ -689,19 +936,20 @@ def generate_stream(project_id: str, data: dict):
             "is_attachment": cf.get("is_attachment", True),
         }
 
-    user_name = proj_config.get("name", gcfg.get("name", "Applicant"))
+    user_name = proj_config.get("name", "Applicant")
     user_phone = proj_config.get("phone", "")
-    user_email = gmail_user
+    user_email = gcfg.get("email", "") or gcfg.get("outlook_email", "")
     output_dir = project_dir / "Email" / "CoverLetters"
     output_dir.mkdir(parents=True, exist_ok=True)
     materials = [
-        pm.get_project_dir(project_id) / "Material" / f
+        pm.get_project_dir(user_id, project_id) / "Material" / f
         for f in (proj.get("materials") or [])
     ]
-    existing_targets = pm.load_targets(project_id)
-    tracker_rows = pm.load_tracker(project_id)
+    existing_targets = pm.load_targets(user_id, project_id)
+    tracker_rows = pm.load_tracker(user_id, project_id)
 
     def event_stream():
+        nonlocal gcfg
         total = len(confirmed_targets)
         results = []
         total_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
@@ -781,9 +1029,11 @@ Best regards,
 {user_phone}
 {user_email}"""
 
-            # Step 3: Creating Gmail draft
-            if gmail_user and gmail_pass:
-                yield f"data: {json.dumps({'type': 'progress', 'pct': pct + int(0.6/total*100), 'detail': f'Creating Gmail draft for {firm}...'})}\n\n"
+            # Step 3: Creating email draft
+            email_provider = gcfg.get("email_provider", "gmail")
+            if email_provider != "none":
+                provider_label = "Outlook" if email_provider == "outlook" else "Gmail"
+                yield f"data: {json.dumps({'type': 'progress', 'pct': pct + int(0.6/total*100), 'detail': f'Creating {provider_label} draft for {firm}...'})}\n\n"
 
                 attachments = []
                 for mat_file in materials:
@@ -793,18 +1043,15 @@ Best regards,
                     if Path(gp["path"]).exists():
                         attachments.append({"filename": gp["filename"], "path": gp["path"]})
 
-                draft_ok, draft_err = email_svc.create_gmail_draft(
-                    gmail_user=gmail_user,
-                    gmail_app_password=gmail_pass,
-                    to_email=target.get("email", ""),
-                    subject=target.get("subject", f"Application - {user_name}"),
-                    body_text=email_body,
-                    from_name=user_name,
-                    attachments=attachments,
+                draft_ok, draft_err, updated_gcfg = _create_draft(
+                    gcfg, target, email_body, user_name, attachments
                 )
                 status_obj["draft"] = draft_ok
                 if draft_err:
                     status_obj["draft_error"] = draft_err
+                if updated_gcfg:
+                    gcfg = updated_gcfg
+                    _save_user_config(user_id, gcfg)
 
             # Add to tracker
             tracker_rows.append({
@@ -830,8 +1077,8 @@ Best regards,
         save_error = None
         try:
             existing_targets.extend(confirmed_targets)
-            pm.save_targets(project_id, existing_targets)
-            pm.save_tracker(project_id, tracker_rows)
+            pm.save_targets(user_id, project_id, existing_targets)
+            pm.save_tracker(user_id, project_id, tracker_rows)
         except PermissionError:
             save_error = "tracker.csv is locked (close Excel first). Drafts were created but tracker was not updated."
         except Exception as e:
@@ -839,7 +1086,7 @@ Best regards,
 
         if total_usage["api_calls"] > 0:
             try:
-                pm.append_token_usage(project_id, "generate", total_usage)
+                pm.append_token_usage(user_id, project_id, "generate", total_usage)
             except Exception:
                 pass
 
@@ -857,9 +1104,9 @@ Best regards,
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/token-usage")
-def get_token_usage(project_id: str):
+def get_token_usage(project_id: str, user_id: str = Depends(get_current_user)):
     """Get token usage log and totals for a project."""
-    return pm.load_token_usage(project_id)
+    return pm.load_token_usage(user_id, project_id)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -867,8 +1114,8 @@ def get_token_usage(project_id: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/open-output-folder")
-def open_output_folder(project_id: str):
-    folder = pm.get_project_dir(project_id) / "Email" / "CoverLetters"
+def open_output_folder(project_id: str, user_id: str = Depends(get_current_user)):
+    folder = pm.get_project_dir(user_id, project_id) / "Email" / "CoverLetters"
     folder.mkdir(parents=True, exist_ok=True)
     subprocess.Popen(["explorer", str(folder)])
     return {"ok": True, "path": str(folder)}
@@ -879,13 +1126,13 @@ def open_output_folder(project_id: str):
 # ═══════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/tracker")
-def get_tracker(project_id: str):
-    return pm.load_tracker(project_id)
+def get_tracker(project_id: str, user_id: str = Depends(get_current_user)):
+    return pm.load_tracker(user_id, project_id)
 
 
 @router.post("/projects/{project_id}/open-tracker")
-def open_tracker(project_id: str):
-    path = pm.get_tracker_path(project_id)
+def open_tracker(project_id: str, user_id: str = Depends(get_current_user)):
+    path = pm.get_tracker_path(user_id, project_id)
     if path.exists():
         os.startfile(str(path))
         return {"ok": True, "path": str(path)}

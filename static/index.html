@@ -3,23 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=3">
+  <title>ApplyDraft - Job Application Kit</title>
+  <link rel="stylesheet" href="/static/style.css?v=5">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
 
-<!-- ═══ Tab Bar ════════════════════════════════════════════ -->
-<div class="tab-bar" id="tabBar">
-  <div class="tab-add" id="addProjectBtn" title="New Project">+</div>
+<!-- ═══ Loading Indicator (shown until init completes) ════ -->
+<div id="loadingScreen" style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b90a5;font-size:16px;">Loading...</div>
+
+<!-- ═══ Login Page ════════════════════════════════════════ -->
+<div id="loginPage" style="display:none">
+  <div class="login-container">
+    <h1>ApplyDraft</h1>
+    <p class="login-subtitle">AI-powered job application automation</p>
+    <div class="login-buttons">
+      <button class="btn btn-google" onclick="loginWithGoogle()">
+        Sign in with Google
+      </button>
+      <button class="btn btn-microsoft" onclick="loginWithMicrosoft()">
+        Sign in with Microsoft
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- ═══ Main Content ══════════════════════════════════════ -->
-<div class="main" id="mainContent">
-  <div class="empty-state" id="emptyState">
-    <h2>Job Application Kit</h2>
-    <p>Create a project to get started</p>
-    <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
+<!-- ═══ App (shown after login) ══════════════════════════ -->
+<div id="appContainer" style="display:none">
+
+  <!-- ═══ Top Bar (user info + credits) ════════════════════ -->
+  <div class="top-bar" id="topBar">
+    <div class="top-bar-left">
+      <span class="app-name">ApplyDraft</span>
+    </div>
+    <div class="top-bar-right">
+      <span class="credits-display" id="creditsDisplay">0 credits</span>
+      <button class="btn btn-sm btn-buy" onclick="buyCredits()">Buy Credits</button>
+      <span class="user-email" id="userEmail"></span>
+      <button class="btn btn-sm btn-logout" onclick="logout()">Sign Out</button>
+    </div>
   </div>
+
+  <!-- ═══ Tab Bar ════════════════════════════════════════════ -->
+  <div class="tab-bar" id="tabBar">
+    <div class="tab-add" id="addProjectBtn" title="New Project">+</div>
+  </div>
+
+  <!-- ═══ Main Content ══════════════════════════════════════ -->
+  <div class="main" id="mainContent">
+    <div class="empty-state" id="emptyState">
+      <h2>Job Application Kit</h2>
+      <p>Create a project to get started</p>
+      <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══ Progress Modal ═══════════════════════════════════ -->
@@ -38,6 +76,6 @@
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
-<script src="/static/app.js?v=3"></script>
+<script src="/static/app.js?v=7"></script>
 </body>
 </html>

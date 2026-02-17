@@ -2,10 +2,14 @@
 Job Application Kit - Main Entry Point
 Starts FastAPI server and opens browser.
 """
+import os
 import sys
 import webbrowser
 import threading
 from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import uvicorn
 from fastapi import FastAPI
@@ -14,7 +18,7 @@ from fastapi.responses import FileResponse
 
 from backend.api import router
 
-app = FastAPI(title="Job Application Kit")
+app = FastAPI(title="ApplyDraft - Job Application Kit")
 app.include_router(router)
 
 # Serve static files
@@ -27,18 +31,28 @@ def index():
     return FileResponse(str(static_dir / "index.html"))
 
 
-def open_browser():
-    webbrowser.open("http://localhost:8899")
+def open_browser(port):
+    webbrowser.open(f"http://localhost:{port}")
 
 
 def main():
+    port = int(os.environ.get("PORT", 8899))
+    host = os.environ.get("HOST", "127.0.0.1")
+
+    # In production (Railway etc.), bind 0.0.0.0
+    if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("PORT"):
+        host = "0.0.0.0"
+
     print("=" * 50)
     print("  Job Application Kit")
-    print("  http://localhost:8899")
+    print(f"  http://localhost:{port}")
     print("=" * 50)
-    # Open browser after a short delay
-    threading.Timer(1.5, open_browser).start()
-    uvicorn.run(app, host="127.0.0.1", port=8899, log_level="warning")
+
+    # Only open browser locally
+    if host == "127.0.0.1":
+        threading.Timer(1.5, open_browser, args=[port]).start()
+
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 """
 Project manager: handles project CRUD and file I/O.
-Each project lives in its own folder under projects/.
+Each project lives in its own folder under projects/{user_id}/.
 """
 import json
 import os
@@ -20,7 +20,14 @@ def _sanitize_name(name: str) -> str:
     return "".join(c if c.isalnum() or c in (" ", "-", "_") else "_" for c in name).strip()
 
 
-# ── Global config ──────────────────────────────────────────────
+def _user_dir(user_id: str) -> Path:
+    """Get the projects directory for a specific user."""
+    d = PROJECTS_DIR / user_id
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+# ── Global config (legacy, used as fallback) ──────────────────
 
 def load_global_config() -> dict:
     if GLOBAL_CONFIG_PATH.exists():
@@ -34,9 +41,10 @@ def save_global_config(data: dict):
 
 # ── Project CRUD ───────────────────────────────────────────────
 
-def list_projects() -> list[dict]:
+def list_projects(user_id: str) -> list[dict]:
+    user_projects = _user_dir(user_id)
     results = []
-    for p in sorted(PROJECTS_DIR.iterdir()):
+    for p in sorted(user_projects.iterdir()):
         if p.is_dir():
             config = _load_project_config(p)
             tracker_count = _count_tracker(p)
@@ -48,16 +56,17 @@ def list_projects() -> list[dict]:
     return results
 
 
-def create_project(name: str) -> dict:
+def create_project(user_id: str, name: str) -> dict:
     folder_name = _sanitize_name(name)
     if not folder_name:
         folder_name = "New-Project"
-    project_dir = PROJECTS_DIR / folder_name
+    user_projects = _user_dir(user_id)
+    project_dir = user_projects / folder_name
     counter = 1
     base = folder_name
     while project_dir.exists():
         folder_name = f"{base}-{counter}"
-        project_dir = PROJECTS_DIR / folder_name
+        project_dir = user_projects / folder_name
         counter += 1
 
     project_dir.mkdir(parents=True)
@@ -91,16 +100,16 @@ def create_project(name: str) -> dict:
     return {"id": folder_name, "name": name}
 
 
-def delete_project(project_id: str) -> bool:
-    project_dir = PROJECTS_DIR / project_id
+def delete_project(user_id: str, project_id: str) -> bool:
+    project_dir = _user_dir(user_id) / project_id
     if project_dir.exists() and project_dir.is_dir():
         shutil.rmtree(project_dir)
         return True
     return False
 
 
-def get_project(project_id: str) -> dict | None:
-    project_dir = PROJECTS_DIR / project_id
+def get_project(user_id: str, project_id: str) -> dict | None:
+    project_dir = _user_dir(user_id) / project_id
     if not project_dir.exists():
         return None
     config = _load_project_config(project_dir)
@@ -116,36 +125,36 @@ def get_project(project_id: str) -> dict | None:
     }
 
 
-def update_project_config(project_id: str, data: dict) -> dict:
-    project_dir = PROJECTS_DIR / project_id
+def update_project_config(user_id: str, project_id: str, data: dict) -> dict:
+    project_dir = _user_dir(user_id) / project_id
     config = _load_project_config(project_dir)
     config.update(data)
     _save_project_config(project_dir, config)
     return config
 
 
-def get_project_dir(project_id: str) -> Path:
-    return PROJECTS_DIR / project_id
+def get_project_dir(user_id: str, project_id: str) -> Path:
+    return _user_dir(user_id) / project_id
 
 
 # ── Targets ────────────────────────────────────────────────────
 
-def load_targets(project_id: str) -> list[dict]:
-    path = PROJECTS_DIR / project_id / "targets.json"
+def load_targets(user_id: str, project_id: str) -> list[dict]:
+    path = _user_dir(user_id) / project_id / "targets.json"
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
     return []
 
 
-def save_targets(project_id: str, targets: list[dict]):
-    path = PROJECTS_DIR / project_id / "targets.json"
+def save_targets(user_id: str, project_id: str, targets: list[dict]):
+    path = _user_dir(user_id) / project_id / "targets.json"
     path.write_text(json.dumps(targets, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 # ── Tracker ────────────────────────────────────────────────────
 
-def load_tracker(project_id: str) -> list[dict]:
-    path = PROJECTS_DIR / project_id / "tracker.csv"
+def load_tracker(user_id: str, project_id: str) -> list[dict]:
+    path = _user_dir(user_id) / project_id / "tracker.csv"
     if not path.exists():
         return []
     with open(path, encoding="utf-8") as f:
@@ -153,8 +162,8 @@ def load_tracker(project_id: str) -> list[dict]:
         return list(reader)
 
 
-def save_tracker(project_id: str, rows: list[dict]):
-    path = PROJECTS_DIR / project_id / "tracker.csv"
+def save_tracker(user_id: str, project_id: str, rows: list[dict]):
+    path = _user_dir(user_id) / project_id / "tracker.csv"
     if not rows:
         path.write_text(
             "Firm,Location,Position,OpenDate,AppliedDate,Email,Source,Status\n",
@@ -168,21 +177,21 @@ def save_tracker(project_id: str, rows: list[dict]):
         writer.writerows(rows)
 
 
-def get_tracker_path(project_id: str) -> Path:
-    return PROJECTS_DIR / project_id / "tracker.csv"
+def get_tracker_path(user_id: str, project_id: str) -> Path:
+    return _user_dir(user_id) / project_id / "tracker.csv"
 
 
 # ── Project.md ─────────────────────────────────────────────────
 
-def load_project_md(project_id: str) -> str:
-    path = PROJECTS_DIR / project_id / "project.md"
+def load_project_md(user_id: str, project_id: str) -> str:
+    path = _user_dir(user_id) / project_id / "project.md"
     if path.exists():
         return path.read_text(encoding="utf-8")
     return ""
 
 
-def save_project_md(project_id: str, content: str):
-    path = PROJECTS_DIR / project_id / "project.md"
+def save_project_md(user_id: str, project_id: str, content: str):
+    path = _user_dir(user_id) / project_id / "project.md"
     path.write_text(content, encoding="utf-8")
 
 
@@ -242,17 +251,17 @@ def _list_materials(project_dir: Path) -> list[str]:
     return [f.name for f in mat_dir.iterdir() if f.is_file()]
 
 
-def list_type_examples(project_id: str, type_id: str) -> list[str]:
+def list_type_examples(user_id: str, project_id: str, type_id: str) -> list[str]:
     """List uploaded example files for a given customize file type."""
-    examples_dir = PROJECTS_DIR / project_id / "templates" / type_id / "examples"
+    examples_dir = _user_dir(user_id) / project_id / "templates" / type_id / "examples"
     if not examples_dir.exists():
         return []
     return [f.name for f in examples_dir.iterdir() if f.is_file()]
 
 
-def add_customize_file(project_id: str, label: str) -> dict:
+def add_customize_file(user_id: str, project_id: str, label: str) -> dict:
     """Add a new customize file type to the project."""
-    project_dir = PROJECTS_DIR / project_id
+    project_dir = _user_dir(user_id) / project_id
     config = _load_project_config(project_dir)
     customize_files = config.get("customize_files", [])
 
@@ -279,10 +288,10 @@ def add_customize_file(project_id: str, label: str) -> dict:
     return new_entry
 
 
-def remove_customize_file(project_id: str, type_id: str) -> bool:
+def remove_customize_file(user_id: str, project_id: str, type_id: str) -> bool:
     """Remove a customize file type from the project."""
     import shutil as _shutil
-    project_dir = PROJECTS_DIR / project_id
+    project_dir = _user_dir(user_id) / project_id
     config = _load_project_config(project_dir)
     customize_files = config.get("customize_files", [])
     config["customize_files"] = [cf for cf in customize_files if cf["id"] != type_id]
@@ -297,9 +306,9 @@ def remove_customize_file(project_id: str, type_id: str) -> bool:
 
 # ── Token Usage Log ───────────────────────────────────────────
 
-def append_token_usage(project_id: str, operation: str, usage: dict):
+def append_token_usage(user_id: str, project_id: str, operation: str, usage: dict):
     """Append a token usage entry to the project's token log."""
-    path = PROJECTS_DIR / project_id / "token_log.json"
+    path = _user_dir(user_id) / project_id / "token_log.json"
     log = []
     if path.exists():
         try:
@@ -319,9 +328,9 @@ def append_token_usage(project_id: str, operation: str, usage: dict):
     return entry
 
 
-def load_token_usage(project_id: str) -> dict:
+def load_token_usage(user_id: str, project_id: str) -> dict:
     """Load token usage log and compute totals."""
-    path = PROJECTS_DIR / project_id / "token_log.json"
+    path = _user_dir(user_id) / project_id / "token_log.json"
     log = []
     if path.exists():
         try:

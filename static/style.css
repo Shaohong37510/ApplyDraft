@@ -659,3 +659,79 @@ textarea { resize: vertical; min-height: 70px; }
 .progress-step.active { color: var(--accent); font-weight: 500; }
 .progress-step.done { color: var(--green); }
 .progress-step .step-icon { width: 16px; text-align: center; }
+
+/* ── Login Page ──────────────────────────────────────────── */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 24px;
+}
+.login-container h1 {
+  font-size: 36px;
+  color: var(--accent);
+}
+.login-subtitle {
+  color: var(--text2);
+  font-size: 16px;
+}
+.login-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 280px;
+}
+.btn-google, .btn-microsoft {
+  padding: 12px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 15px;
+  cursor: pointer;
+  background: var(--bg2);
+  color: var(--text);
+  transition: background 0.2s;
+}
+.btn-google:hover, .btn-microsoft:hover {
+  background: var(--bg3);
+}
+
+/* ── Top Bar ─────────────────────────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.top-bar-left { display: flex; align-items: center; gap: 12px; }
+.top-bar-right { display: flex; align-items: center; gap: 12px; }
+.app-name { font-weight: 700; font-size: 16px; color: var(--accent); }
+.credits-display {
+  background: var(--bg3);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 600;
+}
+.user-email { font-size: 13px; color: var(--text2); }
+.btn-sm { padding: 4px 12px; font-size: 12px; }
+.btn-buy {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn-buy:hover { background: var(--accent-hover); }
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn-logout:hover { background: var(--bg3); }

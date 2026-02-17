@@ -1,7 +1,12 @@
 __pycache__/
 *.pyc
+.env
 global_config.json
 projects/
 *.egg-info/
 dist/
 build/
+Email/
+Material/
+tracker.csv
+nul

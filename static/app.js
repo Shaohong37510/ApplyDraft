@@ -1,18 +1,74 @@
 /* ═══════════════════════════════════════════════════════════
-   Job Application Kit - Frontend
+   ApplyDraft - Frontend
    ═══════════════════════════════════════════════════════════ */
 
 let projects = [];
 let activeProjectId = null;
 let globalConfig = {};
 let pendingTargets = []; // search results awaiting confirmation
+let supabaseClient = null;
+let accessToken = null;
+let currentUser = null;
+
+// ── Supabase Init ────────────────────────────────────────
+
+async function waitForSupabaseSDK(timeout = 5000) {
+  if (typeof supabase !== "undefined") return true;
+  return new Promise(resolve => {
+    const start = Date.now();
+    const check = () => {
+      if (typeof supabase !== "undefined") return resolve(true);
+      if (Date.now() - start > timeout) return resolve(false);
+      setTimeout(check, 100);
+    };
+    check();
+  });
+}
+
+async function initSupabase() {
+  try {
+    const sdkReady = await waitForSupabaseSDK();
+    if (!sdkReady) {
+      console.warn("Supabase SDK failed to load from CDN — running in demo mode");
+      return null;
+    }
+    const res = await fetch("/api/config/public");
+    const cfg = await res.json();
+    if (!cfg.supabase_url || !cfg.supabase_anon_key) {
+      console.warn("Supabase not configured — running in demo mode");
+      return null;
+    }
+    return supabase.createClient(cfg.supabase_url, cfg.supabase_anon_key);
+  } catch (e) {
+    console.warn("Failed to fetch config:", e);
+    return null;
+  }
+}
 
 // ── API helpers ───────────────────────────────────────────
 
 async function api(method, path, body) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
+  if (accessToken) {
+    opts.headers["Authorization"] = `Bearer ${accessToken}`;
+  }
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch("/api" + path, opts);
+  if (res.status === 401) {
+    // Token expired — try to refresh
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      opts.headers["Authorization"] = `Bearer ${accessToken}`;
+      const retry = await fetch("/api" + path, opts);
+      if (!retry.ok) {
+        const err = await retry.json().catch(() => ({ detail: retry.statusText }));
+        throw new Error(err.detail || "Request failed");
+      }
+      return retry.json();
+    }
+    showLogin();
+    throw new Error("Session expired. Please sign in again.");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "Request failed");
@@ -23,9 +79,90 @@ async function api(method, path, body) {
 async function uploadFile(path, file) {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch("/api" + path, { method: "POST", body: fd });
+  const headers = {};
+  if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+  const res = await fetch("/api" + path, { method: "POST", body: fd, headers });
   if (!res.ok) throw new Error("Upload failed");
   return res.json();
+}
+
+// ── Auth: Login / Logout / Session ───────────────────────
+
+async function loginWithGoogle() {
+  if (!supabaseClient) { toast("Supabase not configured", "error"); return; }
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) toast(error.message, "error");
+}
+
+async function loginWithMicrosoft() {
+  if (!supabaseClient) { toast("Supabase not configured", "error"); return; }
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "azure",
+    options: {
+      redirectTo: window.location.origin,
+      scopes: "openid profile email"
+    }
+  });
+  if (error) toast(error.message, "error");
+}
+
+async function logout() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  accessToken = null;
+  currentUser = null;
+  showLogin();
+}
+
+async function refreshSession() {
+  if (!supabaseClient) return false;
+  const { data, error } = await supabaseClient.auth.refreshSession();
+  if (error || !data.session) return false;
+  accessToken = data.session.access_token;
+  return true;
+}
+
+function hideLoading() {
+  const el = document.getElementById("loadingScreen");
+  if (el) el.style.display = "none";
+}
+
+function showLogin() {
+  hideLoading();
+  document.getElementById("loginPage").style.display = "";
+  document.getElementById("appContainer").style.display = "none";
+}
+
+function showApp() {
+  hideLoading();
+  document.getElementById("loginPage").style.display = "none";
+  document.getElementById("appContainer").style.display = "";
+}
+
+async function updateUserInfo() {
+  try {
+    const me = await api("GET", "/auth/me");
+    currentUser = me;
+    document.getElementById("creditsDisplay").textContent = `${me.credits} credits`;
+    document.getElementById("userEmail").textContent = me.gmail_email || me.outlook_email || me.user_id.slice(0, 8);
+  } catch (e) {
+    console.warn("Failed to get user info:", e);
+  }
+}
+
+async function buyCredits() {
+  const amount = prompt("How many credits? (min 10)", "100");
+  if (!amount) return;
+  const credits = parseInt(amount);
+  if (isNaN(credits) || credits < 10) { toast("Minimum 10 credits", "error"); return; }
+  try {
+    const { checkout_url } = await api("POST", "/stripe/checkout", { credits });
+    window.open(checkout_url, "_blank");
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 
 // ── Toast ─────────────────────────────────────────────────
@@ -41,8 +178,65 @@ function toast(msg, type = "success") {
 // ── Init ──────────────────────────────────────────────────
 
 async function init() {
-  globalConfig = await api("GET", "/global-config");
-  projects = await api("GET", "/projects");
+  supabaseClient = await initSupabase();
+
+  // Check for payment success/cancel in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("payment") === "success") {
+    toast("Payment successful! Credits added.");
+    window.history.replaceState({}, "", "/");
+  } else if (urlParams.get("payment") === "cancelled") {
+    toast("Payment cancelled", "error");
+    window.history.replaceState({}, "", "/");
+  }
+
+  if (supabaseClient) {
+    // Listen for auth state changes
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        accessToken = session.access_token;
+        showApp();
+        await loadApp();
+      } else {
+        accessToken = null;
+        showLogin();
+      }
+    });
+
+    // Check existing session
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      accessToken = session.access_token;
+      showApp();
+      await loadApp();
+    } else {
+      showLogin();
+    }
+  } else {
+    // No Supabase configured — run without auth (dev mode)
+    showApp();
+    await loadApp();
+  }
+}
+
+async function loadApp() {
+  try {
+    await updateUserInfo();
+  } catch (e) {
+    console.error("updateUserInfo failed:", e);
+  }
+  try {
+    globalConfig = await api("GET", "/global-config");
+  } catch (e) {
+    console.error("load global-config failed:", e);
+    globalConfig = {};
+  }
+  try {
+    projects = await api("GET", "/projects");
+  } catch (e) {
+    console.error("load projects failed:", e);
+    projects = [];
+  }
   renderTabs();
   if (projects.length > 0) {
     switchProject(projects[0].id);
@@ -209,16 +403,52 @@ async function renderProject(id) {
     <div class="section-body">
       <label>Claude API Key</label>
       <input type="password" id="cfgApiKey" value="${esc(globalConfig.api_key || "")}" placeholder="sk-ant-api03-...">
-      <div class="row">
-        <div>
-          <label>Gmail Address</label>
-          <input type="email" id="cfgEmail" value="${esc(globalConfig.email || "")}" placeholder="you@gmail.com">
-        </div>
-        <div>
-          <label>Gmail App Password</label>
-          <input type="password" id="cfgGmailPass" value="${esc(globalConfig.gmail_app_password || "")}" placeholder="xxxx xxxx xxxx xxxx">
+
+      <label style="margin-top:16px">Email Provider</label>
+      <div class="email-provider-tabs" style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-sm ${(globalConfig.email_provider || "gmail") === "gmail" ? "btn-primary" : "btn-secondary"}"
+          onclick="switchEmailProvider('gmail')">Gmail</button>
+        <button class="btn btn-sm ${globalConfig.email_provider === "outlook" ? "btn-primary" : "btn-secondary"}"
+          onclick="switchEmailProvider('outlook')">Outlook</button>
+        <button class="btn btn-sm ${globalConfig.email_provider === "none" ? "btn-primary" : "btn-secondary"}"
+          onclick="switchEmailProvider('none')">None</button>
+      </div>
+
+      <!-- Gmail settings -->
+      <div id="gmailSettings" style="display:${(globalConfig.email_provider || "gmail") === "gmail" ? "block" : "none"}">
+        <div class="row">
+          <div>
+            <label>Gmail Address</label>
+            <input type="email" id="cfgEmail" value="${esc(globalConfig.email || "")}" placeholder="you@gmail.com">
+          </div>
+          <div>
+            <label>Gmail App Password</label>
+            <input type="password" id="cfgGmailPass" value="${esc(globalConfig.gmail_app_password || "")}" placeholder="xxxx xxxx xxxx xxxx">
+          </div>
         </div>
       </div>
+
+      <!-- Outlook settings -->
+      <div id="outlookSettings" style="display:${globalConfig.email_provider === "outlook" ? "block" : "none"}">
+        ${globalConfig.outlook_connected
+          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
+              <span style="color:#2e7d32;font-size:18px">&#10003;</span>
+              <span>Connected: <strong>${esc(globalConfig.outlook_email || "")}</strong></span>
+              <button class="btn btn-secondary btn-sm" onclick="disconnectOutlook()" style="margin-left:auto">Disconnect</button>
+            </div>`
+          : `<button class="btn btn-primary btn-sm" onclick="connectOutlook()">Connect Outlook Account</button>
+             <div style="margin-top:6px;font-size:12px;color:#666">Supports school (.edu) and personal Outlook accounts</div>`
+        }
+      </div>
+
+      <!-- No email -->
+      <div id="noneSettings" style="display:${globalConfig.email_provider === "none" ? "block" : "none"}">
+        <div style="padding:10px;background:#fff3e0;border-radius:6px;font-size:13px;color:#e65100">
+          Email drafts will not be created. Only PDFs will be generated.
+        </div>
+      </div>
+
+      <input type="hidden" id="cfgEmailProvider" value="${esc(globalConfig.email_provider || "gmail")}">
       <div style="margin-top:12px">
         <button class="btn btn-primary btn-sm" onclick="saveGlobalConfig()">Save Global Settings</button>
       </div>
@@ -387,10 +617,41 @@ async function saveGlobalConfig() {
     api_key: document.getElementById("cfgApiKey").value,
     email: document.getElementById("cfgEmail").value,
     gmail_app_password: document.getElementById("cfgGmailPass").value,
+    email_provider: document.getElementById("cfgEmailProvider").value,
   };
   await api("POST", "/global-config", data);
-  globalConfig = data;
+  globalConfig = {...globalConfig, ...data};
   toast("Global settings saved");
+}
+
+function switchEmailProvider(provider) {
+  document.getElementById("cfgEmailProvider").value = provider;
+  document.getElementById("gmailSettings").style.display = provider === "gmail" ? "block" : "none";
+  document.getElementById("outlookSettings").style.display = provider === "outlook" ? "block" : "none";
+  document.getElementById("noneSettings").style.display = provider === "none" ? "block" : "none";
+  // Update button styles
+  document.querySelectorAll(".email-provider-tabs button").forEach(btn => {
+    btn.className = "btn btn-sm btn-secondary";
+  });
+  event.target.className = "btn btn-sm btn-primary";
+}
+
+async function connectOutlook() {
+  try {
+    const result = await api("GET", "/oauth/outlook/authorize");
+    window.open(result.auth_url, "outlook_auth", "width=600,height=700");
+  } catch (e) {
+    toast("Failed to start Outlook auth: " + (e.message || e), "error");
+  }
+}
+
+async function disconnectOutlook() {
+  if (!confirm("Disconnect Outlook account?")) return;
+  await api("POST", "/oauth/outlook/disconnect");
+  globalConfig.outlook_connected = false;
+  globalConfig.outlook_email = "";
+  globalConfig.email_provider = "none";
+  location.reload();
 }
 
 // ── Project config ────────────────────────────────────────
@@ -799,9 +1060,11 @@ async function confirmAndGenerate(id) {
   updateProgress(0);
 
   try {
+    const streamHeaders = { "Content-Type": "application/json" };
+    if (accessToken) streamHeaders["Authorization"] = `Bearer ${accessToken}`;
     const response = await fetch(`/api/projects/${id}/generate-stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: streamHeaders,
       body: JSON.stringify({ targets: pendingTargets }),
     });
 
@@ -974,4 +1237,9 @@ function esc(s) {
 }
 
 // ── Boot ──────────────────────────────────────────────────
-init();
+init().catch(e => {
+  console.error("Init failed:", e);
+  // Fallback: show login page so the user isn't stuck on a blank screen
+  hideLoading();
+  document.getElementById("loginPage").style.display = "";
+});
