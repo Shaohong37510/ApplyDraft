@@ -402,10 +402,7 @@ async function renderProject(id) {
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
-      <label>Claude API Key</label>
-      <input type="password" id="cfgApiKey" value="${esc(globalConfig.api_key || "")}" placeholder="sk-ant-api03-...">
-
-      <label style="margin-top:16px">Email Provider</label>
+      <label>Email Provider</label>
       <div class="email-provider-tabs" style="display:flex;gap:8px;margin-bottom:12px">
         <button class="btn btn-sm ${(globalConfig.email_provider || "gmail") === "gmail" ? "btn-primary" : "btn-secondary"}"
           onclick="switchEmailProvider('gmail')">Gmail</button>
@@ -463,17 +460,6 @@ async function renderProject(id) {
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
-      <div class="row">
-        <div>
-          <label>Your Name</label>
-          <input type="text" id="projName" value="${esc(cfg.name || "")}" placeholder="Your Full Name">
-        </div>
-        <div>
-          <label>Phone</label>
-          <input type="text" id="projPhone" value="${esc(cfg.phone || "")}" placeholder="123-456-7890">
-        </div>
-      </div>
-
       <label>Job Requirements (natural language)</label>
       <textarea id="projJobReq" rows="3" placeholder="e.g. Junior Architect positions in New York, 0-3 years experience, prefer cultural/museum projects">${esc(cfg.job_requirements || "")}</textarea>
 
@@ -608,6 +594,20 @@ async function renderProject(id) {
           </div>
           <label>Website</label>
           <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
+          <div class="subject-row">
+            <div class="subject-input-wrap">
+              <label>Email Subject</label>
+              <input type="text" id="manualSubject" placeholder="Application for Junior Architect - Your Name">
+            </div>
+            <div class="subject-smart-wrap">
+              <label class="smart-subject-check">
+                <input type="checkbox" id="smartSubjectCheck" onchange="if(this.checked)smartGenerateSubject('${id}')">
+                <span>Smart Generate</span>
+              </label>
+              <button class="btn btn-secondary btn-sm" id="smartSubjectBtn" onclick="smartGenerateSubject('${id}')" title="Search for required subject format">&#128269; Check Format</button>
+            </div>
+          </div>
+          <div id="smartSubjectStatus" class="smart-subject-status"></div>
           <div class="manual-entry-actions">
             <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
             <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
@@ -657,7 +657,6 @@ function toggleSection(header) {
 
 async function saveGlobalConfig() {
   const data = {
-    api_key: document.getElementById("cfgApiKey").value,
     email: document.getElementById("cfgEmail").value,
     gmail_app_password: document.getElementById("cfgGmailPass").value,
     email_provider: document.getElementById("cfgEmailProvider").value,
@@ -701,8 +700,6 @@ async function disconnectOutlook() {
 
 async function saveProjectConfig(id) {
   const data = {
-    name: document.getElementById("projName").value,
-    phone: document.getElementById("projPhone").value,
     job_requirements: document.getElementById("projJobReq").value,
   };
   await api("PUT", `/projects/${id}/config`, data);
@@ -1376,6 +1373,7 @@ function addManualEntry(projectId) {
   const position = document.getElementById("manualPosition").value.trim();
   const location = document.getElementById("manualLocation").value.trim();
   const website = document.getElementById("manualWebsite").value.trim();
+  const subject = document.getElementById("manualSubject").value.trim();
 
   if (!firm) { toast("Company name is required", "error"); return; }
   if (!email) { toast("Email is required", "error"); return; }
@@ -1389,7 +1387,7 @@ function addManualEntry(projectId) {
     source: "manual",
     openDate: new Date().toISOString().slice(0, 7),
     salutation: "Hiring Manager",
-    subject: `Application for ${position || "Architect"} Position - ${globalConfig.name || "Applicant"}`,
+    subject: subject || `Application for ${position || "Architect"} Position`,
     _manual: true,
   };
 
@@ -1403,8 +1401,39 @@ function addManualEntry(projectId) {
   document.getElementById("manualPosition").value = "";
   document.getElementById("manualLocation").value = "";
   document.getElementById("manualWebsite").value = "";
+  document.getElementById("manualSubject").value = "";
+  document.getElementById("smartSubjectCheck").checked = false;
+  document.getElementById("smartSubjectStatus").innerHTML = "";
 
   toast(`Added ${firm} (manual)`);
+}
+
+async function smartGenerateSubject(projectId) {
+  const firm = document.getElementById("manualFirm").value.trim();
+  const position = document.getElementById("manualPosition").value.trim();
+  const website = document.getElementById("manualWebsite").value.trim();
+  const statusEl = document.getElementById("smartSubjectStatus");
+  const btn = document.getElementById("smartSubjectBtn");
+
+  if (!firm) { toast("Enter company name first", "error"); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  statusEl.innerHTML = '<span class="smart-searching">Searching career page for subject format requirements...</span>';
+
+  try {
+    const result = await api("POST", `/projects/${projectId}/generate-subject`, {
+      firm, position, website
+    });
+    document.getElementById("manualSubject").value = result.subject;
+    statusEl.innerHTML = `<span class="smart-found">Subject generated based on search results</span>`;
+    if (result.token_usage) showTokenUsage(result.token_usage);
+  } catch (e) {
+    statusEl.innerHTML = `<span class="smart-error">Could not find format: ${esc(e.message)}</span>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '&#128269; Check Format';
+  }
 }
 
 function updateGenerateManualBtn(projectId) {
@@ -1467,6 +1496,7 @@ function renderManualEntries() {
       <div class="search-result-info">
         <span class="firm-name">${esc(t.firm)}</span>
         <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+        ${t.subject ? `<span class="search-detail" style="color:var(--accent);font-style:italic">Subject: ${esc(t.subject)}</span>` : ""}
       </div>
       <span class="manual-badge">Manual</span>
       <button class="btn-remove-target" onclick="removeManualEntry(${i})" title="Remove">&times;</button>

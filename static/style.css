@@ -915,6 +915,43 @@ textarea { resize: vertical; min-height: 70px; }
   border-left: 3px solid var(--orange);
 }
 .manual-entry-row .search-result-info { flex: 1; min-width: 0; }
+/* Subject row */
+.subject-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+.subject-input-wrap { flex: 1; }
+.subject-smart-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 1px;
+}
+.smart-subject-check {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  margin: 0 !important;
+}
+.smart-subject-check input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.smart-subject-status {
+  min-height: 18px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.smart-searching { color: var(--accent); }
+.smart-found { color: var(--green); }
+.smart-error { color: var(--red); }
+
 .manual-badge {
   padding: 2px 8px;
   border-radius: 10px;

@@ -302,3 +302,29 @@ Return JSON only."""
     except json.JSONDecodeError:
         pass
     return {}, usage
+
+
+# ── Generate email subject from job posting ────────────────────
+
+def generate_email_subject(api_key: str, firm: str, position: str, website: str, applicant_name: str) -> tuple[str, dict]:
+    """Search for a firm's required email subject format and generate the correct subject line.
+    Returns (subject_line, token_usage)."""
+
+    system = """You are a job application assistant. Your task is to find if a company has a specific required format for application email subject lines, and generate the correct subject line.
+
+RULES:
+- Search the firm's careers/jobs page for any stated email subject format requirements
+- Many firms specify exact formats like: "Position Title - Your Name", "Job Reference: XXX", "Application: [Position]", etc.
+- If a specific format is found, generate the subject line following that exact format
+- If no specific format is found, use the default: "Application for [Position] - [Applicant Name]"
+- Return ONLY the subject line text, nothing else. No quotes, no explanation."""
+
+    user_msg = f"""Find the required email subject line format for:
+Firm: {firm}
+Position: {position}
+Website: {website}
+Applicant Name: {applicant_name}
+
+Search their careers page and job postings. Return ONLY the formatted subject line."""
+
+    return _call_claude_with_search(api_key, system, user_msg, max_tokens=200, max_searches=3)

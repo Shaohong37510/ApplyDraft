@@ -663,6 +663,39 @@ def generate_project_md(project_id: str, user_id: str = Depends(get_current_user
 
 
 # ═══════════════════════════════════════════════════════════════
+#  Smart Subject Line Generation
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/projects/{project_id}/generate-subject")
+def generate_subject(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
+    """Search a firm's career page for required email subject format and generate the correct subject line."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        raise HTTPException(400, "API Key not configured")
+
+    firm = data.get("firm", "")
+    position = data.get("position", "")
+    website = data.get("website", "")
+    if not firm:
+        raise HTTPException(400, "Firm name is required")
+
+    proj = pm.get_project(user_id, project_id)
+    if not proj:
+        raise HTTPException(404, "Project not found")
+
+    applicant_name = proj["config"].get("name", "Applicant")
+
+    try:
+        subject, usage = ai.generate_email_subject(api_key, firm, position, website, applicant_name)
+        pm.append_token_usage(user_id, project_id, "generate_subject", usage)
+        # Clean up the subject line
+        subject = subject.strip().strip('"').strip("'").strip()
+        return {"subject": subject, "token_usage": usage}
+    except Exception as e:
+        raise HTTPException(500, f"Subject generation failed: {str(e)[:200]}")
+
+
+# ═══════════════════════════════════════════════════════════════
 #  Phase 1: SEARCH (returns candidates for user review)
 # ═══════════════════════════════════════════════════════════════
 
