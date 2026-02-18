@@ -87,7 +87,7 @@ def get_user_settings(user_id: str) -> dict:
         "user_id": user_id,
         "email_provider": "none",
         "gmail_email": "",
-        "gmail_app_password": "",
+        "gmail_tokens": None,
         "outlook_tokens": None,
         "outlook_email": "",
     }

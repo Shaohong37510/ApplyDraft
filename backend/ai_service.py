@@ -117,7 +117,7 @@ User Profile:
 
 def generate_template_from_examples(api_key: str, examples: list[str], file_type_label: str = "Cover Letter") -> tuple[dict, dict]:
     """Analyze examples and generate template. Returns (result_dict, token_usage)."""
-    system = f"""You are an expert at analyzing {file_type_label} documents and creating reusable templates.
+    system = f"""You are an expert at analyzing {file_type_label} documents and creating reusable HTML templates for PDF generation.
 Compare the provided examples to identify:
 - FIXED parts (identical or nearly identical across all examples)
 - VARIABLE parts (different in each example, customized per firm/position)
@@ -125,8 +125,49 @@ Compare the provided examples to identify:
 Replace each variable section with a {{{{CUSTOM_X}}}} placeholder (numbered sequentially: CUSTOM_1, CUSTOM_2, CUSTOM_3...).
 Also support {{{{NAME}}}}, {{{{PHONE}}}}, {{{{EMAIL}}}}, {{{{FIRM_NAME}}}}, {{{{POSITION}}}} as standard placeholders.
 
+IMPORTANT: The "template" must be a COMPLETE HTML document for PDF generation. Follow this structure exactly:
+
+```html
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  @page {{ margin: 60px 65px; size: letter; }}
+  body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; margin: 0; padding: 0; }}
+  .info {{ margin-bottom: 20px; }}
+  .info .name {{ font-weight: 600; }}
+  .firm {{ margin-bottom: 8px; }}
+  .salutation {{ margin-bottom: 16px; }}
+  .body p {{ margin: 0 0 13px 0; text-align: justify; }}
+  .closing {{ margin-top: 24px; }}
+  .signature {{ margin-top: 4px; font-weight: 600; }}
+</style></head><body>
+<div class="info">
+  <div class="name">{{{{NAME}}}}</div>
+  <div>{{{{PHONE}}}}</div>
+  <div>{{{{EMAIL}}}}</div>
+</div>
+<div class="firm">{{{{FIRM_NAME}}}}</div>
+<div class="salutation">Dear Hiring Manager,</div>
+<div class="body">
+  <p>First paragraph with {{{{CUSTOM_1}}}} etc.</p>
+  <p>Second paragraph...</p>
+  <p>More paragraphs as needed...</p>
+</div>
+<div class="closing">
+  Sincerely,
+  <div class="signature">{{{{NAME}}}}</div>
+</div>
+</body></html>
+```
+
+RULES for template:
+- Each paragraph of the letter body MUST be wrapped in <p> tags inside <div class="body">
+- Keep the number of CUSTOM_X placeholders SMALL (2-5 max). Group related variable content into one placeholder rather than splitting every sentence.
+- Use &amp; for & and other HTML entities where needed
+- The template must be a complete, valid HTML document
+
 You must return valid JSON with exactly two keys:
-- "template": the full template text with placeholders
+- "template": the full HTML template (complete HTML document as shown above)
 - "definitions": a structured description of each CUSTOM_X placeholder using this EXACT format:
 
 [CUSTOM_1]: <brief description of what this section is about>
@@ -146,10 +187,11 @@ Constrains: <constraints>
     for i, ex in enumerate(examples, 1):
         examples_text += f"\n--- Example {i} ---\n{ex}\n"
 
-    user_msg = f"""Analyze these {len(examples)} {file_type_label} examples and create a reusable template:
+    user_msg = f"""Analyze these {len(examples)} {file_type_label} examples and create a reusable HTML template for PDF generation.
+Keep CUSTOM_X placeholders to 2-5 (group related variable content together).
 {examples_text}
 
-Return JSON with "template" and "definitions" keys."""
+Return JSON with "template" (complete HTML document) and "definitions" keys."""
 
     result, usage = _call_claude(api_key, system, user_msg, max_tokens=8000)
 

@@ -3,6 +3,7 @@ FastAPI routes: all backend endpoints.
 """
 import os
 import json
+import re
 import shutil
 import subprocess
 from datetime import date
@@ -14,13 +15,57 @@ from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 from . import project_manager as pm
 from . import ai_service as ai
 from . import pdf_service as pdf
-from . import email_service as email_svc
 from . import outlook_service as outlook_svc
+from . import gmail_service as gmail_svc
 from . import supabase_client as db
 from . import stripe_service as stripe_svc
 from .auth_middleware import get_current_user
 
 router = APIRouter(prefix="/api")
+
+
+def _text_to_html(text: str) -> str:
+    """Convert plain/markdown-ish text to HTML preserving paragraphs, bold, italic.
+
+    Handles:
+    - Double newlines → <p> paragraph breaks
+    - **bold** → <strong>
+    - *italic* → <em>
+    - Single newlines → <br>
+    """
+    import html as html_mod
+    # Split into paragraphs on double newlines
+    paragraphs = re.split(r'\n\s*\n', text.strip())
+    html_parts = []
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+        # Escape HTML entities first
+        para = html_mod.escape(para)
+        # Convert **bold** to <strong>
+        para = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', para)
+        # Convert *italic* to <em> (but not inside <strong>)
+        para = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'<em>\1</em>', para)
+        # Convert single newlines to <br>
+        para = para.replace('\n', '<br>\n')
+        html_parts.append(f'<p>{para}</p>')
+    return '\n'.join(html_parts)
+
+
+def _wrap_in_html(body_html: str) -> str:
+    """Wrap HTML body content in a full HTML document for PDF generation."""
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+@page {{ margin: 60px 65px; size: letter; }}
+body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; }}
+p {{ margin: 0 0 13px 0; text-align: justify; }}
+strong {{ font-weight: 700; }}
+em {{ font-style: italic; }}
+</style></head><body>
+{body_html}
+</body></html>"""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -51,10 +96,12 @@ def _get_user_config(user_id: str) -> dict:
         "api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
         "ms_client_id": os.environ.get("MS_CLIENT_ID", ""),
         "ms_client_secret": os.environ.get("MS_CLIENT_SECRET", ""),
+        "google_client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
+        "google_client_secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
         # Per-user (Supabase)
         "email_provider": settings.get("email_provider", "none"),
         "email": settings.get("gmail_email", ""),
-        "gmail_app_password": settings.get("gmail_app_password", ""),
+        "gmail_tokens": settings.get("gmail_tokens") or {},
         "outlook_tokens": settings.get("outlook_tokens") or {},
         "outlook_email": settings.get("outlook_email", ""),
     }
@@ -62,13 +109,19 @@ def _get_user_config(user_id: str) -> dict:
 
 def _save_user_config(user_id: str, cfg: dict):
     """Persist user-specific settings back to Supabase."""
-    db.save_user_settings(user_id, {
-        "email_provider": cfg.get("email_provider", "none"),
-        "gmail_email": cfg.get("email", ""),
-        "gmail_app_password": cfg.get("gmail_app_password", ""),
-        "outlook_tokens": cfg.get("outlook_tokens"),
-        "outlook_email": cfg.get("outlook_email", ""),
-    })
+    settings = db.get_user_settings(user_id)
+    # Only update fields that are present in cfg
+    if "email_provider" in cfg:
+        settings["email_provider"] = cfg["email_provider"]
+    if "email" in cfg:
+        settings["gmail_email"] = cfg["email"]
+    if "gmail_tokens" in cfg:
+        settings["gmail_tokens"] = cfg["gmail_tokens"]
+    if "outlook_tokens" in cfg:
+        settings["outlook_tokens"] = cfg["outlook_tokens"]
+    if "outlook_email" in cfg:
+        settings["outlook_email"] = cfg["outlook_email"]
+    db.save_user_settings(user_id, settings)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -86,6 +139,7 @@ def get_me(user_id: str = Depends(get_current_user)):
         "email_provider": settings.get("email_provider", "none"),
         "outlook_connected": bool((settings.get("outlook_tokens") or {}).get("refresh_token")),
         "outlook_email": settings.get("outlook_email", ""),
+        "gmail_connected": bool((settings.get("gmail_tokens") or {}).get("refresh_token")),
         "gmail_email": settings.get("gmail_email", ""),
     }
 
@@ -141,16 +195,16 @@ def get_global_config(user_id: str = Depends(get_current_user)):
         k = masked["api_key"]
         masked["api_key_display"] = k[:12] + "..." + k[-4:] if len(k) > 20 else "***"
         del masked["api_key"]
-    if masked.get("gmail_app_password"):
-        masked["gmail_app_password_display"] = "****"
     # Never expose OAuth tokens to frontend
+    if "gmail_tokens" in masked:
+        masked["gmail_connected"] = bool(masked["gmail_tokens"].get("refresh_token"))
+        masked["gmail_email"] = masked.get("email", "")
+        del masked["gmail_tokens"]
     if "outlook_tokens" in masked:
         masked["outlook_connected"] = bool(masked["outlook_tokens"].get("refresh_token"))
         del masked["outlook_tokens"]
-    if "ms_client_secret" in masked:
-        del masked["ms_client_secret"]
-    if "ms_client_id" in masked:
-        del masked["ms_client_id"]
+    for secret_key in ("ms_client_secret", "ms_client_id", "google_client_id", "google_client_secret"):
+        masked.pop(secret_key, None)
     return masked
 
 
@@ -158,10 +212,6 @@ def get_global_config(user_id: str = Depends(get_current_user)):
 def save_global_config(data: dict, user_id: str = Depends(get_current_user)):
     # Only save user-editable fields
     settings = db.get_user_settings(user_id)
-    if "email" in data:
-        settings["gmail_email"] = data["email"]
-    if "gmail_app_password" in data and data["gmail_app_password"] != "****":
-        settings["gmail_app_password"] = data["gmail_app_password"]
     if "email_provider" in data:
         settings["email_provider"] = data["email_provider"]
     db.save_user_settings(user_id, settings)
@@ -251,6 +301,88 @@ def outlook_disconnect(user_id: str = Depends(get_current_user)):
     return {"ok": True}
 
 
+# ═══════════════════════════════════════════════════════════════
+#  Gmail OAuth 2.0
+# ═══════════════════════════════════════════════════════════════
+
+def _get_gmail_redirect_uri(request) -> str:
+    """Build Gmail OAuth redirect URI from the current request's host."""
+    host = request.headers.get("host", "localhost:8899")
+    scheme = "https" if "localhost" not in host else "http"
+    return f"{scheme}://{host}/api/oauth/gmail/callback"
+
+
+@router.get("/oauth/gmail/authorize")
+def gmail_authorize(request: Request, user_id: str = Depends(get_current_user)):
+    """Return the Google OAuth authorization URL."""
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    if not client_id:
+        raise HTTPException(400, "Google Client ID not configured")
+    redirect_uri = _get_gmail_redirect_uri(request)
+    url = gmail_svc.get_auth_url(redirect_uri, client_id, state=user_id)
+    return {"auth_url": url}
+
+
+@router.get("/oauth/gmail/callback")
+def gmail_callback(request: Request, code: str = "", error: str = "", state: str = ""):
+    """Handle OAuth callback from Google."""
+    if error:
+        return HTMLResponse(f"""<html><body><h2>Authorization Failed</h2>
+            <p>{error}</p><script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    user_id = state
+    if not user_id:
+        return HTMLResponse("""<html><body><h2>Error</h2>
+            <p>Missing user context. Please try again.</p>
+            <script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    redirect_uri = _get_gmail_redirect_uri(request)
+
+    ok, token_data = gmail_svc.exchange_code_for_tokens(
+        code, redirect_uri, client_id, client_secret
+    )
+    if not ok:
+        return HTMLResponse(f"""<html><body><h2>Token Exchange Failed</h2>
+            <p>{token_data.get('error', 'Unknown error')}</p>
+            <script>setTimeout(()=>window.close(),3000)</script></body></html>""")
+
+    # Get user email
+    email_ok, user_email, token_data = gmail_svc.get_user_email(
+        token_data, client_id, client_secret
+    )
+
+    # Save tokens to user settings in Supabase
+    _save_user_config(user_id, {
+        "gmail_tokens": token_data,
+        "email": user_email if email_ok else "",
+        "email_provider": "gmail",
+    })
+
+    return HTMLResponse(f"""<html><body>
+        <h2>Gmail Connected!</h2>
+        <p>Logged in as: {user_email if email_ok else '(unknown)'}</p>
+        <p>You can close this window.</p>
+        <script>
+            if (window.opener) {{ window.opener.location.reload(); }}
+            setTimeout(()=>window.close(), 2000);
+        </script>
+    </body></html>""")
+
+
+@router.post("/oauth/gmail/disconnect")
+def gmail_disconnect(user_id: str = Depends(get_current_user)):
+    """Remove Gmail OAuth tokens."""
+    settings = db.get_user_settings(user_id)
+    settings.pop("gmail_tokens", None)
+    settings.pop("gmail_email", None)
+    if settings.get("email_provider") == "gmail":
+        settings["email_provider"] = "none"
+    db.save_user_settings(user_id, settings)
+    return {"ok": True}
+
+
 def _create_draft(gcfg, target, email_body, user_name, attachments):
     """Create email draft using configured provider (Gmail or Outlook).
 
@@ -281,19 +413,24 @@ def _create_draft(gcfg, target, email_body, user_name, attachments):
         return draft_ok, draft_err, None
 
     elif provider == "gmail":
-        gmail_user = gcfg.get("email", "")
-        gmail_pass = gcfg.get("gmail_app_password", "")
-        if not gmail_user or not gmail_pass:
-            return False, "Gmail not configured", None
-        draft_ok, draft_err = email_svc.create_gmail_draft(
-            gmail_user=gmail_user,
-            gmail_app_password=gmail_pass,
+        tokens = gcfg.get("gmail_tokens", {})
+        if not tokens.get("refresh_token"):
+            return False, "Gmail not connected", None
+        client_id = gcfg.get("google_client_id", "")
+        client_secret = gcfg.get("google_client_secret", "")
+        draft_ok, draft_err, updated_tokens = gmail_svc.create_gmail_draft(
+            tokens=tokens,
             to_email=target.get("email", ""),
             subject=target.get("subject", f"Application - {user_name}"),
             body_text=email_body,
             from_name=user_name,
             attachments=attachments,
+            client_id=client_id,
+            client_secret=client_secret,
         )
+        if updated_tokens != tokens:
+            gcfg["gmail_tokens"] = updated_tokens
+            return draft_ok, draft_err, gcfg
         return draft_ok, draft_err, None
 
     else:
@@ -436,7 +573,10 @@ def generate_template(project_id: str, type_id: str, user_id: str = Depends(get_
             example_texts.append(f.read_text(encoding="utf-8"))
         elif f.suffix.lower() == ".pdf":
             try:
-                import pymupdf
+                try:
+                    import pymupdf
+                except ImportError:
+                    import fitz as pymupdf
                 doc = pymupdf.open(str(f))
                 text = "\n".join(page.get_text() for page in doc)
                 doc.close()
@@ -444,6 +584,8 @@ def generate_template(project_id: str, type_id: str, user_id: str = Depends(get_
                     example_texts.append(text)
                 else:
                     example_texts.append(f"[PDF {f.name} contains no extractable text - scanned image?]")
+            except ImportError:
+                example_texts.append(f"[PDF {f.name} cannot be read - install pymupdf: pip install pymupdf]")
             except Exception as e:
                 example_texts.append(f"[Failed to read PDF {f.name}: {e}]")
         else:
@@ -507,16 +649,11 @@ def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_c
     # Fill any remaining CUSTOM_X placeholders
     filled = re.sub(r'\{\{CUSTOM_\d+\}\}', '[Sample content]', filled)
 
-    # Wrap in basic HTML for PDF
-    html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-@page {{ margin: 60px 65px; size: letter; }}
-body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; }}
-p {{ margin: 0 0 13px 0; text-align: justify; }}
-</style></head><body>
-{filled.replace(chr(10), '<br>')}
-</body></html>"""
+    # Convert text to formatted HTML for PDF
+    if "<html" not in filled.lower():
+        html = _wrap_in_html(_text_to_html(filled))
+    else:
+        html = filled
 
     preview_dir = pm.get_project_dir(user_id, project_id) / "Email" / "CoverLetters"
     preview_dir.mkdir(parents=True, exist_ok=True)
@@ -540,22 +677,36 @@ def get_email_template(project_id: str, user_id: str = Depends(get_current_user)
     tpl_path = tpl_dir / "template.txt"
     defs_path = tpl_dir / "definitions.txt"
     example_path = tpl_dir / "example.txt"
+    settings_path = tpl_dir / "subject_settings.json"
+    subject_settings = {}
+    if settings_path.exists():
+        try:
+            subject_settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
     return {
         "template": tpl_path.read_text(encoding="utf-8") if tpl_path.exists() else "",
         "definitions": defs_path.read_text(encoding="utf-8") if defs_path.exists() else "",
         "example": example_path.read_text(encoding="utf-8") if example_path.exists() else "",
+        "subject_template": subject_settings.get("subject_template", ""),
+        "smart_subject": subject_settings.get("smart_subject", False),
     }
 
 
 @router.post("/projects/{project_id}/email-template/save-example")
 def save_email_example(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
-    """Save pasted email example text."""
+    """Save pasted email example text and subject settings."""
     text = data.get("text", "").strip()
     if not text:
         raise HTTPException(400, "No email text provided")
     tpl_dir = pm.get_project_dir(user_id, project_id) / "templates" / "email_body"
     tpl_dir.mkdir(parents=True, exist_ok=True)
     (tpl_dir / "example.txt").write_text(text, encoding="utf-8")
+    # Save subject settings if provided
+    subject_template = data.get("subject_template", "")
+    smart_subject = data.get("smart_subject", False)
+    settings = {"subject_template": subject_template, "smart_subject": smart_subject}
+    (tpl_dir / "subject_settings.json").write_text(json.dumps(settings), encoding="utf-8")
     return {"ok": True}
 
 
@@ -856,16 +1007,7 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
 
             # Generate PDF
             if "<html" not in filled.lower():
-                filled_html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-@page {{ margin: 60px 65px; size: letter; }}
-body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; }}
-p {{ margin: 0 0 13px 0; text-align: justify; }}
-.signature {{ margin-top: 24px; font-weight: 600; }}
-</style></head><body>
-{filled}
-</body></html>"""
+                filled_html = _wrap_in_html(_text_to_html(filled))
             else:
                 filled_html = filled
 
@@ -944,6 +1086,9 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     confirmed_targets = data.get("targets", [])
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
+
+    smart_subject = data.get("smart_subject", False)
+    subject_template = data.get("subject_template", "")
 
     gcfg = _get_user_config(user_id)
 
@@ -1026,16 +1171,7 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 yield f"data: {json.dumps({'type': 'progress', 'pct': pct + int(0.3/total*100), 'detail': f'Generating {ft_label} PDF...'})}\n\n"
 
                 if "<html" not in filled.lower():
-                    filled_html = f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-@page {{ margin: 60px 65px; size: letter; }}
-body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; }}
-p {{ margin: 0 0 13px 0; text-align: justify; }}
-.signature {{ margin-top: 24px; font-weight: 600; }}
-</style></head><body>
-{filled}
-</body></html>"""
+                    filled_html = _wrap_in_html(_text_to_html(filled))
                 else:
                     filled_html = filled
 
@@ -1061,6 +1197,40 @@ Best regards,
 {user_name}
 {user_phone}
 {user_email}"""
+
+            # Resolve email subject
+            # Priority: manual subject on target > smart subject > template > default
+            target_subject = target.get("subject", "").strip()
+            if not target_subject and smart_subject:
+                # Smart subject: search firm's career page for required format
+                api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+                if api_key:
+                    yield f"data: {json.dumps({'type': 'progress', 'pct': pct + int(0.5/total*100), 'detail': f'Searching subject format for {firm}...'})}\n\n"
+                    try:
+                        subj_result, subj_usage = ai.generate_email_subject(
+                            api_key, firm, target.get("position", ""),
+                            target.get("website", ""), user_name
+                        )
+                        subj_result = subj_result.strip().strip('"').strip("'").strip()
+                        if subj_result:
+                            target["subject"] = subj_result
+                            target_subject = subj_result
+                        total_usage["input_tokens"] += subj_usage.get("input_tokens", 0)
+                        total_usage["output_tokens"] += subj_usage.get("output_tokens", 0)
+                        total_usage["api_calls"] += subj_usage.get("api_calls", 0)
+                    except Exception as e:
+                        yield f"data: {json.dumps({'type': 'progress', 'detail': f'Smart subject failed for {firm}: {str(e)[:80]}'})}\n\n"
+
+            if not target_subject and subject_template:
+                # Fill subject template with placeholders
+                target_subject = subject_template
+                for k, v in base_replacements.items():
+                    target_subject = target_subject.replace("{{" + k + "}}", v or "")
+
+            if not target_subject:
+                target_subject = f"Application for {target.get('position', 'Architect')} - {user_name}"
+
+            target["subject"] = target_subject
 
             # Step 3: Creating email draft
             email_provider = gcfg.get("email_provider", "gmail")

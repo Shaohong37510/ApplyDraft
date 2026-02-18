@@ -414,16 +414,15 @@ async function renderProject(id) {
 
       <!-- Gmail settings -->
       <div id="gmailSettings" style="display:${(globalConfig.email_provider || "gmail") === "gmail" ? "block" : "none"}">
-        <div class="row">
-          <div>
-            <label>Gmail Address</label>
-            <input type="email" id="cfgEmail" value="${esc(globalConfig.email || "")}" placeholder="you@gmail.com">
-          </div>
-          <div>
-            <label>Gmail App Password</label>
-            <input type="password" id="cfgGmailPass" value="${esc(globalConfig.gmail_app_password || "")}" placeholder="xxxx xxxx xxxx xxxx">
-          </div>
-        </div>
+        ${globalConfig.gmail_connected
+          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
+              <span style="color:#2e7d32;font-size:18px">&#10003;</span>
+              <span>Connected: <strong>${esc(globalConfig.gmail_email || globalConfig.email || "")}</strong></span>
+              <button class="btn btn-secondary btn-sm" onclick="disconnectGmail()" style="margin-left:auto">Disconnect</button>
+            </div>`
+          : `<button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail Account</button>
+             <div style="margin-top:6px;font-size:12px;color:#666">Connect your Gmail account via Google OAuth to create email drafts</div>`
+        }
       </div>
 
       <!-- Outlook settings -->
@@ -524,6 +523,17 @@ async function renderProject(id) {
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
+      <label>Email Subject Template</label>
+      <div class="subject-template-row">
+        <input type="text" id="emailSubjectTemplate" value="${esc(emailTpl.subject_template || "Application for {{POSITION}} - {{NAME}}")}"
+          placeholder="Application for {{POSITION}} - {{NAME}}">
+        <label class="smart-subject-toggle">
+          <input type="checkbox" id="smartSubjectEnabled" ${emailTpl.smart_subject ? "checked" : ""}>
+          <span>Smart Subject</span>
+        </label>
+      </div>
+      <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}. When Smart Subject is enabled, each firm's career page will be searched during batch generation for required subject format.</div>
+
       <label>Paste an example email (full text)</label>
       <textarea id="emailExampleText" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...&#10;&#10;Best regards,&#10;Your Name">${esc(emailTpl.example || "")}</textarea>
 
@@ -594,20 +604,6 @@ async function renderProject(id) {
           </div>
           <label>Website</label>
           <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
-          <div class="subject-row">
-            <div class="subject-input-wrap">
-              <label>Email Subject</label>
-              <input type="text" id="manualSubject" placeholder="Application for Junior Architect - Your Name">
-            </div>
-            <div class="subject-smart-wrap">
-              <label class="smart-subject-check">
-                <input type="checkbox" id="smartSubjectCheck" onchange="if(this.checked)smartGenerateSubject('${id}')">
-                <span>Smart Generate</span>
-              </label>
-              <button class="btn btn-secondary btn-sm" id="smartSubjectBtn" onclick="smartGenerateSubject('${id}')" title="Search for required subject format">&#128269; Check Format</button>
-            </div>
-          </div>
-          <div id="smartSubjectStatus" class="smart-subject-status"></div>
           <div class="manual-entry-actions">
             <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
             <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
@@ -657,8 +653,6 @@ function toggleSection(header) {
 
 async function saveGlobalConfig() {
   const data = {
-    email: document.getElementById("cfgEmail").value,
-    gmail_app_password: document.getElementById("cfgGmailPass").value,
     email_provider: document.getElementById("cfgEmailProvider").value,
   };
   await api("POST", "/global-config", data);
@@ -692,6 +686,24 @@ async function disconnectOutlook() {
   await api("POST", "/oauth/outlook/disconnect");
   globalConfig.outlook_connected = false;
   globalConfig.outlook_email = "";
+  globalConfig.email_provider = "none";
+  location.reload();
+}
+
+async function connectGmail() {
+  try {
+    const result = await api("GET", "/oauth/gmail/authorize");
+    window.open(result.auth_url, "gmail_auth", "width=600,height=700");
+  } catch (e) {
+    toast("Failed to start Gmail auth: " + (e.message || e), "error");
+  }
+}
+
+async function disconnectGmail() {
+  if (!confirm("Disconnect Gmail account?")) return;
+  await api("POST", "/oauth/gmail/disconnect");
+  globalConfig.gmail_connected = false;
+  globalConfig.gmail_email = "";
   globalConfig.email_provider = "none";
   location.reload();
 }
@@ -801,9 +813,13 @@ async function generateTypeTemplate(id, typeId) {
 
 async function saveEmailExample(id) {
   const text = document.getElementById("emailExampleText").value;
+  const subjectTemplate = document.getElementById("emailSubjectTemplate").value;
+  const smartSubject = document.getElementById("smartSubjectEnabled").checked;
   if (!text.trim()) { toast("Paste an email first", "error"); return; }
   try {
-    await api("POST", `/projects/${id}/email-template/save-example`, { text });
+    await api("POST", `/projects/${id}/email-template/save-example`, {
+      text, subject_template: subjectTemplate, smart_subject: smartSubject
+    });
     toast("Email example saved");
   } catch (e) {
     toast(e.message, "error");
@@ -812,10 +828,14 @@ async function saveEmailExample(id) {
 
 async function generateEmailTemplate(id) {
   const text = document.getElementById("emailExampleText").value;
+  const subjectTemplate = document.getElementById("emailSubjectTemplate").value;
+  const smartSubject = document.getElementById("smartSubjectEnabled").checked;
   if (!text.trim()) { toast("Paste an email first", "error"); return; }
   try {
     // Save first, then generate
-    await api("POST", `/projects/${id}/email-template/save-example`, { text });
+    await api("POST", `/projects/${id}/email-template/save-example`, {
+      text, subject_template: subjectTemplate, smart_subject: smartSubject
+    });
     toast("Generating email template...", "success");
     const result = await api("POST", `/projects/${id}/email-template/generate`);
     toast("Email template generated!");
@@ -1124,12 +1144,18 @@ async function confirmAndGenerate(id) {
   updateProgress(0);
 
   try {
+    // Gather email subject settings
+    const subjectTemplateEl = document.getElementById("emailSubjectTemplate");
+    const smartSubjectEl = document.getElementById("smartSubjectEnabled");
+    const subjectTemplate = subjectTemplateEl ? subjectTemplateEl.value : "";
+    const smartSubject = smartSubjectEl ? smartSubjectEl.checked : false;
+
     const streamHeaders = { "Content-Type": "application/json" };
     if (accessToken) streamHeaders["Authorization"] = `Bearer ${accessToken}`;
     const response = await fetch(`/api/projects/${id}/generate-stream`, {
       method: "POST",
       headers: streamHeaders,
-      body: JSON.stringify({ targets: allTargets }),
+      body: JSON.stringify({ targets: allTargets, subject_template: subjectTemplate, smart_subject: smartSubject }),
     });
 
     if (!response.ok) {
@@ -1373,7 +1399,6 @@ function addManualEntry(projectId) {
   const position = document.getElementById("manualPosition").value.trim();
   const location = document.getElementById("manualLocation").value.trim();
   const website = document.getElementById("manualWebsite").value.trim();
-  const subject = document.getElementById("manualSubject").value.trim();
 
   if (!firm) { toast("Company name is required", "error"); return; }
   if (!email) { toast("Email is required", "error"); return; }
@@ -1387,7 +1412,6 @@ function addManualEntry(projectId) {
     source: "manual",
     openDate: new Date().toISOString().slice(0, 7),
     salutation: "Hiring Manager",
-    subject: subject || `Application for ${position || "Architect"} Position`,
     _manual: true,
   };
 
@@ -1401,39 +1425,8 @@ function addManualEntry(projectId) {
   document.getElementById("manualPosition").value = "";
   document.getElementById("manualLocation").value = "";
   document.getElementById("manualWebsite").value = "";
-  document.getElementById("manualSubject").value = "";
-  document.getElementById("smartSubjectCheck").checked = false;
-  document.getElementById("smartSubjectStatus").innerHTML = "";
 
   toast(`Added ${firm} (manual)`);
-}
-
-async function smartGenerateSubject(projectId) {
-  const firm = document.getElementById("manualFirm").value.trim();
-  const position = document.getElementById("manualPosition").value.trim();
-  const website = document.getElementById("manualWebsite").value.trim();
-  const statusEl = document.getElementById("smartSubjectStatus");
-  const btn = document.getElementById("smartSubjectBtn");
-
-  if (!firm) { toast("Enter company name first", "error"); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>';
-  statusEl.innerHTML = '<span class="smart-searching">Searching career page for subject format requirements...</span>';
-
-  try {
-    const result = await api("POST", `/projects/${projectId}/generate-subject`, {
-      firm, position, website
-    });
-    document.getElementById("manualSubject").value = result.subject;
-    statusEl.innerHTML = `<span class="smart-found">Subject generated based on search results</span>`;
-    if (result.token_usage) showTokenUsage(result.token_usage);
-  } catch (e) {
-    statusEl.innerHTML = `<span class="smart-error">Could not find format: ${esc(e.message)}</span>`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '&#128269; Check Format';
-  }
 }
 
 function updateGenerateManualBtn(projectId) {
@@ -1496,7 +1489,6 @@ function renderManualEntries() {
       <div class="search-result-info">
         <span class="firm-name">${esc(t.firm)}</span>
         <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
-        ${t.subject ? `<span class="search-detail" style="color:var(--accent);font-style:italic">Subject: ${esc(t.subject)}</span>` : ""}
       </div>
       <span class="manual-badge">Manual</span>
       <button class="btn-remove-target" onclick="removeManualEntry(${i})" title="Remove">&times;</button>

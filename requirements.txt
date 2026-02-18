@@ -9,3 +9,4 @@ supabase==2.11.0
 stripe==11.4.1
 python-jose[cryptography]==3.3.0
 python-dotenv==1.0.1
+pymupdf==1.27.1

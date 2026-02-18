@@ -952,6 +952,28 @@ textarea { resize: vertical; min-height: 70px; }
 .smart-found { color: var(--green); }
 .smart-error { color: var(--red); }
 
+.subject-template-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.subject-template-row input[type="text"] { flex: 1; }
+.smart-subject-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text2);
+  margin: 0 !important;
+}
+.smart-subject-toggle input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .manual-badge {
   padding: 2px 8px;
   border-radius: 10px;
