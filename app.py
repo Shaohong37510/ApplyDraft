@@ -31,6 +31,11 @@ def index():
     return FileResponse(str(static_dir / "index.html"))
 
 
+@app.get("/privacy")
+def privacy():
+    return FileResponse(str(static_dir / "privacy.html"))
+
+
 def open_browser(port):
     webbrowser.open(f"http://localhost:{port}")
 
