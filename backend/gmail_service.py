@@ -17,7 +17,7 @@ import httpx
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GMAIL_API_URL = "https://gmail.googleapis.com/gmail/v1"
-GOOGLE_SCOPES = "openid email https://www.googleapis.com/auth/gmail.compose"
+GOOGLE_SCOPES = "email https://www.googleapis.com/auth/gmail.compose"
 
 
 def get_auth_url(redirect_uri: str, client_id: str, state: str = "") -> str:
