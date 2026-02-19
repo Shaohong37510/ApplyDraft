@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=8">
+  <link rel="stylesheet" href="/static/style.css?v=9">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -12,8 +12,104 @@
 <!-- ═══ Loading Indicator (shown until init completes) ════ -->
 <div id="loadingScreen" style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b90a5;font-size:16px;">Loading...</div>
 
+<!-- ═══ Landing Page ════════════════════════════════════════ -->
+<div id="landingPage" style="display:none">
+  <div class="landing-hero">
+    <div class="landing-container">
+      <h1 class="landing-title">
+        <span class="gradient-text">ApplyDraft</span>
+        <br>Your Job Application Assistant
+      </h1>
+      <p class="landing-subtitle">
+        Stop spending hours on each application. Let AI find jobs, write personalized cover letters, and send applications for you.
+      </p>
+      <button class="btn-landing-cta" onclick="showLoginFromLanding()">
+        Get Started Free
+        <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="landing-features">
+    <div class="landing-container">
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Find Jobs Automatically</h3>
+          <p>Tell us what you're looking for, and we'll search across multiple job boards to find the perfect opportunities for you.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">✍️</div>
+          <h3>Personalized Templates</h3>
+          <p>Each email and cover letter is customized for the specific position and company, with personalized templates generated automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📧</div>
+          <h3>Auto-Save to Drafts</h3>
+          <p>Emails with attachments are automatically saved to your Gmail or Outlook drafts. You maintain full control and transparency—review everything before sending.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Track Everything</h3>
+          <p>Keep track of all your applications in one place. Know exactly where you've applied and when.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="landing-how">
+    <div class="landing-container">
+      <h2 class="section-title">How It Works</h2>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Create Your Project</h3>
+            <p>Set up your profile, upload your resume and portfolio, and tell us what kind of jobs you want.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>We Find Opportunities</h3>
+            <p>Our AI searches job boards and company websites to find positions that match your criteria.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Review & Generate</h3>
+            <p>Review the job listings we found, select the ones you like, and we'll generate personalized applications.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>Send & Track</h3>
+            <p>Send applications with one click. We'll track everything so you can follow up easily.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="landing-cta">
+    <div class="landing-container">
+      <h2>Ready to Land Your Dream Job?</h2>
+      <p>Join thousands of job seekers who save hours every week with ApplyDraft.</p>
+      <button class="btn-landing-cta" onclick="showLoginFromLanding()">
+        Start Applying Today
+        <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ Login Page ════════════════════════════════════════ -->
 <div id="loginPage" style="display:none">
+  <button class="btn-back-landing" onclick="showLanding()" title="Back to home">
+    ← Back
+  </button>
   <div class="login-container">
     <h1>ApplyDraft</h1>
     <p class="login-subtitle">AI-powered job application automation</p>
@@ -93,6 +189,6 @@
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
-<script src="/static/app.js?v=11"></script>
+<script src="/static/app.js?v=12"></script>
 </body>
 </html>

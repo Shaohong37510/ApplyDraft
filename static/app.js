@@ -130,16 +130,40 @@ function hideLoading() {
   if (el) el.style.display = "none";
 }
 
+function showLanding() {
+  hideLoading();
+  const landingPage = document.getElementById("landingPage");
+  const loginPage = document.getElementById("loginPage");
+  const appContainer = document.getElementById("appContainer");
+  if (landingPage) landingPage.style.display = "";
+  if (loginPage) loginPage.style.display = "none";
+  if (appContainer) appContainer.style.display = "none";
+}
+
 function showLogin() {
   hideLoading();
-  document.getElementById("loginPage").style.display = "";
-  document.getElementById("appContainer").style.display = "none";
+  const landingPage = document.getElementById("landingPage");
+  const loginPage = document.getElementById("loginPage");
+  const appContainer = document.getElementById("appContainer");
+  if (landingPage) landingPage.style.display = "none";
+  if (loginPage) loginPage.style.display = "";
+  if (appContainer) appContainer.style.display = "none";
+}
+
+function showLoginFromLanding() {
+  showLogin();
+  // Smooth scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showApp() {
   hideLoading();
-  document.getElementById("loginPage").style.display = "none";
-  document.getElementById("appContainer").style.display = "";
+  const landingPage = document.getElementById("landingPage");
+  const loginPage = document.getElementById("loginPage");
+  const appContainer = document.getElementById("appContainer");
+  if (landingPage) landingPage.style.display = "none";
+  if (loginPage) loginPage.style.display = "none";
+  if (appContainer) appContainer.style.display = "";
 }
 
 async function updateUserInfo() {
@@ -200,7 +224,7 @@ async function init() {
         await loadApp();
       } else {
         accessToken = null;
-        showLogin();
+        showLanding();
       }
     });
 
@@ -211,7 +235,7 @@ async function init() {
       showApp();
       await loadApp();
     } else {
-      showLogin();
+      showLanding();
     }
   } else {
     // No Supabase configured — run without auth (dev mode)
@@ -641,6 +665,11 @@ async function renderProject(id) {
   // Re-render manual entries if any
   renderManualEntries();
   updateGenerateManualBtn(id);
+
+  // Restore search results if they were pending before re-render
+  if (pendingTargets.length > 0) {
+    restoreSearchResults(id);
+  }
 }
 
 // ── Section toggle ────────────────────────────────────────
@@ -1064,9 +1093,10 @@ async function runSearch(id) {
 
     if (pendingTargets.length > 0) {
       pendingTargets.forEach((t, i) => {
+        const sourceLink = t.source ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
         html += `<div class="search-result-row" id="searchRow_${i}">
           <div class="search-result-info">
-            <span class="firm-name">${esc(t.firm)}</span>
+            <span class="firm-name">${esc(t.firm)}${sourceLink}</span>
             <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
           </div>
           <button class="btn-remove-target" onclick="removeSearchTarget(${i})" title="Remove">&times;</button>
@@ -1109,6 +1139,31 @@ async function runSearch(id) {
     btn.disabled = false;
     btn.innerHTML = "&#9654; Search";
   }
+}
+
+function restoreSearchResults(id) {
+  const resultsDiv = document.getElementById("runResults");
+  if (!resultsDiv || pendingTargets.length === 0) return;
+  const totalReady = manualTargets.length + pendingTargets.length;
+  let html = '<div class="search-results-panel">';
+  html += '<div class="search-results-title">Search Results - Review & Confirm</div>';
+  pendingTargets.forEach((t, i) => {
+    const sourceLink = t.source ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
+    html += `<div class="search-result-row" id="searchRow_${i}">
+      <div class="search-result-info">
+        <span class="firm-name">${esc(t.firm)}${sourceLink}</span>
+        <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+      </div>
+      <button class="btn-remove-target" onclick="removeSearchTarget(${i})" title="Remove">&times;</button>
+    </div>`;
+  });
+  html += `<div class="search-results-actions">
+    <span class="search-count" id="confirmCount">${totalReady} position(s) ready</span>
+    <button class="btn btn-run" onclick="confirmAndGenerate('${id}')" id="confirmBtn">
+      &#9654; Confirm & Generate
+    </button>
+  </div></div>`;
+  resultsDiv.innerHTML = html;
 }
 
 function removeSearchTarget(index) {
@@ -1506,7 +1561,14 @@ function esc(s) {
 // ── Boot ──────────────────────────────────────────────────
 init().catch(e => {
   console.error("Init failed:", e);
-  // Fallback: show login page so the user isn't stuck on a blank screen
+  // Fallback: show landing page so the user isn't stuck on a blank screen
   hideLoading();
-  document.getElementById("loginPage").style.display = "";
+  const landingPage = document.getElementById("landingPage");
+  if (landingPage) {
+    landingPage.style.display = "";
+  } else {
+    // If landing page doesn't exist, fall back to login
+    const loginPage = document.getElementById("loginPage");
+    if (loginPage) loginPage.style.display = "";
+  }
 });
