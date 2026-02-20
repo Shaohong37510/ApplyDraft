@@ -654,22 +654,7 @@ async function renderProject(id) {
     </div>
   </div>
 
-  <!-- ═══ Section: Token Usage ══════════════════════════════ -->
-  <div class="section">
-    <div class="section-header" onclick="toggleSection(this)">
-      <h3><span>&#128200;</span> Token Usage</h3>
-      <span class="arrow">&#9662;</span>
-    </div>
-    <div class="section-body">
-      <div id="tokenUsageSummary">
-        <span style="color:var(--text2);font-size:12px">Loading...</span>
-      </div>
-    </div>
-  </div>
   `;
-
-  // Load token usage data
-  loadTokenUsage(id);
 
   // Re-render manual entries if any
   renderManualEntries();
