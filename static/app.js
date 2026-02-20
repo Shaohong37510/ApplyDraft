@@ -1998,3 +1998,28 @@ init().catch(e => {
     if (loginPage) loginPage.style.display = "";
   }
 });
+
+// ── Scroll Glow Orbs ─────────────────────────────────────
+(function () {
+  function makeOrb(cls) {
+    const el = document.createElement("div");
+    el.className = cls;
+    document.body.appendChild(el);
+    return el;
+  }
+  const orb1 = makeOrb("glow-orb glow-orb-r");
+  const orb2 = makeOrb("glow-orb glow-orb-l");
+  let c1 = 15, t1 = 15, c2 = 55, t2 = 55;
+  window.addEventListener("scroll", function () {
+    const f = window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1);
+    t1 = 5 + f * 70;
+    t2 = 35 + f * 55;
+  }, { passive: true });
+  (function tick() {
+    c1 += (t1 - c1) * 0.04;
+    c2 += (t2 - c2) * 0.03;
+    orb1.style.top = c1 + "vh";
+    orb2.style.top = c2 + "vh";
+    requestAnimationFrame(tick);
+  })();
+})();
