@@ -792,36 +792,16 @@ def get_templates(project_id: str, user_id: str = Depends(get_current_user)):
     return proj["templates"]
 
 
-@router.post("/projects/{project_id}/open-file")
-def open_file(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
-    """Open a file with the system default application."""
-    filename = data.get("filename", "")
-    type_id = data.get("type_id", "")
-
-    # Per-type template/definitions files
-    if type_id and filename in ["template.txt", "definitions.txt"]:
-        full_path = pm.get_project_dir(user_id, project_id) / "templates" / type_id / filename
-    elif filename == "tracker.csv":
-        full_path = pm.get_project_dir(user_id, project_id) / "tracker.csv"
-    elif filename == "project.md":
-        full_path = pm.get_project_dir(user_id, project_id) / "project.md"
-    elif filename.endswith(".pdf"):
-        # Open a specific PDF by path
-        full_path = Path(filename)
-        if not full_path.exists():
-            raise HTTPException(404, "PDF not found")
-    # Backward compat for legacy flat files
-    elif filename in ["cover_letter.txt", "email_body.txt", "custom_definitions.txt"]:
-        full_path = pm.get_project_dir(user_id, project_id) / "templates" / filename
-    else:
-        raise HTTPException(400, "Unknown file")
-
-    if not full_path.exists():
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        full_path.write_text("", encoding="utf-8")
-
-    os.startfile(str(full_path))
-    return {"ok": True, "path": str(full_path)}
+@router.post("/projects/{project_id}/templates/{type_id}/save")
+def save_template(project_id: str, type_id: str, data: dict, user_id: str = Depends(get_current_user)):
+    """Save template and definitions content for a given type."""
+    type_dir = pm.get_project_dir(user_id, project_id) / "templates" / type_id
+    type_dir.mkdir(parents=True, exist_ok=True)
+    template_content = data.get("template_content", "")
+    definitions_content = data.get("definitions_content", "")
+    (type_dir / "template.txt").write_text(template_content, encoding="utf-8")
+    (type_dir / "definitions.txt").write_text(definitions_content, encoding="utf-8")
+    return {"ok": True}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1493,12 +1473,6 @@ def get_token_usage(project_id: str, user_id: str = Depends(get_current_user)):
 #  Open output folder
 # ═══════════════════════════════════════════════════════════════
 
-@router.post("/projects/{project_id}/open-output-folder")
-def open_output_folder(project_id: str, user_id: str = Depends(get_current_user)):
-    folder = pm.get_project_dir(user_id, project_id) / "Email" / "CoverLetters"
-    folder.mkdir(parents=True, exist_ok=True)
-    subprocess.Popen(["explorer", str(folder)])
-    return {"ok": True, "path": str(folder)}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1510,10 +1484,3 @@ def get_tracker(project_id: str, user_id: str = Depends(get_current_user)):
     return pm.load_tracker(user_id, project_id)
 
 
-@router.post("/projects/{project_id}/open-tracker")
-def open_tracker(project_id: str, user_id: str = Depends(get_current_user)):
-    path = pm.get_tracker_path(user_id, project_id)
-    if path.exists():
-        os.startfile(str(path))
-        return {"ok": True, "path": str(path)}
-    raise HTTPException(404, "Tracker not found")

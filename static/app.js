@@ -432,15 +432,13 @@ async function renderProject(id) {
         </div>
 
         <label>Template</label>
-        <div class="template-preview">${esc(tplText || "(not generated yet)")}</div>
-        <div class="link-row" onclick="openTypeFile('${id}','${esc(cf.id)}','template.txt')">
-          <span class="icon">&#128196;</span> Open template.txt
-        </div>
+        <textarea class="tpl-textarea" id="tpl-${esc(cf.id)}" rows="10">${esc(tplText)}</textarea>
 
         <label>Custom Definitions</label>
-        <div class="template-preview">${esc(defsText || "(not generated yet)")}</div>
-        <div class="link-row" onclick="openTypeFile('${id}','${esc(cf.id)}','definitions.txt')">
-          <span class="icon">&#128196;</span> Open definitions.txt
+        <textarea class="tpl-textarea" id="def-${esc(cf.id)}" rows="6">${esc(defsText)}</textarea>
+
+        <div style="margin-top:8px">
+          <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','${esc(cf.id)}')">Save Template</button>
         </div>
       </div>
     `;
@@ -539,9 +537,6 @@ async function renderProject(id) {
         <button class="btn btn-secondary btn-sm" onclick="generateProjectMd('${id}')">Generate AI Instructions</button>
       </div>
 
-      <div class="link-row" onclick="openFile('${id}','project.md')">
-        <span class="icon">&#128196;</span> Open project.md (AI instruction file)
-      </div>
     </div>
   </div>
 
@@ -562,9 +557,6 @@ async function renderProject(id) {
         ${customizeHtml}
       </div>
 
-      <div class="link-row" onclick="openOutputFolder('${id}')" style="margin-top:8px">
-        <span class="icon">&#128194;</span> View All Generated Files
-      </div>
 
     </div>
   </div>
@@ -596,15 +588,13 @@ async function renderProject(id) {
       </div>
 
       <label>Template</label>
-      <div class="template-preview">${esc(emailTpl.template || "(not generated yet)")}</div>
-      <div class="link-row" onclick="openTypeFile('${id}','email_body','template.txt')">
-        <span class="icon">&#128196;</span> Open template.txt
-      </div>
+      <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(emailTpl.template || "")}</textarea>
 
       <label>Custom Definitions</label>
-      <div class="template-preview">${esc(emailTpl.definitions || "(not generated yet)")}</div>
-      <div class="link-row" onclick="openTypeFile('${id}','email_body','definitions.txt')">
-        <span class="icon">&#128196;</span> Open definitions.txt
+      <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(emailTpl.definitions || "")}</textarea>
+
+      <div style="margin-top:8px">
+        <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
       </div>
     </div>
   </div>
@@ -668,8 +658,11 @@ async function renderProject(id) {
 
       <div id="runResults"></div>
 
-      <div class="link-row" onclick="openTracker('${id}')" style="margin-top:8px">
-        <span class="icon">&#128202;</span> View Generated Positions (${proj.tracker_count} records)
+      <div style="margin-top:8px">
+        <button class="btn btn-secondary btn-sm" onclick="viewTracker('${id}')">
+          &#128202; View Applications (${proj.tracker_count} records)
+        </button>
+        <div id="trackerTable" style="margin-top:12px"></div>
       </div>
     </div>
   </div>
@@ -924,43 +917,37 @@ async function generateProjectMd(id) {
   }
 }
 
-// ── Open file ─────────────────────────────────────────────
+// ── Template inline editing ────────────────────────────────
 
-async function openFile(id, filename) {
+async function saveTemplate(projectId, typeId) {
+  const tplEl = document.getElementById(`tpl-${typeId}`);
+  const defEl = document.getElementById(`def-${typeId}`);
+  if (!tplEl) return;
   try {
-    await api("POST", `/projects/${id}/open-file`, { filename });
+    await api("POST", `/projects/${projectId}/templates/${typeId}/save`, {
+      template_content: tplEl.value,
+      definitions_content: defEl ? defEl.value : "",
+    });
+    toast("Template saved");
   } catch (e) {
     toast(e.message, "error");
   }
 }
 
-async function openTypeFile(id, typeId, filename) {
+async function viewTracker(id) {
+  const container = document.getElementById("trackerTable");
+  if (!container) return;
   try {
-    await api("POST", `/projects/${id}/open-file`, { filename, type_id: typeId });
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
-async function openPdf(id, pdfPath) {
-  try {
-    await api("POST", `/projects/${id}/open-file`, { filename: pdfPath });
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
-async function openTracker(id) {
-  try {
-    await api("POST", `/projects/${id}/open-tracker`);
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
-async function openOutputFolder(id) {
-  try {
-    await api("POST", `/projects/${id}/open-output-folder`);
+    const rows = await api("GET", `/projects/${id}/tracker`);
+    if (!rows || rows.length === 0) {
+      container.innerHTML = `<p style="color:var(--text2);font-size:13px">No applications yet.</p>`;
+      return;
+    }
+    const cols = ["Firm", "Position", "Location", "Status", "AppliedDate", "Email"];
+    container.innerHTML = `<div class="tracker-wrap"><table class="tracker-table">
+      <thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${esc(r[c] || "")}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table></div>`;
   } catch (e) {
     toast(e.message, "error");
   }

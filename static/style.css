@@ -437,22 +437,53 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 /* ── Template editor ──────────────────────────────────────── */
-.template-preview {
+.tpl-textarea {
+  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px;
   font-size: 12px;
   font-family: 'Cascadia Code', 'Consolas', monospace;
-  white-space: pre-wrap;
-  max-height: 180px;
-  overflow-y: auto;
-  color: var(--text2);
+  color: var(--text);
   margin-top: 6px;
   line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
 }
-.customize-card .template-preview { background: var(--bg); }
+.tpl-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,140,255,0.15);
+}
 .customize-card .upload-area { border-color: var(--border); }
+
+/* ── Tracker table ────────────────────────────────────────── */
+.tracker-wrap { overflow-x: auto; margin-top: 8px; }
+.tracker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tracker-table th {
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--bg3);
+  color: var(--text2);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.tracker-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.tracker-table tr:last-child td { border-bottom: none; }
+.tracker-table tr:hover td { background: var(--bg3); }
 
 /* ── Results ──────────────────────────────────────────────── */
 .result-item {
