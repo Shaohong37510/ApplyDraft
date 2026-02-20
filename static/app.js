@@ -179,12 +179,13 @@ async function updateUserInfo() {
 }
 
 function buyCredits() {
-  document.getElementById("creditModal").style.display = "flex";
+  const modal = document.getElementById("creditModal");
+  modal.style.cssText = "display:flex!important; position:fixed!important; top:0!important; left:0!important; width:100%!important; height:100%!important; background:rgba(0,0,0,.65)!important; z-index:9999!important; align-items:center!important; justify-content:center!important;";
 }
 
 function closeCreditModal(e) {
   if (e.target.id === "creditModal") {
-    document.getElementById("creditModal").style.display = "none";
+    document.getElementById("creditModal").style.cssText = "display:none!important;";
   }
 }
 
