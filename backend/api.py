@@ -19,6 +19,7 @@ from . import outlook_service as outlook_svc
 from . import gmail_service as gmail_svc
 from . import supabase_client as db
 from . import stripe_service as stripe_svc
+from . import billing
 from .auth_middleware import get_current_user
 
 router = APIRouter(prefix="/api")
@@ -890,6 +891,12 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
     tracker_rows = pm.load_tracker(user_id, project_id)
     generated_firms = [r["Firm"] for r in tracker_rows if r.get("Status") == "Generated"]
 
+    # Pre-flight: check user has enough credits
+    min_cost = billing.search_cost(count)
+    balance = db.get_user_credits(user_id)
+    if balance < min_cost:
+        raise HTTPException(402, f"Insufficient credits: need {min_cost:.1f}, have {balance:.1f}")
+
     try:
         search_result, usage = ai.search_and_generate_targets(
             api_key, project_md, combined_definitions, job_req, count,
@@ -901,9 +908,15 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
             raise HTTPException(429, "API rate limit reached. Please wait 1-2 minutes and try again.")
         raise HTTPException(500, f"Search failed: {err_msg[:200]}")
 
+    # Deduct credits
+    actual_cost = billing.search_cost(count)
+    ok, remaining = db.use_credits(user_id, actual_cost, f"Search {count} targets")
+
     pm.append_token_usage(user_id, project_id, "search", usage)
 
     search_result["token_usage"] = usage
+    search_result["credits_used"] = actual_cost
+    search_result["credits_remaining"] = remaining
     return search_result
 
 
@@ -1086,6 +1099,12 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     confirmed_targets = data.get("targets", [])
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
+
+    # Pre-flight credit check
+    min_cost = billing.generate_cost(len(confirmed_targets))
+    balance = db.get_user_credits(user_id)
+    if balance < min_cost:
+        raise HTTPException(402, f"Insufficient credits: need {min_cost:.1f}, have {balance:.1f}")
 
     smart_subject = data.get("smart_subject", False)
     subject_template = data.get("subject_template", "")
@@ -1293,8 +1312,19 @@ Best regards,
             except Exception:
                 pass
 
+        # Deduct credits for generation
+        actual_cost = billing.generate_cost(len(confirmed_targets))
+        credits_remaining = None
+        try:
+            ok, credits_remaining = db.use_credits(
+                user_id, actual_cost, f"Generate {len(confirmed_targets)} targets"
+            )
+        except Exception:
+            pass
+
         # Final completion event
-        completion = {'type': 'complete', 'generated': results, 'token_usage': total_usage}
+        completion = {'type': 'complete', 'generated': results, 'token_usage': total_usage,
+                      'credits_used': actual_cost, 'credits_remaining': credits_remaining}
         if save_error:
             completion['save_error'] = save_error
         yield f"data: {json.dumps(completion)}\n\n"
