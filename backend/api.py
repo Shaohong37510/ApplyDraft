@@ -950,18 +950,12 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
             raise HTTPException(429, "API rate limit reached. Please wait 1-2 minutes and try again.")
         raise HTTPException(500, f"Search failed: {err_msg[:200]}")
 
-    # Deduct credits
-    actual_cost = billing.search_cost(count)
-    ok, remaining = db.use_credits(user_id, actual_cost, f"Search {count} targets")
-
     pm.append_token_usage(user_id, project_id, "search", usage)
 
     targets = search_result.get("targets", []) or []
     success_count = len(targets)
     base_credits = success_count * billing.SEARCH_CREDITS_PER_TARGET
-    limit_tokens = billing.token_limit_for_count(
-        success_count, "SEARCH_TOKEN_LIMITS", "SEARCH_TOKEN_PER_ITEM"
-    )
+    limit_tokens = billing.search_token_limit(count)
     overage = billing.overage_credits_for_tokens(
         float(usage.get("input_tokens", 0) or 0),
         float(usage.get("output_tokens", 0) or 0),

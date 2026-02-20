@@ -264,6 +264,8 @@ def add_customize_file(user_id: str, project_id: str, label: str) -> dict:
     project_dir = _user_dir(user_id) / project_id
     config = _load_project_config(project_dir)
     customize_files = config.get("customize_files", [])
+    if len(customize_files) >= 4:
+        raise ValueError("Customize files limit reached (max 4)")
 
     # Generate ID from label
     type_id = _sanitize_name(label).lower().replace(" ", "_").replace("-", "_")

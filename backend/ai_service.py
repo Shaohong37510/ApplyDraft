@@ -13,8 +13,8 @@ from anthropic import Anthropic, RateLimitError
 MAX_OUTPUT_TOKENS = 6000          # Template/content generation
 MAX_OUTPUT_TOKENS_SUBJECT = 200   # Subject line only
 
-# Search limits by count (2x safety margin)
-# max_searches: count*2 + 4; max_output: count*1000 + 2000
+# Search limits by count (matches billing table)
+# max_searches: count*2 + 4; max_output: count*1000 + 2000 (cap 12000)
 def _search_limits(count: int) -> tuple[int, int]:
     """Return (max_searches, max_output_tokens) for a given position count."""
     max_searches = count * 2 + 4

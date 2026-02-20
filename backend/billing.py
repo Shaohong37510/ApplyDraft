@@ -90,6 +90,22 @@ def token_limit_for_count(count: int, limits_env: str, per_item_env: str) -> flo
     return per_item * count
 
 
+# Search phase token budgets (matches ai_service._search_limits table)
+# Input:  82000 + 40000 * count
+# Output:  2000 +  1000 * count  (capped at 12000)
+SEARCH_INPUT_BASE     = _get_float_env("SEARCH_INPUT_BASE",     82_000)
+SEARCH_INPUT_PER_ITEM = _get_float_env("SEARCH_INPUT_PER_ITEM", 40_000)
+SEARCH_OUTPUT_BASE     = _get_float_env("SEARCH_OUTPUT_BASE",    2_000)
+SEARCH_OUTPUT_PER_ITEM = _get_float_env("SEARCH_OUTPUT_PER_ITEM", 1_000)
+
+
+def search_token_limit(count: int) -> float:
+    """Total token budget (input + output) for a search batch of `count` targets."""
+    input_limit  = SEARCH_INPUT_BASE  + SEARCH_INPUT_PER_ITEM  * count
+    output_limit = SEARCH_OUTPUT_BASE + SEARCH_OUTPUT_PER_ITEM * count
+    return input_limit + output_limit
+
+
 def overage_credits_for_tokens(input_tokens: float, output_tokens: float, limit_tokens: float | None) -> float:
     """Calculate overage credits based on total token limit."""
     if limit_tokens is None:
