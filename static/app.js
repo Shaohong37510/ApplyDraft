@@ -48,6 +48,19 @@ async function initSupabase() {
 
 // ── API helpers ───────────────────────────────────────────
 
+async function apiOpenPdf(path) {
+  const res = await fetch("/api" + path, {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || "Request failed");
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
+
 async function api(method, path, body) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
   if (accessToken) {
@@ -890,7 +903,7 @@ async function previewTypeTemplate(id, typeId) {
     const result = await api("POST", `/projects/${id}/customize/${typeId}/preview`);
     const pathEl = document.getElementById(`previewPath_${typeId}`);
     if (pathEl) {
-      pathEl.innerHTML = `<a href="/api/projects/${id}/customize/${typeId}/preview-pdf" target="_blank" class="preview-link">&#128065; Open Preview PDF</a>`;
+      pathEl.innerHTML = `<a href="#" class="preview-link" onclick="apiOpenPdf('/projects/${id}/customize/${typeId}/preview-pdf');return false;">&#128065; Open Preview PDF</a>`;
     }
     toast("Preview generated!");
     if (result.token_usage) showTokenUsage(result.token_usage);
