@@ -4,12 +4,16 @@
 
 let projects = [];
 let activeProjectId = null;
+let currentView = 'projects';
 let globalConfig = {};
 let pendingTargets = []; // search results awaiting confirmation
 let manualTargets = []; // manually added targets
 let supabaseClient = null;
 let accessToken = null;
 let currentUser = null;
+let currentEmailTpl = {}; // cached email template for confirmAndGenerate
+let _homeTrackerData = []; // cached tracker for project home modals
+let _homeProj = null;      // cached project data for project home modals
 
 // ── Supabase Init ────────────────────────────────────────
 
@@ -53,22 +57,15 @@ function extractEditableContent(html) {
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   if (!bodyMatch) return html;
   let body = bodyMatch[1];
-  // Block-level tags → newlines
   body = body.replace(/<br\s*\/?>/gi, '\n');
   body = body.replace(/<\/(p|div|h[1-6]|li)>/gi, '\n');
   body = body.replace(/<(p|div|h[1-6]|li)[^>]*>/gi, '');
-  // Strip remaining tags
   body = body.replace(/<[^>]+>/g, '');
-  // Unescape HTML entities
   body = body.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-  // Clean up each line: trim leading/trailing spaces
   body = body.split('\n').map(l => l.trim()).join('\n');
-  // Collapse 3+ consecutive blank lines to 1
   body = body.replace(/\n{3,}/g, '\n\n');
   return body.trim();
 }
-
-// ── API helpers ───────────────────────────────────────────
 
 async function apiOpenPdf(path) {
   const res = await fetch("/api" + path, {
@@ -83,6 +80,8 @@ async function apiOpenPdf(path) {
   window.open(url, "_blank");
 }
 
+// ── API helpers ───────────────────────────────────────────
+
 async function api(method, path, body) {
   const opts = { method, headers: { "Content-Type": "application/json" } };
   if (accessToken) {
@@ -91,7 +90,6 @@ async function api(method, path, body) {
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch("/api" + path, opts);
   if (res.status === 401) {
-    // Token expired — try to refresh
     const refreshed = await refreshSession();
     if (refreshed) {
       opts.headers["Authorization"] = `Bearer ${accessToken}`;
@@ -187,7 +185,6 @@ function showLogin() {
 
 function showLoginFromLanding() {
   showLogin();
-  // Smooth scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -249,7 +246,6 @@ function toast(msg, type = "success") {
 async function init() {
   supabaseClient = await initSupabase();
 
-  // Check for payment success/cancel in URL
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("payment") === "success") {
     toast("Payment successful! Credits added.");
@@ -260,7 +256,6 @@ async function init() {
   }
 
   if (supabaseClient) {
-    // Listen for auth state changes
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         accessToken = session.access_token;
@@ -272,7 +267,6 @@ async function init() {
       }
     });
 
-    // Check existing session
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       accessToken = session.access_token;
@@ -282,7 +276,6 @@ async function init() {
       showLanding();
     }
   } else {
-    // No Supabase configured — run without auth (dev mode)
     showApp();
     await loadApp();
   }
@@ -306,105 +299,516 @@ async function loadApp() {
     console.error("load projects failed:", e);
     projects = [];
   }
-  renderTabs();
-  if (projects.length > 0) {
-    switchProject(projects[0].id);
-  } else {
-    document.getElementById("emptyState").style.display = "";
-  }
+  navigateToProjects();
 }
 
-// ── Tabs ──────────────────────────────────────────────────
+// ── View Navigation ───────────────────────────────────────
 
-function renderTabs() {
-  // Update project dropdown in top bar
-  const sel = document.getElementById("projectSelect");
-  const delBtn = document.getElementById("deleteProjectBtn");
-  if (sel) {
-    if (projects.length === 0) {
-      sel.innerHTML = `<option value="">No projects</option>`;
-    } else {
-      sel.innerHTML = projects.map(p =>
-        `<option value="${p.id}"${p.id === activeProjectId ? " selected" : ""}>${esc(p.name)}</option>`
-      ).join("");
-    }
-  }
-  if (delBtn) delBtn.style.display = projects.length === 0 ? "none" : "";
-
-  // Keep tab bar in sync (hidden via CSS)
-  const bar = document.getElementById("tabBar");
-  const addBtn = document.getElementById("addProjectBtn");
-  bar.querySelectorAll(".tab").forEach(t => t.remove());
-  projects.forEach(p => {
-    const tab = document.createElement("div");
-    tab.className = "tab" + (p.id === activeProjectId ? " active" : "");
-    tab.innerHTML = `
-      <span onclick="switchProject('${p.id}')">${esc(p.name)}</span>
-      <span class="close-tab" onclick="event.stopPropagation();confirmDeleteProject('${p.id}','${esc(p.name)}')">&times;</span>
-    `;
-    bar.insertBefore(tab, addBtn);
+function showView(viewId) {
+  ['viewProjectsList', 'viewProjectHome', 'viewStartApply', 'viewEdit'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
   });
+  const target = document.getElementById(viewId);
+  if (target) target.style.display = '';
+  currentView = viewId;
 }
 
-async function deleteActiveProject() {
-  if (!activeProjectId) return;
-  const proj = projects.find(p => p.id === activeProjectId);
-  if (proj) confirmDeleteProject(proj.id, proj.name);
+function navigateToProjects() {
+  showView('viewProjectsList');
+  renderProjectsList();
 }
 
-async function switchProject(id) {
+async function navigateToProjectHome(id) {
   activeProjectId = id;
-  renderTabs();
-  await renderProject(id);
+  showView('viewProjectHome');
+  await renderProjectHome(id);
 }
 
-async function promptNewProject() {
-  const name = prompt("Project name:");
-  if (!name) return;
-  const proj = await api("POST", "/projects", { name });
-  projects.push(proj);
-  renderTabs();
-  switchProject(proj.id);
-  toast("Project created");
+async function navigateToStartApply(id) {
+  showView('viewStartApply');
+  await renderStartApply(id);
 }
 
-async function confirmDeleteProject(id, name) {
-  if (!confirm(`Delete project "${name}"?`)) return;
-  await api("DELETE", `/projects/${id}`);
-  projects = projects.filter(p => p.id !== id);
-  if (activeProjectId === id) {
-    activeProjectId = projects.length > 0 ? projects[0].id : null;
+async function navigateToEdit(id, section) {
+  showView('viewEdit');
+  await renderEditView(id);
+  if (section) {
+    setTimeout(() => {
+      const el = document.querySelector(`[data-section="${section}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 150);
   }
-  renderTabs();
-  if (activeProjectId) switchProject(activeProjectId);
-  else {
-    document.getElementById("mainContent").innerHTML = `
-      <div class="empty-state" id="emptyState">
-        <h2>Job Application Kit</h2>
-        <p>Create a project to get started</p>
+}
+
+// ── Projects List ─────────────────────────────────────────
+
+function renderProjectsList() {
+  const grid = document.getElementById('projectsGrid');
+  if (!grid) return;
+
+  if (projects.length === 0) {
+    grid.innerHTML = `
+      <div class="projects-empty">
+        <div class="projects-empty-icon">📋</div>
+        <h2>No Projects Yet</h2>
+        <p>Create your first project to start applying</p>
         <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
       </div>`;
+    return;
   }
-  toast("Project deleted");
+
+  grid.innerHTML = projects.map(p => `
+    <div class="project-card" onclick="navigateToProjectHome('${p.id}')">
+      <div class="project-card-top">
+        <span class="project-card-icon">📋</span>
+        <button class="project-card-delete" onclick="event.stopPropagation();confirmDeleteProject('${p.id}','${esc(p.name)}')" title="Delete project">×</button>
+      </div>
+      <div class="project-card-name">${esc(p.name)}</div>
+      <div class="project-card-count">${p.tracker_count || 0} applications</div>
+      <div class="project-card-arrow">→</div>
+    </div>
+  `).join('');
 }
 
-document.getElementById("addProjectBtn").onclick = promptNewProject;
+// ── Project Home ──────────────────────────────────────────
 
-// ── Render Project ────────────────────────────────────────
+async function renderProjectHome(id) {
+  const page = document.getElementById('projectHomePage');
+  if (!page) return;
+  page.innerHTML = '<div class="view-loading">Loading...</div>';
 
-async function renderProject(id) {
+  try {
+    const [proj, trackerData] = await Promise.all([
+      api("GET", `/projects/${id}`),
+      api("GET", `/projects/${id}/tracker`).catch(() => [])
+    ]);
+
+    _homeTrackerData = trackerData;
+    _homeProj = proj;
+
+    const cfg = proj.config || {};
+    const total = trackerData.length;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisWeek = trackerData.filter(r => {
+      if (!r.AppliedDate) return false;
+      return new Date(r.AppliedDate) >= weekAgo;
+    }).length;
+    const generated = trackerData.filter(r => r.Status === 'Generated').length;
+
+    const chartData = buildDailyChart(trackerData, 30);
+    const chartSvg = buildLineChartSVG(chartData);
+
+    page.innerHTML = `
+      <div class="view-breadcrumb">
+        <button class="btn-breadcrumb" onclick="navigateToProjects()">← Projects</button>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">${esc(cfg.project_name || id)}</span>
+      </div>
+
+      <div class="project-home-content">
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">Total Applications</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${thisWeek}</div>
+            <div class="stat-label">This Week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${generated}</div>
+            <div class="stat-label">Generated</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Daily Applications — Last 30 Days</div>
+          <div class="chart-container">${chartSvg}</div>
+        </div>
+
+        <button class="btn-start-apply" onclick="navigateToStartApply('${id}')">
+          ▶ &nbsp;Start Apply
+        </button>
+
+        <div class="home-panels">
+          <div class="home-panel" onclick="openFilesModal('${id}')">
+            <span class="home-panel-icon">📁</span>
+            <span class="home-panel-label">All Files</span>
+            <span class="home-panel-arrow">›</span>
+          </div>
+          <div class="home-panel" onclick="openTableModal()">
+            <span class="home-panel-icon">📊</span>
+            <span class="home-panel-label">Application Table</span>
+            <span class="home-panel-arrow">›</span>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary btn-edit-settings" onclick="navigateToEdit('${id}')">
+          ✏ Edit Settings
+        </button>
+
+      </div>
+    `;
+  } catch (e) {
+    page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Chart helpers ─────────────────────────────────────────
+
+function buildDailyChart(trackerData, days) {
+  const result = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const count = trackerData.filter(r => r.AppliedDate && r.AppliedDate.startsWith(dateStr)).length;
+    result.push({ date: dateStr, count });
+  }
+  return result;
+}
+
+function buildLineChartSVG(data) {
+  const w = 580, h = 110, padL = 28, padR = 8, padT = 8, padB = 28;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const maxVal = Math.max(...data.map(d => d.count), 1);
+  const n = data.length;
+
+  const pts = data.map((d, i) => {
+    const x = padL + (n > 1 ? (i / (n - 1)) : 0.5) * innerW;
+    const y = padT + innerH - (d.count / maxVal) * innerH;
+    return [x, y];
+  });
+
+  const polyPts = pts.map(p => p.join(',')).join(' ');
+  const areaPts = `${padL},${padT + innerH} ${polyPts} ${padL + innerW},${padT + innerH}`;
+
+  // X-axis labels every 7 days
+  const xLabels = data
+    .map((d, i) => ({ d, i }))
+    .filter(({ i }) => i % 7 === 0)
+    .map(({ d, i }) => {
+      const x = padL + (n > 1 ? (i / (n - 1)) : 0.5) * innerW;
+      return `<text x="${x.toFixed(1)}" y="${h - 2}" class="chart-label">${d.date.slice(5)}</text>`;
+    }).join('');
+
+  // Y-axis labels
+  const step = Math.ceil(maxVal / 3) || 1;
+  const yLabels = [];
+  for (let v = 0; v <= maxVal; v += step) {
+    const y = padT + innerH - (v / maxVal) * innerH;
+    yLabels.push(`<text x="${padL - 4}" y="${(y + 4).toFixed(1)}" class="chart-label" text-anchor="end">${v}</text>`);
+  }
+
+  // Dots for non-zero points
+  const dots = pts
+    .filter((_, i) => data[i].count > 0)
+    .map(([x, y]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" class="chart-dot"/>`)
+    .join('');
+
+  return `<svg viewBox="0 0 ${w} ${h}" class="line-chart-svg" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6c8cff" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#6c8cff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" class="chart-axis"/>
+  <line x1="${padL}" y1="${padT + innerH}" x2="${padL + innerW}" y2="${padT + innerH}" class="chart-axis"/>
+  <polygon points="${areaPts}" fill="url(#chartGrad)"/>
+  <polyline points="${polyPts}" class="chart-line" fill="none"/>
+  ${dots}
+  ${xLabels}
+  ${yLabels.join('')}
+</svg>`;
+}
+
+// ── Files Modal ───────────────────────────────────────────
+
+async function openFilesModal(id) {
+  // Remove any existing modal
+  document.getElementById('filesModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'filesModal';
+  overlay.innerHTML = `
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h3>📁 All Files</h3>
+        <button class="modal-close" onclick="document.getElementById('filesModal').remove()">×</button>
+      </div>
+      <div class="modal-body" id="filesModalBody">
+        <div class="view-loading">Loading...</div>
+      </div>
+    </div>
+  `;
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+
+  try {
+    const proj = _homeProj || await api("GET", `/projects/${id}`);
+    const materials = proj.materials || [];
+    let html = '';
+
+    // Uploaded Materials
+    html += `<div class="files-section-title">Uploaded Materials</div>`;
+    if (materials.length > 0) {
+      html += materials.map(f => `
+        <div class="file-list-row">
+          <span class="file-list-icon">📎</span>
+          <span class="file-list-name">${esc(f)}</span>
+          <button class="btn btn-sm btn-secondary" onclick="deleteMaterial('${id}','${esc(f)}');document.getElementById('filesModal').remove()">Delete</button>
+        </div>
+      `).join('');
+    } else {
+      html += `<div class="files-empty-note">No materials uploaded yet. Go to Edit Settings → Project to upload CV/Portfolio.</div>`;
+    }
+
+    // Generated files section
+    html += `<div class="files-section-title" style="margin-top:20px">Generated Applications</div>`;
+    if (_homeTrackerData.length > 0) {
+      html += `<div class="files-stat-note">${_homeTrackerData.length} application(s) generated</div>`;
+      html += `
+        <div class="link-row" onclick="openOutputFolder('${id}')">
+          <span class="icon">📂</span> Open Output Folder (Email files)
+        </div>
+        <div class="link-row" onclick="openTracker('${id}')">
+          <span class="icon">📊</span> Open tracker.csv
+        </div>
+      `;
+    } else {
+      html += `<div class="files-empty-note">No applications generated yet.</div>`;
+    }
+
+    document.getElementById('filesModalBody').innerHTML = html;
+  } catch (e) {
+    document.getElementById('filesModalBody').innerHTML = `<div style="color:var(--red);padding:16px">${esc(e.message)}</div>`;
+  }
+}
+
+// ── Table Modal ───────────────────────────────────────────
+
+function openTableModal() {
+  document.getElementById('tableModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'tableModal';
+  overlay.innerHTML = `
+    <div class="modal-panel modal-wide">
+      <div class="modal-header">
+        <h3>📊 Application Table</h3>
+        <button class="modal-close" onclick="document.getElementById('tableModal').remove()">×</button>
+      </div>
+      <div class="modal-body modal-body-scroll">
+        ${renderTrackerTable(_homeTrackerData)}
+      </div>
+    </div>
+  `;
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+function renderTrackerTable(data) {
+  if (!data || data.length === 0) {
+    return `<div class="empty-state" style="padding:40px 0"><p>No applications recorded yet.</p></div>`;
+  }
+  const cols = ['Firm', 'Location', 'Position', 'OpenDate', 'AppliedDate', 'Email', 'Status'];
+  return `
+    <div class="tracker-table-wrap">
+      <table class="tracker-table">
+        <thead>
+          <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              ${cols.map(c => `<td>${esc(row[c] || '')}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── Start Apply ───────────────────────────────────────────
+
+async function renderStartApply(id) {
+  const page = document.getElementById('startApplyPage');
+  if (!page) return;
+  page.innerHTML = '<div class="view-loading">Loading...</div>';
+
+  try {
+    const [proj, emailTpl] = await Promise.all([
+      api("GET", `/projects/${id}`),
+      api("GET", `/projects/${id}/email-template`).catch(() => ({}))
+    ]);
+
+    currentEmailTpl = emailTpl;
+    const cfg = proj.config || {};
+    const connectedEmail = globalConfig.gmail_email || globalConfig.outlook_email || '';
+
+    // Build attachment list for preview
+    const customizeFiles = cfg.customize_files || [];
+    const attachableFiles = customizeFiles.filter(cf => cf.id !== 'email_body' && cf.is_attachment !== false);
+    const materials = proj.materials || [];
+
+    const attachmentChips = [
+      ...materials.map(f => `<span class="attachment-chip">📎 ${esc(f)}</span>`),
+      ...attachableFiles.map(f => `<span class="attachment-chip generated-chip">📄 ${esc(f.label)} (generated)</span>`)
+    ].join('') || `<span class="text-muted">No attachments configured</span>`;
+
+    const bodyPreview = emailTpl.template
+      ? emailTpl.template.slice(0, 280) + (emailTpl.template.length > 280 ? '...' : '')
+      : '(No email template yet — go to Edit Settings → Email Template to generate one)';
+
+    const subjectPreview = emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}';
+
+    page.innerHTML = `
+      <div class="view-breadcrumb">
+        <button class="btn-breadcrumb" onclick="navigateToProjectHome('${id}')">← ${esc(cfg.project_name || id)}</button>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Start Apply</span>
+      </div>
+
+      <div class="start-apply-content">
+
+        <!-- ─ Part A: Email Preview ─ -->
+        <div class="apply-section">
+          <h3 class="apply-section-title">Email Preview</h3>
+          <div class="email-preview-card">
+
+            <div class="email-field-row">
+              <span class="email-field-label">Subject</span>
+              <span class="email-field-value">${esc(subjectPreview)}</span>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject">✏</button>
+            </div>
+
+            <div class="email-field-row">
+              <span class="email-field-label">From</span>
+              <span class="email-field-value">${connectedEmail ? esc(connectedEmail) : '<em style="color:var(--orange)">Not connected</em>'}</span>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'global')" title="Edit email account">✏</button>
+            </div>
+
+            <div class="email-field-row email-field-body">
+              <span class="email-field-label">Body</span>
+              <span class="email-field-value email-body-preview">${esc(bodyPreview)}</span>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template">✏</button>
+            </div>
+
+            <div class="email-field-row">
+              <span class="email-field-label">Attachments</span>
+              <div class="email-attachments-list">${attachmentChips}</div>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'project')" title="Edit attachments">✏</button>
+            </div>
+
+          </div>
+
+          <button class="btn btn-secondary" onclick="navigateToEdit('${id}')" style="margin-top:14px">
+            ✏ Edit Application Files
+          </button>
+        </div>
+
+        <!-- ─ Part B: Job Requirements & Search ─ -->
+        <div class="apply-section">
+          <h3 class="apply-section-title">Job Requirements & Search</h3>
+
+          <label>Job Requirements (natural language)</label>
+          <textarea id="projJobReq" rows="3"
+            placeholder="e.g. Junior Architect positions in New York, 0-3 years experience, prefer cultural/museum projects"
+          >${esc(cfg.job_requirements || '')}</textarea>
+
+          <div class="run-bar">
+            <div class="count-selector">
+              <label style="margin:0">Positions:</label>
+              <select id="runCount">
+                ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}" ${n===5?"selected":""}>${n}</option>`).join("")}
+              </select>
+            </div>
+            <button class="btn btn-run" id="runBtn" onclick="runSearch('${id}')">
+              ▶ Search
+            </button>
+          </div>
+
+          <!-- Manual Entry -->
+          <div class="manual-entry-section">
+            <div class="manual-entry-toggle" onclick="toggleManualEntry()">
+              <span class="arrow-icon">&#9654;</span>
+              <span>&#43; Add Position Manually</span>
+            </div>
+            <div class="manual-entry-form" id="manualEntryForm">
+              <div class="row">
+                <div>
+                  <label>Company Name *</label>
+                  <input type="text" id="manualFirm" placeholder="e.g. Foster + Partners">
+                </div>
+                <div>
+                  <label>Email *</label>
+                  <input type="email" id="manualEmail" placeholder="careers@firm.com">
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Position</label>
+                  <input type="text" id="manualPosition" placeholder="e.g. Junior Architect">
+                </div>
+                <div>
+                  <label>Location</label>
+                  <input type="text" id="manualLocation" placeholder="e.g. New York, NY">
+                </div>
+              </div>
+              <label>Website</label>
+              <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
+              <div class="manual-entry-actions">
+                <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
+                <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
+              </div>
+            </div>
+            <div class="manual-entries-list" id="manualEntriesList"></div>
+            <div id="generateManualBtnContainer"></div>
+          </div>
+
+          <div id="runResults"></div>
+
+          <div class="link-row" onclick="openTracker('${id}')" style="margin-top:8px">
+            <span class="icon">📊</span> View Generated Positions (${proj.tracker_count} records)
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    renderManualEntries();
+    updateGenerateManualBtn(id);
+
+    if (pendingTargets.length > 0) {
+      restoreSearchResults(id);
+    }
+  } catch (e) {
+    page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Edit View (Settings) ──────────────────────────────────
+
+async function renderEditView(id) {
   const proj = await api("GET", `/projects/${id}`);
   const cfg = proj.config || {};
   const tpls = proj.templates || {};
   const customizeFiles = cfg.customize_files || [];
 
-  // Fetch examples for each customize file type in parallel
   const examplesMap = {};
   await Promise.all(customizeFiles.map(async (cf) => {
     examplesMap[cf.id] = await api("GET", `/projects/${id}/customize/${cf.id}/examples`).catch(() => []);
   }));
 
-  // Build attachment checkboxes (customize files that can be PDF attachments)
   const attachableFiles = customizeFiles.filter(cf => cf.id !== "email_body");
   let attachmentCheckboxes = attachableFiles.map(cf => {
     const checked = cf.is_attachment !== false ? "checked" : "";
@@ -414,15 +818,13 @@ async function renderProject(id) {
     </label>`;
   }).join("");
 
-  // Fetch email template data
   const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
 
-  // Build customize files HTML (exclude email_body — shown in its own section)
   let customizeHtml = "";
-  customizeFiles.filter(cf => cf.id !== "email_body").forEach((cf, idx) => {
+  customizeFiles.filter(cf => cf.id !== "email_body").forEach((cf) => {
     const typeExamples = examplesMap[cf.id] || [];
     const typeTpl = tpls[cf.id] || {};
-    const tplText = extractEditableContent(typeTpl.template || "");
+    const tplText = typeTpl.template || "";
     const defsText = typeTpl.definitions || "";
     const inputId = `exInput_${cf.id}`;
     const fnFmt = cf.filename_format || "";
@@ -467,7 +869,7 @@ async function renderProject(id) {
         </div>
 
         <label>Template</label>
-        <textarea class="tpl-textarea" id="tpl-${esc(cf.id)}" rows="10">${esc(tplText)}</textarea>
+        <textarea class="tpl-textarea" id="tpl-${esc(cf.id)}" rows="10">${esc(extractEditableContent(tplText))}</textarea>
 
         <label>Custom Definitions</label>
         <textarea class="tpl-textarea" id="def-${esc(cf.id)}" rows="6">${esc(defsText)}</textarea>
@@ -481,8 +883,15 @@ async function renderProject(id) {
 
   document.getElementById("mainContent").innerHTML = `
 
+  <!-- Breadcrumb -->
+  <div class="view-breadcrumb" style="margin-bottom:16px">
+    <button class="btn-breadcrumb" onclick="navigateToProjectHome('${id}')">← ${esc(cfg.project_name || id)}</button>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">Edit Settings</span>
+  </div>
+
   <!-- ═══ Section: Global Config ═══════════════════════════ -->
-  <div class="section">
+  <div class="section" data-section="global">
     <div class="section-header" onclick="toggleSection(this)">
       <h3><span>&#9881;</span> Global Settings</h3>
       <span class="arrow">&#9662;</span>
@@ -498,7 +907,6 @@ async function renderProject(id) {
           onclick="switchEmailProvider('none')">None</button>
       </div>
 
-      <!-- Gmail settings -->
       <div id="gmailSettings" style="display:${(globalConfig.email_provider || "gmail") === "gmail" ? "block" : "none"}">
         ${globalConfig.gmail_connected
           ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
@@ -511,7 +919,6 @@ async function renderProject(id) {
         }
       </div>
 
-      <!-- Outlook settings -->
       <div id="outlookSettings" style="display:${globalConfig.email_provider === "outlook" ? "block" : "none"}">
         ${globalConfig.outlook_connected
           ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
@@ -524,7 +931,6 @@ async function renderProject(id) {
         }
       </div>
 
-      <!-- No email -->
       <div id="noneSettings" style="display:${globalConfig.email_provider === "none" ? "block" : "none"}">
         <div style="padding:10px;background:#fff3e0;border-radius:6px;font-size:13px;color:#e65100">
           Email drafts will not be created. Only PDFs will be generated.
@@ -539,7 +945,7 @@ async function renderProject(id) {
   </div>
 
   <!-- ═══ Section: Project Config ══════════════════════════ -->
-  <div class="section">
+  <div class="section" data-section="project">
     <div class="section-header" onclick="toggleSection(this)">
       <h3><span>&#128221;</span> Project: ${esc(cfg.project_name || id)}</h3>
       <span class="arrow">&#9662;</span>
@@ -568,15 +974,18 @@ async function renderProject(id) {
       ` : ""}
 
       <div style="margin-top:12px">
-        <button class="btn btn-primary btn-sm" onclick="saveProjectConfig('${id}')">Save Project Config</button>
+        <button class="btn btn-primary btn-sm" onclick="saveProjectConfig('${id}')">Save</button>
         <button class="btn btn-secondary btn-sm" onclick="generateProjectMd('${id}')">Generate AI Instructions</button>
       </div>
 
+      <div class="link-row" onclick="openFile('${id}','project.md')">
+        <span class="icon">&#128196;</span> Open project.md (AI instruction file)
+      </div>
     </div>
   </div>
 
   <!-- ═══ Section: Customize Files ═════════════════════════ -->
-  <div class="section">
+  <div class="section" data-section="customize">
     <div class="section-header" onclick="toggleSection(this)">
       <h3><span>&#128203;</span> Customize Files</h3>
       <span class="arrow">&#9662;</span>
@@ -592,12 +1001,15 @@ async function renderProject(id) {
         ${customizeHtml}
       </div>
 
+      <div class="link-row" onclick="openOutputFolder('${id}')" style="margin-top:8px">
+        <span class="icon">&#128194;</span> View All Generated Files
+      </div>
 
     </div>
   </div>
 
   <!-- ═══ Section: Email Template ══════════════════════════ -->
-  <div class="section">
+  <div class="section" data-section="email">
     <div class="section-header" onclick="toggleSection(this)">
       <h3><span>&#9993;</span> Email Template</h3>
       <span class="arrow">&#9662;</span>
@@ -618,7 +1030,7 @@ async function renderProject(id) {
       <textarea id="emailExampleText" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...&#10;&#10;Best regards,&#10;Your Name">${esc(emailTpl.example || "")}</textarea>
 
       <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-        <button class="btn btn-secondary btn-sm" onclick="saveEmailExample('${id}')">Save Example</button>
+        <button class="btn btn-secondary btn-sm" onclick="saveEmailExample('${id}')">Save</button>
         <button class="btn btn-primary btn-sm" onclick="generateEmailTemplate('${id}')">&#9998; Generate Template</button>
       </div>
 
@@ -634,90 +1046,54 @@ async function renderProject(id) {
     </div>
   </div>
 
-  <!-- ═══ Section: Run ═════════════════════════════════════ -->
-  <div class="section">
+  <!-- ═══ Section: Token Usage ══════════════════════════════ -->
+  <div class="section" data-section="token">
     <div class="section-header" onclick="toggleSection(this)">
-      <h3><span>&#9654;</span> Search & Generate</h3>
+      <h3><span>&#128200;</span> Token Usage</h3>
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
-      <div class="run-bar">
-        <div class="count-selector">
-          <label style="margin:0">Positions:</label>
-          <select id="runCount">
-            ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}" ${n===5?"selected":""}>${n}</option>`).join("")}
-          </select>
-        </div>
-        <button class="btn btn-run" id="runBtn" onclick="runSearch('${id}')">
-          &#9654; Search
-        </button>
-      </div>
-
-      <!-- Manual Entry -->
-      <div class="manual-entry-section">
-        <div class="manual-entry-toggle" onclick="toggleManualEntry()">
-          <span class="arrow-icon">&#9654;</span>
-          <span>&#43; Add Position Manually</span>
-        </div>
-        <div class="manual-entry-form" id="manualEntryForm">
-          <div class="row">
-            <div>
-              <label>Company Name *</label>
-              <input type="text" id="manualFirm" placeholder="e.g. Foster + Partners">
-            </div>
-            <div>
-              <label>Email *</label>
-              <input type="email" id="manualEmail" placeholder="careers@firm.com">
-            </div>
-          </div>
-          <div class="row">
-            <div>
-              <label>Position</label>
-              <input type="text" id="manualPosition" placeholder="e.g. Junior Architect">
-            </div>
-            <div>
-              <label>Location</label>
-              <input type="text" id="manualLocation" placeholder="e.g. New York, NY">
-            </div>
-          </div>
-          <label>Website</label>
-          <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
-          <div class="manual-entry-actions">
-            <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
-            <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
-          </div>
-        </div>
-        <div class="manual-entries-list" id="manualEntriesList"></div>
-        <div id="generateManualBtnContainer"></div>
-      </div>
-
-      <div id="runResults"></div>
-
-      <div style="margin-top:8px">
-        <button class="btn btn-secondary btn-sm" onclick="viewTracker('${id}')">
-          &#128202; View Applications (${proj.tracker_count} records)
-        </button>
-        <div id="trackerTable" style="margin-top:12px"></div>
+      <div id="tokenUsageSummary">
+        <span style="color:var(--text2);font-size:12px">Loading...</span>
       </div>
     </div>
   </div>
-
   `;
 
-  // Re-render manual entries if any
-  renderManualEntries();
-  updateGenerateManualBtn(id);
+  loadTokenUsage(id);
+}
 
-  // Restore search results if they were pending before re-render
-  if (pendingTargets.length > 0) {
-    restoreSearchResults(id);
-  }
+// Keep renderProject as an alias for backward compatibility
+async function renderProject(id) {
+  return renderEditView(id);
 }
 
 // ── Section toggle ────────────────────────────────────────
 
 function toggleSection(header) {
   header.parentElement.classList.toggle("collapsed");
+}
+
+// ── Project management ────────────────────────────────────
+
+async function promptNewProject() {
+  const name = prompt("Project name:");
+  if (!name) return;
+  const proj = await api("POST", "/projects", { name });
+  projects.push(proj);
+  toast("Project created");
+  navigateToProjectHome(proj.id);
+}
+
+async function confirmDeleteProject(id, name) {
+  if (!confirm(`Delete project "${name}"?`)) return;
+  await api("DELETE", `/projects/${id}`);
+  projects = projects.filter(p => p.id !== id);
+  if (activeProjectId === id) {
+    activeProjectId = projects.length > 0 ? projects[0].id : null;
+  }
+  toast("Project deleted");
+  navigateToProjects();
 }
 
 // ── Global config ─────────────────────────────────────────
@@ -736,7 +1112,6 @@ function switchEmailProvider(provider) {
   document.getElementById("gmailSettings").style.display = provider === "gmail" ? "block" : "none";
   document.getElementById("outlookSettings").style.display = provider === "outlook" ? "block" : "none";
   document.getElementById("noneSettings").style.display = provider === "none" ? "block" : "none";
-  // Update button styles
   document.querySelectorAll(".email-provider-tabs button").forEach(btn => {
     btn.className = "btn btn-sm btn-secondary";
   });
@@ -782,11 +1157,11 @@ async function disconnectGmail() {
 // ── Project config ────────────────────────────────────────
 
 async function saveProjectConfig(id) {
-  const data = {
-    job_requirements: document.getElementById("projJobReq").value,
-  };
+  const reqEl = document.getElementById("projJobReq");
+  if (!reqEl) return;
+  const data = { job_requirements: reqEl.value };
   await api("PUT", `/projects/${id}/config`, data);
-  toast("Project config saved");
+  toast("Saved");
 }
 
 // ── Materials ─────────────────────────────────────────────
@@ -796,19 +1171,19 @@ async function uploadMaterials(id, files) {
     await uploadFile(`/projects/${id}/upload-material`, file);
   }
   toast(`${files.length} file(s) uploaded`);
-  renderProject(id);
+  renderEditView(id);
 }
 
 async function deleteMaterial(id, filename) {
   await api("DELETE", `/projects/${id}/material/${filename}`);
   toast("File removed");
-  renderProject(id);
+  // Refresh current view
+  if (currentView === 'viewEdit') renderEditView(id);
 }
 
 // ── Attachment toggles ───────────────────────────────────
 
 async function toggleAttachment(id, typeId, checked) {
-  // Update the customize_files entry's is_attachment field
   const proj = await api("GET", `/projects/${id}`);
   const cfs = proj.config.customize_files || [];
   const updated = cfs.map(cf => cf.id === typeId ? {...cf, is_attachment: checked} : cf);
@@ -824,7 +1199,7 @@ async function promptAddCustomizeFile(id) {
   try {
     await api("POST", `/projects/${id}/customize-files`, { label });
     toast(`"${label}" added`);
-    renderProject(id);
+    renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -835,7 +1210,7 @@ async function removeCustomizeFile(id, typeId, label) {
   try {
     await api("DELETE", `/projects/${id}/customize-files/${typeId}`);
     toast(`"${label}" removed`);
-    renderProject(id);
+    renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -857,13 +1232,13 @@ async function uploadTypeExamples(id, typeId, files) {
     await uploadFile(`/projects/${id}/customize/${typeId}/upload-example`, file);
   }
   toast(`${files.length} example(s) uploaded`);
-  renderProject(id);
+  renderEditView(id);
 }
 
 async function deleteTypeExample(id, typeId, filename) {
   await api("DELETE", `/projects/${id}/customize/${typeId}/examples/${filename}`);
   toast("Example removed");
-  renderProject(id);
+  renderEditView(id);
 }
 
 // ── Per-type Template generation ─────────────────────────
@@ -874,7 +1249,7 @@ async function generateTypeTemplate(id, typeId) {
     const result = await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
     toast("Template generated!");
     if (result.token_usage) showTokenUsage(result.token_usage);
-    renderProject(id);
+    renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -891,7 +1266,7 @@ async function saveEmailExample(id) {
     await api("POST", `/projects/${id}/email-template/save-example`, {
       text, subject_template: subjectTemplate, smart_subject: smartSubject
     });
-    toast("Email example saved");
+    toast("Saved");
   } catch (e) {
     toast(e.message, "error");
   }
@@ -903,7 +1278,6 @@ async function generateEmailTemplate(id) {
   const smartSubject = document.getElementById("smartSubjectEnabled").checked;
   if (!text.trim()) { toast("Paste an email first", "error"); return; }
   try {
-    // Save first, then generate
     await api("POST", `/projects/${id}/email-template/save-example`, {
       text, subject_template: subjectTemplate, smart_subject: smartSubject
     });
@@ -911,7 +1285,7 @@ async function generateEmailTemplate(id) {
     const result = await api("POST", `/projects/${id}/email-template/generate`);
     toast("Email template generated!");
     if (result.token_usage) showTokenUsage(result.token_usage);
-    renderProject(id);
+    renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -928,20 +1302,6 @@ async function previewTypeTemplate(id, typeId) {
       pathEl.innerHTML = `<a href="#" class="preview-link" onclick="apiOpenPdf('/projects/${id}/customize/${typeId}/preview-pdf');return false;">&#128065; Open Preview PDF</a>`;
     }
     toast("Preview generated!");
-    if (result.token_usage) showTokenUsage(result.token_usage);
-  } catch (e) {
-    toast(e.message, "error");
-  }
-}
-
-// ── Project MD ────────────────────────────────────────────
-
-async function generateProjectMd(id) {
-  try {
-    await saveProjectConfig(id);
-    toast("Generating AI instructions...", "success");
-    const result = await api("POST", `/projects/${id}/generate-project-md`);
-    toast("project.md generated!");
     if (result.token_usage) showTokenUsage(result.token_usage);
   } catch (e) {
     toast(e.message, "error");
@@ -965,20 +1325,57 @@ async function saveTemplate(projectId, typeId) {
   }
 }
 
-async function viewTracker(id) {
-  const container = document.getElementById("trackerTable");
-  if (!container) return;
+// ── Project MD ────────────────────────────────────────────
+
+async function generateProjectMd(id) {
   try {
-    const rows = await api("GET", `/projects/${id}/tracker`);
-    if (!rows || rows.length === 0) {
-      container.innerHTML = `<p style="color:var(--text2);font-size:13px">No applications yet.</p>`;
-      return;
-    }
-    const cols = ["Firm", "Position", "Location", "Status", "AppliedDate", "Email"];
-    container.innerHTML = `<div class="tracker-wrap"><table class="tracker-table">
-      <thead><tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(r => `<tr>${cols.map(c => `<td>${esc(r[c] || "")}</td>`).join("")}</tr>`).join("")}</tbody>
-    </table></div>`;
+    await saveProjectConfig(id);
+    toast("Generating AI instructions...", "success");
+    const result = await api("POST", `/projects/${id}/generate-project-md`);
+    toast("project.md generated!");
+    if (result.token_usage) showTokenUsage(result.token_usage);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+// ── Open file ─────────────────────────────────────────────
+
+async function openFile(id, filename) {
+  try {
+    await api("POST", `/projects/${id}/open-file`, { filename });
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function openTypeFile(id, typeId, filename) {
+  try {
+    await api("POST", `/projects/${id}/open-file`, { filename, type_id: typeId });
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function openPdf(id, pdfPath) {
+  try {
+    await api("POST", `/projects/${id}/open-file`, { filename: pdfPath });
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function openTracker(id) {
+  try {
+    await api("POST", `/projects/${id}/open-tracker`);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
+async function openOutputFolder(id) {
+  try {
+    await api("POST", `/projects/${id}/open-output-folder`);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -1020,7 +1417,6 @@ function updateProgress(pct, status, detail) {
 
 function addProgressStep(text, state = "active") {
   const container = document.getElementById("progressSteps");
-  // Mark previous active steps as done
   container.querySelectorAll(".progress-step.active").forEach(el => {
     el.classList.remove("active");
     el.classList.add("done");
@@ -1078,7 +1474,6 @@ async function runSearch(id) {
   btn.innerHTML = '<span class="spinner"></span> Searching...';
   resultsDiv.innerHTML = "";
 
-  // Show progress modal with animated steps
   showProgress("Searching for Positions", "Preparing search...", true);
 
   try {
@@ -1101,12 +1496,10 @@ async function runSearch(id) {
       return;
     }
 
-    // Show search results for user review
     const totalReady = manualTargets.length + pendingTargets.length;
     let html = '<div class="search-results-panel">';
     html += '<div class="search-results-title">Search Results - Review & Confirm</div>';
 
-    // Show manual entries first (prioritized)
     if (manualTargets.length > 0) {
       manualTargets.forEach((t, i) => {
         html += `<div class="manual-entry-row" id="manualConfirmRow_${i}">
@@ -1216,7 +1609,6 @@ function updateConfirmCount() {
 }
 
 async function confirmAndGenerate(id) {
-  // Merge manual (prioritized first) + searched targets
   const allTargets = [...manualTargets, ...pendingTargets];
   if (allTargets.length === 0) {
     toast("No positions to generate", "error");
@@ -1231,11 +1623,13 @@ async function confirmAndGenerate(id) {
   updateProgress(0);
 
   try {
-    // Gather email subject settings
-    const subjectTemplateEl = document.getElementById("emailSubjectTemplate");
-    const smartSubjectEl = document.getElementById("smartSubjectEnabled");
-    const subjectTemplate = subjectTemplateEl ? subjectTemplateEl.value : "";
-    const smartSubject = smartSubjectEl ? smartSubjectEl.checked : false;
+    // Use DOM values if available, fall back to cached currentEmailTpl
+    const subjectTemplate = document.getElementById("emailSubjectTemplate")?.value
+      || currentEmailTpl.subject_template
+      || "Application for {{POSITION}} - {{NAME}}";
+    const smartSubject = document.getElementById("smartSubjectEnabled")?.checked
+      || currentEmailTpl.smart_subject
+      || false;
 
     const streamHeaders = { "Content-Type": "application/json" };
     if (accessToken) streamHeaders["Authorization"] = `Bearer ${accessToken}`;
@@ -1260,9 +1654,8 @@ async function confirmAndGenerate(id) {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      // Process complete SSE messages
       const lines = buffer.split("\n");
-      buffer = lines.pop() || "";  // keep incomplete line
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
@@ -1292,7 +1685,6 @@ async function confirmAndGenerate(id) {
     await new Promise(r => setTimeout(r, 800));
     hideProgress();
 
-    // Render results
     let html = "";
     if (finalResult && finalResult.generated) {
       finalResult.generated.forEach(r => {
@@ -1317,14 +1709,22 @@ async function confirmAndGenerate(id) {
         toast(finalResult.save_error, "error");
       }
 
-      // Show celebration popup
       showCelebration(finalResult.generated);
     }
 
     document.getElementById("runResults").innerHTML = html;
     pendingTargets = [];
     manualTargets = [];
-    renderProject(id);
+    // Refresh project home tracker data in background
+    if (activeProjectId) {
+      api("GET", `/projects/${activeProjectId}/tracker`).then(data => {
+        _homeTrackerData = data;
+        _homeProj = null; // will refresh on next visit
+      }).catch(() => {});
+      // Update project list count
+      const proj = projects.find(p => p.id === activeProjectId);
+      if (proj) proj.tracker_count = (proj.tracker_count || 0) + (finalResult?.generated?.length || 0);
+    }
   } catch (e) {
     hideProgress();
     toast(e.message, "error");
@@ -1506,7 +1906,6 @@ function addManualEntry(projectId) {
   renderManualEntries();
   updateGenerateManualBtn(projectId);
 
-  // Clear form
   document.getElementById("manualFirm").value = "";
   document.getElementById("manualEmail").value = "";
   document.getElementById("manualPosition").value = "";
@@ -1529,12 +1928,10 @@ function updateGenerateManualBtn(projectId) {
 }
 
 async function generateManualOnly(id) {
-  // Skip search, go straight to generate with manual targets only
   pendingTargets = [];
   const resultsDiv = document.getElementById("runResults");
   resultsDiv.innerHTML = "";
 
-  // Show a simplified confirm view then auto-generate
   const totalReady = manualTargets.length;
   let html = '<div class="search-results-panel">';
   html += '<div class="search-results-title">Manual Positions - Generating</div>';
@@ -1555,7 +1952,6 @@ async function generateManualOnly(id) {
   </div></div>`;
   resultsDiv.innerHTML = html;
 
-  // Directly call confirmAndGenerate
   await confirmAndGenerate(id);
 }
 
@@ -1590,41 +1986,14 @@ function esc(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-// ── Scroll glow orbs ──────────────────────────────────────
-(function () {
-  function makeOrb(cls) {
-    const el = document.createElement("div");
-    el.className = cls;
-    document.body.appendChild(el);
-    return el;
-  }
-  const orb1 = makeOrb("glow-orb glow-orb-r");
-  const orb2 = makeOrb("glow-orb glow-orb-l");
-  let c1 = 15, t1 = 15, c2 = 55, t2 = 55;
-  window.addEventListener("scroll", function () {
-    const f = window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1);
-    t1 = 5 + f * 70;
-    t2 = 35 + f * 55;
-  }, { passive: true });
-  (function tick() {
-    c1 += (t1 - c1) * 0.04;
-    c2 += (t2 - c2) * 0.03;
-    orb1.style.top = c1 + "vh";
-    orb2.style.top = c2 + "vh";
-    requestAnimationFrame(tick);
-  })();
-})();
-
 // ── Boot ──────────────────────────────────────────────────
 init().catch(e => {
   console.error("Init failed:", e);
-  // Fallback: show landing page so the user isn't stuck on a blank screen
   hideLoading();
   const landingPage = document.getElementById("landingPage");
   if (landingPage) {
     landingPage.style.display = "";
   } else {
-    // If landing page doesn't exist, fall back to login
     const loginPage = document.getElementById("loginPage");
     if (loginPage) loginPage.style.display = "";
   }

@@ -1493,3 +1493,20 @@ def get_tracker(project_id: str, user_id: str = Depends(get_current_user)):
     return pm.load_tracker(user_id, project_id)
 
 
+@router.get("/projects/{project_id}/files")
+def list_project_files(project_id: str, user_id: str = Depends(get_current_user)):
+    proj_dir = pm.get_tracker_path(user_id, project_id).parent
+    result = {"eml": [], "pdf": []}
+    email_dir = proj_dir / "Email"
+    if email_dir.exists():
+        for f in sorted(email_dir.iterdir()):
+            if f.is_file() and f.suffix.lower() == ".eml":
+                result["eml"].append({"name": f.name, "size": f.stat().st_size})
+    cl_dir = proj_dir / "Email" / "CoverLetters"
+    if cl_dir.exists():
+        for f in sorted(cl_dir.iterdir()):
+            if f.is_file() and f.suffix.lower() == ".pdf":
+                result["pdf"].append({"name": f.name, "size": f.stat().st_size})
+    return result
+
+
