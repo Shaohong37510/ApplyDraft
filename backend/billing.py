@@ -16,8 +16,8 @@ def _fenv(name: str, default: float) -> float:
         return default
 
 
-SEARCH_CREDITS_PER_TARGET   = _fenv("SEARCH_CREDITS_PER_TARGET",   2.0)
-DELIVERY_CREDITS_PER_TARGET = _fenv("DELIVERY_CREDITS_PER_TARGET", 8.0)
+SEARCH_CREDITS_PER_TARGET   = _fenv("SEARCH_CREDITS_PER_TARGET",   0.2)
+DELIVERY_CREDITS_PER_TARGET = _fenv("DELIVERY_CREDITS_PER_TARGET", 0.8)
 
 
 def search_cost(count: int) -> float:
