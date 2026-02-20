@@ -18,6 +18,7 @@ from . import pdf_service as pdf
 from . import outlook_service as outlook_svc
 from . import gmail_service as gmail_svc
 from . import supabase_client as db
+from . import billing
 from . import stripe_service as stripe_svc
 from . import billing
 from .auth_middleware import get_current_user
@@ -67,6 +68,38 @@ em {{ font-style: italic; }}
 </style></head><body>
 {body_html}
 </body></html>"""
+
+
+# Content limits (words or CJK characters)
+MAX_CUSTOMIZE_FILES = 4
+MAX_CUSTOM_BODY_UNITS = 2000
+MAX_EMAIL_UNITS = 2000
+
+
+def _count_text_units(text: str) -> int:
+    """Count words (Latin) + CJK characters for mixed-language limits."""
+    if not text:
+        return 0
+    cjk = re.findall(r"[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\u3040-\u30ff\uac00-\ud7af]", text)
+    cjk_count = len(cjk)
+    non_cjk = re.sub(r"[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\u3040-\u30ff\uac00-\ud7af]", " ", text)
+    words = re.findall(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?", non_cjk)
+    return cjk_count + len(words)
+
+
+def _enforce_text_limit(text: str, limit: int, label: str):
+    units = _count_text_units(text)
+    if units > limit:
+        raise HTTPException(400, f"{label} is too long ({units} > {limit})")
+
+
+def _charge_credits(user_id: str, amount: float, description: str) -> float:
+    if amount <= 0:
+        return db.get_user_credits(user_id)
+    ok, balance = db.use_credits(user_id, amount, description=description)
+    if not ok:
+        raise HTTPException(402, "Not enough credits")
+    return balance
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -507,7 +540,10 @@ def add_customize_file(project_id: str, data: dict, user_id: str = Depends(get_c
     label = data.get("label", "")
     if not label:
         raise HTTPException(400, "Label is required")
-    entry = pm.add_customize_file(user_id, project_id, label)
+    try:
+        entry = pm.add_customize_file(user_id, project_id, label)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     return entry
 
 
@@ -651,6 +687,10 @@ def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_c
     filled = re.sub(r'\{\{CUSTOM_\d+\}\}', '[Sample content]', filled)
 
     # Convert text to formatted HTML for PDF
+    if type_id == "email_body":
+        _enforce_text_limit(filled, MAX_EMAIL_UNITS, "Email body")
+    else:
+        _enforce_text_limit(filled, MAX_CUSTOM_BODY_UNITS, "Document body")
     if "<html" not in filled.lower():
         html = _wrap_in_html(_text_to_html(filled))
     else:
@@ -735,6 +775,8 @@ def generate_email_template(project_id: str, user_id: str = Depends(get_current_
     proj = pm.get_project(user_id, project_id)
     customize_files = proj["config"].get("customize_files", [])
     if not any(cf["id"] == "email_body" for cf in customize_files):
+        if len(customize_files) >= MAX_CUSTOMIZE_FILES:
+            raise HTTPException(400, "Customize files limit reached (max 4)")
         customize_files.append({"id": "email_body", "label": "Email Body", "is_attachment": False})
         pm.update_project_config(user_id, project_id, {"customize_files": customize_files})
 
@@ -914,9 +956,32 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
 
     pm.append_token_usage(user_id, project_id, "search", usage)
 
+    targets = search_result.get("targets", []) or []
+    success_count = len(targets)
+    base_credits = success_count * billing.SEARCH_CREDITS_PER_TARGET
+    limit_tokens = billing.token_limit_for_count(
+        success_count, "SEARCH_TOKEN_LIMITS", "SEARCH_TOKEN_PER_ITEM"
+    )
+    overage = billing.overage_credits_for_tokens(
+        float(usage.get("input_tokens", 0) or 0),
+        float(usage.get("output_tokens", 0) or 0),
+        limit_tokens,
+    )
+    total_credits = base_credits + overage
+    balance = _charge_credits(
+        user_id,
+        total_credits,
+        description=f"Search: {success_count} targets (base={base_credits:.3f}, overage={overage:.3f})",
+    )
+
     search_result["token_usage"] = usage
-    search_result["credits_used"] = actual_cost
-    search_result["credits_remaining"] = remaining
+    search_result["credit_usage"] = {
+        "base": base_credits,
+        "overage": overage,
+        "total": total_credits,
+        "limit_tokens": limit_tokens,
+        "balance": balance,
+    }
     return search_result
 
 
@@ -940,6 +1005,17 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
         raise HTTPException(400, "No targets provided")
 
     gcfg = _get_user_config(user_id)
+
+    manual_count = sum(
+        1 for t in confirmed_targets
+        if t.get("_manual") or (t.get("source", "") or "").lower() == "manual"
+    )
+    # Pre-check credits for base costs (manual search + delivery)
+    est_base = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
+        len(confirmed_targets) * billing.DELIVERY_CREDITS_PER_TARGET
+    )
+    if db.get_user_credits(user_id) < est_base:
+        raise HTTPException(402, "Not enough credits for this batch")
 
     proj = pm.get_project(user_id, project_id)
     if not proj:
@@ -1012,9 +1088,11 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
                 filled = filled.replace("{{" + k + "}}", v or "")
 
             if cf_id == "email_body":
+                _enforce_text_limit(filled, MAX_EMAIL_UNITS, "Email body")
                 email_body = filled
                 continue
 
+            _enforce_text_limit(filled, MAX_CUSTOM_BODY_UNITS, f"{ft.get('label', cf_id)} body")
             if not ft.get("is_attachment", True):
                 continue
 
@@ -1046,6 +1124,7 @@ Best regards,
 {user_name}
 {user_phone}
 {user_email}"""
+        _enforce_text_limit(email_body, MAX_EMAIL_UNITS, "Email body")
 
         if gcfg.get("email_provider", "gmail") != "none":
             attachments = []
@@ -1086,7 +1165,39 @@ Best regards,
     if total_usage["api_calls"] > 0:
         pm.append_token_usage(user_id, project_id, "generate", total_usage)
 
-    return {"generated": results, "token_usage": total_usage}
+    delivery_success = sum(1 for r in results if r.get("draft"))
+    base_credits = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
+        delivery_success * billing.DELIVERY_CREDITS_PER_TARGET
+    )
+    limit_tokens = billing.token_limit_for_count(
+        delivery_success, "DELIVERY_TOKEN_LIMITS", "DELIVERY_TOKEN_PER_ITEM"
+    )
+    overage = billing.overage_credits_for_tokens(
+        float(total_usage.get("input_tokens", 0) or 0),
+        float(total_usage.get("output_tokens", 0) or 0),
+        limit_tokens,
+    )
+    total_credits = base_credits + overage
+    balance = _charge_credits(
+        user_id,
+        total_credits,
+        description=(
+            f"Generate: manual={manual_count}, delivered={delivery_success} "
+            f"(base={base_credits:.3f}, overage={overage:.3f})"
+        ),
+    )
+
+    return {
+        "generated": results,
+        "token_usage": total_usage,
+        "credit_usage": {
+            "base": base_credits,
+            "overage": overage,
+            "total": total_credits,
+            "limit_tokens": limit_tokens,
+            "balance": balance,
+        },
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1110,6 +1221,16 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     subject_template = data.get("subject_template", "")
 
     gcfg = _get_user_config(user_id)
+
+    manual_count = sum(
+        1 for t in confirmed_targets
+        if t.get("_manual") or (t.get("source", "") or "").lower() == "manual"
+    )
+    est_base = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
+        len(confirmed_targets) * billing.DELIVERY_CREDITS_PER_TARGET
+    )
+    if db.get_user_credits(user_id) < est_base:
+        raise HTTPException(402, "Not enough credits for this batch")
 
     proj = pm.get_project(user_id, project_id)
     if not proj:
@@ -1180,8 +1301,18 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 for k, v in base_replacements.items():
                     filled = filled.replace("{{" + k + "}}", v or "")
                 if cf_id == "email_body":
+                    try:
+                        _enforce_text_limit(filled, MAX_EMAIL_UNITS, "Email body")
+                    except HTTPException as e:
+                        yield f"data: {json.dumps({'type': 'error', 'error': str(e.detail)})}\n\n"
+                        return
                     email_body = filled
                     continue
+                try:
+                    _enforce_text_limit(filled, MAX_CUSTOM_BODY_UNITS, f"{ft.get('label', cf_id)} body")
+                except HTTPException as e:
+                    yield f"data: {json.dumps({'type': 'error', 'error': str(e.detail)})}\n\n"
+                    return
                 if not ft.get("is_attachment", True):
                     continue
 
@@ -1216,6 +1347,11 @@ Best regards,
 {user_name}
 {user_phone}
 {user_email}"""
+            try:
+                _enforce_text_limit(email_body, MAX_EMAIL_UNITS, "Email body")
+            except HTTPException as e:
+                yield f"data: {json.dumps({'type': 'error', 'error': str(e.detail)})}\n\n"
+                return
 
             # Resolve email subject
             # Priority: manual subject on target > smart subject > template > default
@@ -1312,9 +1448,40 @@ Best regards,
             except Exception:
                 pass
 
+        delivery_success = sum(1 for r in results if r.get("draft"))
+        base_credits = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
+            delivery_success * billing.DELIVERY_CREDITS_PER_TARGET
+        )
+        limit_tokens = billing.token_limit_for_count(
+            delivery_success, "DELIVERY_TOKEN_LIMITS", "DELIVERY_TOKEN_PER_ITEM"
+        )
+        overage = billing.overage_credits_for_tokens(
+            float(total_usage.get("input_tokens", 0) or 0),
+            float(total_usage.get("output_tokens", 0) or 0),
+            limit_tokens,
+        )
+        total_credits = base_credits + overage
+        credit_usage = {
+            "base": base_credits,
+            "overage": overage,
+            "total": total_credits,
+            "limit_tokens": limit_tokens,
+        }
+        try:
+            balance = _charge_credits(
+                user_id,
+                total_credits,
+                description=(
+                    f"Generate: manual={manual_count}, delivered={delivery_success} "
+                    f"(base={base_credits:.3f}, overage={overage:.3f})"
+                ),
+            )
+            credit_usage["balance"] = balance
+        except HTTPException as e:
+            credit_usage["error"] = str(e.detail)
+
         # Final completion event
-        completion = {'type': 'complete', 'generated': results, 'token_usage': total_usage,
-                      'credits_used': cost, 'credits_remaining': balance - cost}
+        completion = {'type': 'complete', 'generated': results, 'token_usage': total_usage, 'credit_usage': credit_usage}
         if save_error:
             completion['save_error'] = save_error
         yield f"data: {json.dumps(completion)}\n\n"
