@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=9">
+  <link rel="stylesheet" href="/static/style.css?v=10">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -127,10 +127,10 @@
 <!-- ═══ App (shown after login) ══════════════════════════ -->
 <div id="appContainer" style="display:none">
 
-  <!-- ═══ Top Bar (user info + credits) ════════════════════ -->
+  <!-- ═══ Top Bar ════════════════════════════════════════════ -->
   <div class="top-bar" id="topBar">
     <div class="top-bar-left">
-      <span class="app-name">ApplyDraft</span>
+      <span class="app-name" onclick="navigateToProjects()" style="cursor:pointer">ApplyDraft</span>
     </div>
     <div class="top-bar-right">
       <span class="credits-display" id="creditsDisplay">0 credits</span>
@@ -140,18 +140,30 @@
     </div>
   </div>
 
-  <!-- ═══ Tab Bar ════════════════════════════════════════════ -->
-  <div class="tab-bar" id="tabBar">
-    <div class="tab-add" id="addProjectBtn" title="New Project">+</div>
+  <!-- ═══ View: Projects List ═══════════════════════════════ -->
+  <div id="viewProjectsList" style="display:none">
+    <div class="projects-page">
+      <div class="projects-page-header">
+        <h2 class="projects-page-title">My Projects</h2>
+        <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
+      </div>
+      <div class="projects-grid" id="projectsGrid"></div>
+    </div>
   </div>
 
-  <!-- ═══ Main Content ══════════════════════════════════════ -->
-  <div class="main" id="mainContent">
-    <div class="empty-state" id="emptyState">
-      <h2>Job Application Kit</h2>
-      <p>Create a project to get started</p>
-      <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
-    </div>
+  <!-- ═══ View: Project Home ════════════════════════════════ -->
+  <div id="viewProjectHome" style="display:none">
+    <div id="projectHomePage"></div>
+  </div>
+
+  <!-- ═══ View: Start Apply ═════════════════════════════════ -->
+  <div id="viewStartApply" style="display:none">
+    <div id="startApplyPage"></div>
+  </div>
+
+  <!-- ═══ View: Edit Settings ══════════════════════════════ -->
+  <div id="viewEdit" style="display:none">
+    <div class="main" id="mainContent"></div>
   </div>
 
 </div>
@@ -189,6 +201,7 @@
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
+<<<<<<< HEAD
 <!-- ═══ Credit Purchase Modal ══════════════════════════════ -->
 <div id="creditModal" class="modal-overlay" style="display:none" onclick="closeCreditModal(event)">
   <div class="modal-box">
@@ -230,5 +243,8 @@
 </div>
 
 <script src="/static/app.js?v=14"></script>
+=======
+<script src="/static/app.js?v=13"></script>
+>>>>>>> 1039dbc (feat: restructure UI into 3-layer navigation)
 </body>
 </html>
