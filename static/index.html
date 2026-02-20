@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=11">
+  <link rel="stylesheet" href="/static/style.css?v=12">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -132,6 +132,13 @@
     <div class="top-bar-left">
       <span class="app-name">ApplyDraft</span>
     </div>
+    <div class="top-bar-center">
+      <select id="projectSelect" class="project-select" onchange="switchProject(this.value)">
+        <option value="">No projects</option>
+      </select>
+      <button class="btn btn-icon" onclick="promptNewProject()" title="New project">+</button>
+      <button class="btn btn-icon btn-icon-danger" id="deleteProjectBtn" onclick="deleteActiveProject()" title="Delete project">✕</button>
+    </div>
     <div class="top-bar-right">
       <span class="credits-display" id="creditsDisplay">0 credits</span>
       <button class="btn btn-sm btn-buy" onclick="buyCredits()">Buy Credits</button>
@@ -229,6 +236,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=15"></script>
+<script src="/static/app.js?v=16"></script>
 </body>
 </html>

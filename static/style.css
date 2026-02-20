@@ -44,9 +44,57 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  gap: 16px;
 }
-.top-bar-left { display: flex; align-items: center; gap: 8px; }
-.top-bar-right { display: flex; align-items: center; gap: 10px; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.top-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: center;
+  max-width: 340px;
+  margin: 0 auto;
+}
+.top-bar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.project-select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s;
+  width: auto;
+}
+.project-select:focus { border-color: var(--accent); }
+.project-select option { background: var(--bg3); }
+
+.btn-icon {
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+  line-height: 1;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.btn-icon-danger:hover { border-color: var(--red); color: var(--red); background: rgba(248,113,113,.08); }
 .app-name {
   font-weight: 800;
   font-size: 17px;
@@ -98,17 +146,8 @@ body {
 }
 .btn-logout:hover { background: var(--bg3); border-color: var(--border-light); color: var(--text); }
 
-/* ── Tab Bar ──────────────────────────────────────────────── */
-.tab-bar {
-  display: flex;
-  align-items: center;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  gap: 2px;
-  height: 40px;
-  overflow-x: auto;
-}
+/* ── Tab Bar (hidden — replaced by top-bar dropdown) ─────── */
+.tab-bar { display: none; }
 .tab {
   padding: 6px 16px;
   cursor: pointer;
@@ -146,11 +185,33 @@ body {
 }
 .tab-add:hover { color: var(--accent); background: var(--accent-dim); }
 
+/* ── Scroll Glow Orbs ─────────────────────────────────────── */
+.glow-orb {
+  position: fixed;
+  width: 55vw;
+  height: 55vw;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  transform: translateY(-50%);
+  will-change: top;
+}
+.glow-orb-r {
+  right: -18vw;
+  background: radial-gradient(circle, rgba(108,140,255,.07) 0%, rgba(167,139,250,.04) 45%, transparent 70%);
+}
+.glow-orb-l {
+  left: -18vw;
+  background: radial-gradient(circle, rgba(74,222,128,.04) 0%, rgba(108,140,255,.04) 45%, transparent 70%);
+}
+
 /* ── Main Layout ──────────────────────────────────────────── */
 .main {
   max-width: 980px;
   margin: 0 auto;
   padding: 28px 24px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Section Cards ────────────────────────────────────────── */
@@ -158,10 +219,12 @@ body {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 14px;
+  margin-bottom: 28px;
   overflow: hidden;
   box-shadow: 0 2px 14px rgba(0,0,0,.25);
   transition: box-shadow .2s;
+  position: relative;
+  z-index: 1;
 }
 .section:hover {
   box-shadow: 0 4px 24px rgba(0,0,0,.35);

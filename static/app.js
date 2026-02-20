@@ -282,10 +282,24 @@ async function loadApp() {
 // ── Tabs ──────────────────────────────────────────────────
 
 function renderTabs() {
+  // Update project dropdown in top bar
+  const sel = document.getElementById("projectSelect");
+  const delBtn = document.getElementById("deleteProjectBtn");
+  if (sel) {
+    if (projects.length === 0) {
+      sel.innerHTML = `<option value="">No projects</option>`;
+    } else {
+      sel.innerHTML = projects.map(p =>
+        `<option value="${p.id}"${p.id === activeProjectId ? " selected" : ""}>${esc(p.name)}</option>`
+      ).join("");
+    }
+  }
+  if (delBtn) delBtn.style.display = projects.length === 0 ? "none" : "";
+
+  // Keep tab bar in sync (hidden via CSS)
   const bar = document.getElementById("tabBar");
   const addBtn = document.getElementById("addProjectBtn");
   bar.querySelectorAll(".tab").forEach(t => t.remove());
-
   projects.forEach(p => {
     const tab = document.createElement("div");
     tab.className = "tab" + (p.id === activeProjectId ? " active" : "");
@@ -295,6 +309,12 @@ function renderTabs() {
     `;
     bar.insertBefore(tab, addBtn);
   });
+}
+
+async function deleteActiveProject() {
+  if (!activeProjectId) return;
+  const proj = projects.find(p => p.id === activeProjectId);
+  if (proj) confirmDeleteProject(proj.id, proj.name);
 }
 
 async function switchProject(id) {
@@ -1551,6 +1571,31 @@ function esc(s) {
   if (!s) return "";
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+// ── Scroll glow orbs ──────────────────────────────────────
+(function () {
+  function makeOrb(cls) {
+    const el = document.createElement("div");
+    el.className = cls;
+    document.body.appendChild(el);
+    return el;
+  }
+  const orb1 = makeOrb("glow-orb glow-orb-r");
+  const orb2 = makeOrb("glow-orb glow-orb-l");
+  let c1 = 15, t1 = 15, c2 = 55, t2 = 55;
+  window.addEventListener("scroll", function () {
+    const f = window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1);
+    t1 = 5 + f * 70;
+    t2 = 35 + f * 55;
+  }, { passive: true });
+  (function tick() {
+    c1 += (t1 - c1) * 0.04;
+    c2 += (t2 - c2) * 0.03;
+    orb1.style.top = c1 + "vh";
+    orb2.style.top = c2 + "vh";
+    requestAnimationFrame(tick);
+  })();
+})();
 
 // ── Boot ──────────────────────────────────────────────────
 init().catch(e => {
