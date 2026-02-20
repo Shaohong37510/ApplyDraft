@@ -210,8 +210,8 @@ label {
   letter-spacing: 0.5px;
   color: var(--text2);
   display: block;
-  margin-bottom: 6px;
-  margin-top: 16px;
+  margin-bottom: 5px;
+  margin-top: 14px;
 }
 label:first-child { margin-top: 0; }
 input[type="text"], input[type="password"], input[type="email"],
@@ -313,19 +313,17 @@ textarea { resize: vertical; min-height: 80px; }
 .link-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 9px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  gap: 7px;
+  margin-top: 8px;
+  padding: 4px 2px;
   cursor: pointer;
-  transition: border-color .15s, background .15s;
+  transition: color .15s;
   font-size: 13px;
   color: var(--accent);
+  opacity: 0.8;
 }
-.link-row:hover { background: var(--bg3); border-color: var(--border-light); }
-.link-row .icon { font-size: 14px; }
+.link-row:hover { opacity: 1; color: var(--accent-hover); }
+.link-row .icon { font-size: 13px; }
 
 /* ── Customize Files ──────────────────────────────────────── */
 .customize-files-header {
@@ -336,7 +334,7 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .add-type-btn { white-space: nowrap; }
 .customize-card {
-  background: var(--bg);
+  background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
@@ -390,8 +388,7 @@ textarea { resize: vertical; min-height: 80px; }
   margin-top: 6px;
   line-height: 1.5;
 }
-.customize-card .template-preview { background: var(--bg2); }
-.customize-card .link-row { background: var(--bg2); }
+.customize-card .template-preview { background: var(--bg); }
 .customize-card .upload-area { border-color: var(--border); }
 
 /* ── Results ──────────────────────────────────────────────── */
@@ -487,8 +484,8 @@ textarea { resize: vertical; min-height: 80px; }
 .attach-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-top: 8px;
+  gap: 2px;
+  margin-top: 6px;
 }
 .attach-check {
   display: flex;
@@ -496,13 +493,11 @@ textarea { resize: vertical; min-height: 80px; }
   gap: 8px;
   font-size: 13px;
   cursor: pointer;
-  padding: 7px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  transition: border-color .15s;
+  padding: 3px 2px;
+  color: var(--text2);
+  transition: color .15s;
 }
-.attach-check:hover { border-color: var(--accent); }
+.attach-check:hover { color: var(--text); }
 .attach-check input[type="checkbox"] {
   width: auto;
   accent-color: var(--accent);
