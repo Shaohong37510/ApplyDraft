@@ -11,6 +11,7 @@ from anthropic import Anthropic, RateLimitError
 
 # Output token caps (per request)
 MAX_OUTPUT_TOKENS = 6000          # Template/content generation
+MAX_OUTPUT_TOKENS_GENERATE = 2400 # Per-target custom content generation
 MAX_OUTPUT_TOKENS_SUBJECT = 200   # Subject line only
 
 # Search limits by count (matches billing table)
@@ -351,7 +352,7 @@ Location: {firm_info.get('location', '')}
 
 Return JSON only."""
 
-    result, usage = _call_claude(api_key, system, user_msg)
+    result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:

@@ -1163,9 +1163,7 @@ Best regards,
     base_credits = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
         delivery_success * billing.DELIVERY_CREDITS_PER_TARGET
     )
-    limit_tokens = billing.token_limit_for_count(
-        delivery_success, "DELIVERY_TOKEN_LIMITS", "DELIVERY_TOKEN_PER_ITEM"
-    )
+    limit_tokens = billing.generate_token_limit(delivery_success)
     overage = billing.overage_credits_for_tokens(
         float(total_usage.get("input_tokens", 0) or 0),
         float(total_usage.get("output_tokens", 0) or 0),
@@ -1446,9 +1444,7 @@ Best regards,
         base_credits = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
             delivery_success * billing.DELIVERY_CREDITS_PER_TARGET
         )
-        limit_tokens = billing.token_limit_for_count(
-            delivery_success, "DELIVERY_TOKEN_LIMITS", "DELIVERY_TOKEN_PER_ITEM"
-        )
+        limit_tokens = billing.generate_token_limit(delivery_success)
         overage = billing.overage_credits_for_tokens(
             float(total_usage.get("input_tokens", 0) or 0),
             float(total_usage.get("output_tokens", 0) or 0),
