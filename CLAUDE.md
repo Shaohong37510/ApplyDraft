@@ -127,3 +127,58 @@ When skipping a firm, report it to the user with the reason and the portal URL s
 3. Go to App Passwords (search "App passwords" in Google Account settings)
 4. Generate a new app password for "Mail"
 5. Copy the 16-character password into `config.json` field `gmail_app_password`
+
+---
+
+# ApplyDraft Web App
+
+## Overview
+SaaS version of the job application automation system.
+- Domain: https://app.applydraft.top
+- Server: DigitalOcean, IP 137.184.14.114, Ubuntu 24.04
+- Server path: /opt/ApplyDraft/
+- Service: systemd `applydraft.service` (FastAPI on port 8899, nginx reverse proxy)
+- Deploy: `ssh root@137.184.14.114 "cd /opt/ApplyDraft && git pull && systemctl restart applydraft"`
+
+## File Structure (Web App)
+```
+backend/
+  api.py              — FastAPI routes (search, generate, auth, stripe, settings)
+  ai_service.py       — Claude API calls (search + generate, with token limits)
+  billing.py          — Credit cost calculations (flat fee + token overage)
+  supabase_client.py  — DB: user_credits, credit_transactions, user_settings
+  stripe_service.py   — Stripe checkout + webhook
+  auth_middleware.py  — JWT verification via Supabase
+  pdf_service.py      — HTML→PDF via headless browser
+  email_service.py    — Email draft creation
+  gmail_service.py    — Gmail OAuth2 draft
+  outlook_service.py  — Outlook OAuth2 draft
+  project_manager.py  — Per-user project files (targets, templates, tracker)
+static/
+  index.html          — Single-page frontend
+  app.js              — All frontend JS
+  style.css           — Styles
+```
+
+## Billing System
+Flat fee per target + token overage if usage exceeds budget:
+
+| Phase    | Base fee          | Token budget (input+output)           |
+|----------|-------------------|---------------------------------------|
+| Search   | 0.2 credits/target | 84,000 + 41,000×count                |
+| Generate | 0.8 credits/target | 5,400×count (3,000 input + 2,400 out)|
+
+Overage formula: extra_usd / $0.9_per_credit (Haiku: $0.80/$4.00 per M tokens)
+
+Credit packages: 10→$9, 100→$69, 300→$165
+Welcome bonus: 12 credits on first login
+
+## Database (Supabase)
+Tables: `user_credits`, `credit_transactions`, `user_settings`
+RPC functions required: `use_credits_safe(uid, amount)`, `increment_credits(uid, amount)`
+
+## Key Rules for AI Assistants
+- NEVER edit files directly on the server — always local → git push → server git pull
+- The git root is `D:\Job-Application-Kit\`, NOT the `ApplyDraft/` subdirectory (ignore that folder)
+- After any change: git add → git commit → git push → ssh deploy
+- billing.py constants can be overridden via environment variables on the server
