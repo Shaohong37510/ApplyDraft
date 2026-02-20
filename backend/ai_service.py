@@ -42,7 +42,7 @@ def _call_claude(api_key: str, system: str, user_msg: str, max_tokens: int = 409
     for attempt in range(3):
         try:
             response = client.messages.create(
-                model="claude-3-5-haiku",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_msg}],
@@ -70,7 +70,7 @@ def _call_claude_with_search(api_key: str, system: str, user_msg: str, max_token
     for attempt in range(3):
         try:
             response = client.messages.create(
-                model="claude-3-5-haiku",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=max_tokens,
                 system=system,
                 tools=[{
