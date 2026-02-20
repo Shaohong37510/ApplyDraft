@@ -10,7 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request, Depends
-from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse, FileResponse
 
 from . import project_manager as pm
 from . import ai_service as ai
@@ -704,7 +704,16 @@ def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_c
     if not ok:
         raise HTTPException(500, "PDF generation failed. Is Microsoft Edge installed?")
 
-    return {"pdf_path": preview_path, "filled_text": filled}
+    return {"filled_text": filled}
+
+
+@router.get("/projects/{project_id}/customize/{type_id}/preview-pdf")
+def download_preview_pdf(project_id: str, type_id: str, user_id: str = Depends(get_current_user)):
+    """Download the last generated preview PDF for a given type."""
+    pdf_path = pm.get_project_dir(user_id, project_id) / "Email" / "CoverLetters" / f"PREVIEW_{type_id}.pdf"
+    if not pdf_path.exists():
+        raise HTTPException(404, "No preview PDF found. Generate a preview first.")
+    return FileResponse(str(pdf_path), media_type="application/pdf", filename=f"PREVIEW_{type_id}.pdf")
 
 
 # ═══════════════════════════════════════════════════════════════
