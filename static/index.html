@@ -189,6 +189,46 @@
 <!-- ═══ Toast Container ═══════════════════════════════════ -->
 <div class="toast-container" id="toasts"></div>
 
-<script src="/static/app.js?v=12"></script>
+<!-- ═══ Credit Purchase Modal ══════════════════════════════ -->
+<div id="creditModal" class="modal-overlay" style="display:none" onclick="closeCreditModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Buy Credits</h2>
+      <button class="modal-close" onclick="document.getElementById('creditModal').style.display='none'">×</button>
+    </div>
+    <p class="modal-subtitle">Credits never expire. Power your AI job searches and applications.</p>
+    <div class="credit-cards">
+
+      <div class="credit-card" onclick="purchaseCredits(10)">
+        <div class="credit-card-name">Starter</div>
+        <div class="credit-card-amount">10 <span>credits</span></div>
+        <div class="credit-card-price">$9</div>
+        <div class="credit-card-rate">$0.90 / credit</div>
+        <button class="btn btn-outline btn-block">Buy</button>
+      </div>
+
+      <div class="credit-card credit-card-featured" onclick="purchaseCredits(100)">
+        <div class="credit-card-badge">Most Popular</div>
+        <div class="credit-card-name">Standard</div>
+        <div class="credit-card-amount">100 <span>credits</span></div>
+        <div class="credit-card-price">$69</div>
+        <div class="credit-card-rate">$0.69 / credit</div>
+        <button class="btn btn-primary btn-block">Buy</button>
+      </div>
+
+      <div class="credit-card" onclick="purchaseCredits(300)">
+        <div class="credit-card-name">Pro</div>
+        <div class="credit-card-amount">300 <span>credits</span></div>
+        <div class="credit-card-price">$165</div>
+        <div class="credit-card-rate">$0.55 / credit</div>
+        <button class="btn btn-outline btn-block">Buy</button>
+      </div>
+
+    </div>
+    <p class="modal-note">1 search = 0.2 credits &nbsp;·&nbsp; 1 application = 0.8 credits</p>
+  </div>
+</div>
+
+<script src="/static/app.js?v=13"></script>
 </body>
 </html>

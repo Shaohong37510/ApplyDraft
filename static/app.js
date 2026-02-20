@@ -178,16 +178,18 @@ async function updateUserInfo() {
   }
 }
 
-async function buyCredits() {
-  const choice = prompt(
-    "Select a package:\n1. 10 credits — $9\n2. 100 credits — $69\n3. 300 credits — $165\n\nEnter 1, 2, or 3:",
-    "2"
-  );
-  if (!choice) return;
-  const packages = [10, 100, 300];
-  const idx = parseInt(choice) - 1;
-  if (isNaN(idx) || idx < 0 || idx > 2) { toast("Invalid selection", "error"); return; }
-  const credits = packages[idx];
+function buyCredits() {
+  document.getElementById("creditModal").style.display = "flex";
+}
+
+function closeCreditModal(e) {
+  if (e.target.id === "creditModal") {
+    document.getElementById("creditModal").style.display = "none";
+  }
+}
+
+async function purchaseCredits(credits) {
+  document.getElementById("creditModal").style.display = "none";
   try {
     const { checkout_url } = await api("POST", "/stripe/checkout", { credits });
     window.open(checkout_url, "_blank");

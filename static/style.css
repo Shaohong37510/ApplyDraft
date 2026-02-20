@@ -1211,6 +1211,143 @@ textarea { resize: vertical; min-height: 70px; }
 }
 .smart-searching { color: var(--accent); }
 .smart-found { color: var(--green); }
+
+/* ── Credit Purchase Modal ───────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  width: 90%;
+  max-width: 580px;
+  position: relative;
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn {
+  from { opacity:0; transform: translateY(12px) scale(.97); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.modal-header h2 { font-size: 19px; font-weight: 650; }
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  line-height: 1;
+}
+.modal-close:hover { background: var(--bg3); color: var(--text); }
+.modal-subtitle {
+  color: var(--text2);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+.credit-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+@media (max-width: 480px) {
+  .credit-cards { grid-template-columns: 1fr; }
+}
+.credit-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 16px 18px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .15s, transform .15s;
+}
+.credit-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+.credit-card-featured {
+  border-color: var(--accent);
+  background: rgba(108,140,255,.07);
+}
+.credit-card-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 3px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.credit-card-name {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+.credit-card-amount {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.credit-card-amount span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text2);
+}
+.credit-card-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.credit-card-rate {
+  font-size: 11px;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+.btn-block { width: 100%; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.btn-outline:hover { border-color: var(--accent); background: rgba(108,140,255,.08); }
+.modal-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text2);
+}
 .smart-error { color: var(--red); }
 
 .subject-template-row {
