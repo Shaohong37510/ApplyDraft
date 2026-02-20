@@ -9,6 +9,19 @@ import time
 from anthropic import Anthropic, RateLimitError
 
 
+# Output token caps (per request)
+MAX_OUTPUT_TOKENS = 6000          # Template/content generation
+MAX_OUTPUT_TOKENS_SUBJECT = 200   # Subject line only
+
+# Search limits by count (2x safety margin)
+# max_searches: count*2 + 4; max_output: count*1000 + 2000
+def _search_limits(count: int) -> tuple[int, int]:
+    """Return (max_searches, max_output_tokens) for a given position count."""
+    max_searches = count * 2 + 4
+    max_output = min(count * 1000 + 2000, 12000)
+    return max_searches, max_output
+
+
 def _merge_usage(*usages):
     """Merge multiple usage dicts into one cumulative total."""
     total = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
@@ -24,11 +37,12 @@ def _call_claude(api_key: str, system: str, user_msg: str, max_tokens: int = 409
     """Call Claude API and return (text_response, token_usage).
     Retries up to 3 times on rate limit errors."""
     client = Anthropic(api_key=api_key)
+    max_tokens = min(max_tokens, MAX_OUTPUT_TOKENS)
 
     for attempt in range(3):
         try:
             response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="claude-3-5-haiku",
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_msg}],
@@ -56,7 +70,7 @@ def _call_claude_with_search(api_key: str, system: str, user_msg: str, max_token
     for attempt in range(3):
         try:
             response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="claude-3-5-haiku",
                 max_tokens=max_tokens,
                 system=system,
                 tools=[{
@@ -193,7 +207,7 @@ Keep CUSTOM_X placeholders to 2-5 (group related variable content together).
 
 Return JSON with "template" (complete HTML document) and "definitions" keys."""
 
-    result, usage = _call_claude(api_key, system, user_msg, max_tokens=8000)
+    result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS)
 
     # Parse JSON from response
     try:
@@ -275,7 +289,8 @@ RULES:
 
 Find real firms with open positions and generate {count} target entries. Return JSON only."""
 
-    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=8000, max_searches=count + 5)
+    max_searches, max_output = _search_limits(count)
+    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=max_output, max_searches=max_searches)
 
     if not result or not result.strip():
         return {"targets": [], "skipped": [], "error": "AI returned empty response. Try again."}, usage
@@ -369,4 +384,4 @@ Applicant Name: {applicant_name}
 
 Search their careers page and job postings. Return ONLY the formatted subject line."""
 
-    return _call_claude_with_search(api_key, system, user_msg, max_tokens=200, max_searches=3)
+    return _call_claude_with_search(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_SUBJECT, max_searches=3)
