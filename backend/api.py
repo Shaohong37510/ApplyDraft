@@ -1100,11 +1100,11 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
 
-    # Pre-flight credit check
-    min_cost = billing.generate_cost(len(confirmed_targets))
-    balance = db.get_user_credits(user_id)
-    if balance < min_cost:
-        raise HTTPException(402, f"Insufficient credits: need {min_cost:.1f}, have {balance:.1f}")
+    # Deduct credits immediately on generation start
+    cost = billing.generate_cost(len(confirmed_targets))
+    ok, balance = db.use_credits(user_id, cost, f"Generate {len(confirmed_targets)} targets")
+    if not ok:
+        raise HTTPException(402, f"Insufficient credits: need {cost:.1f}, have {balance:.1f}")
 
     smart_subject = data.get("smart_subject", False)
     subject_template = data.get("subject_template", "")
@@ -1312,19 +1312,9 @@ Best regards,
             except Exception:
                 pass
 
-        # Deduct credits for generation
-        actual_cost = billing.generate_cost(len(confirmed_targets))
-        credits_remaining = None
-        try:
-            ok, credits_remaining = db.use_credits(
-                user_id, actual_cost, f"Generate {len(confirmed_targets)} targets"
-            )
-        except Exception:
-            pass
-
         # Final completion event
         completion = {'type': 'complete', 'generated': results, 'token_usage': total_usage,
-                      'credits_used': actual_cost, 'credits_remaining': credits_remaining}
+                      'credits_used': cost, 'credits_remaining': balance - cost}
         if save_error:
             completion['save_error'] = save_error
         yield f"data: {json.dumps(completion)}\n\n"
