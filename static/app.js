@@ -53,11 +53,18 @@ function extractEditableContent(html) {
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   if (!bodyMatch) return html;
   let body = bodyMatch[1];
+  // Block-level tags → newlines
   body = body.replace(/<br\s*\/?>/gi, '\n');
-  body = body.replace(/<\/p>/gi, '\n');
-  body = body.replace(/<p[^>]*>/gi, '');
+  body = body.replace(/<\/(p|div|h[1-6]|li)>/gi, '\n');
+  body = body.replace(/<(p|div|h[1-6]|li)[^>]*>/gi, '');
+  // Strip remaining tags
   body = body.replace(/<[^>]+>/g, '');
+  // Unescape HTML entities
   body = body.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  // Clean up each line: trim leading/trailing spaces
+  body = body.split('\n').map(l => l.trim()).join('\n');
+  // Collapse 3+ consecutive blank lines to 1
+  body = body.replace(/\n{3,}/g, '\n\n');
   return body.trim();
 }
 
