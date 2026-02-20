@@ -46,6 +46,21 @@ async function initSupabase() {
   }
 }
 
+// ── Template display helper ───────────────────────────────
+
+function extractEditableContent(html) {
+  if (!html || !html.toLowerCase().includes('<html')) return html;
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (!bodyMatch) return html;
+  let body = bodyMatch[1];
+  body = body.replace(/<br\s*\/?>/gi, '\n');
+  body = body.replace(/<\/p>/gi, '\n');
+  body = body.replace(/<p[^>]*>/gi, '');
+  body = body.replace(/<[^>]+>/g, '');
+  body = body.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  return body.trim();
+}
+
 // ── API helpers ───────────────────────────────────────────
 
 async function apiOpenPdf(path) {
@@ -400,7 +415,7 @@ async function renderProject(id) {
   customizeFiles.filter(cf => cf.id !== "email_body").forEach((cf, idx) => {
     const typeExamples = examplesMap[cf.id] || [];
     const typeTpl = tpls[cf.id] || {};
-    const tplText = typeTpl.template || "";
+    const tplText = extractEditableContent(typeTpl.template || "");
     const defsText = typeTpl.definitions || "";
     const inputId = `exInput_${cf.id}`;
     const fnFmt = cf.filename_format || "";
@@ -601,7 +616,7 @@ async function renderProject(id) {
       </div>
 
       <label>Template</label>
-      <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(emailTpl.template || "")}</textarea>
+      <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(extractEditableContent(emailTpl.template || ""))}</textarea>
 
       <label>Custom Definitions</label>
       <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(emailTpl.definitions || "")}</textarea>
