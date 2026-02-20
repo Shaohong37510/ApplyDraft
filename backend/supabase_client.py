@@ -20,17 +20,26 @@ def get_client() -> Client:
 
 # ── Credits ──────────────────────────────────────────────────
 
-def get_user_credits(user_id: str) -> int:
+WELCOME_CREDITS = 12
+
+
+def get_user_credits(user_id: str) -> float:
     sb = get_client()
     result = sb.table("user_credits").select("credits").eq("user_id", user_id).execute()
     if result.data:
         return result.data[0]["credits"]
-    # First time user — create row with 0 credits
-    sb.table("user_credits").insert({"user_id": user_id, "credits": 0}).execute()
-    return 0
+    # First time user — create row with welcome bonus
+    sb.table("user_credits").insert({"user_id": user_id, "credits": WELCOME_CREDITS}).execute()
+    sb.table("credit_transactions").insert({
+        "user_id": user_id,
+        "amount": WELCOME_CREDITS,
+        "type": "bonus",
+        "description": "Welcome bonus",
+    }).execute()
+    return WELCOME_CREDITS
 
 
-def add_credits(user_id: str, amount: int, description: str = "", stripe_session_id: str = "") -> int:
+def add_credits(user_id: str, amount: float, description: str = "", stripe_session_id: str = "") -> float:
     """Add credits (purchase). Returns new balance."""
     sb = get_client()
     # Ensure user row exists
@@ -48,20 +57,23 @@ def add_credits(user_id: str, amount: int, description: str = "", stripe_session
     return get_user_credits(user_id)
 
 
-def use_credits(user_id: str, amount: int, description: str = "") -> tuple[bool, int]:
-    """Use credits (consume). Returns (success, remaining_balance)."""
-    balance = get_user_credits(user_id)
-    if balance < amount:
-        return False, balance
+def use_credits(user_id: str, amount: float, description: str = "") -> tuple[bool, float]:
+    """Atomically deduct credits. Returns (success, remaining_balance).
+
+    Uses use_credits_safe RPC to prevent overdraft and race conditions.
+    """
     sb = get_client()
-    sb.rpc("increment_credits", {"uid": user_id, "amount": -amount}).execute()
+    result = sb.rpc("use_credits_safe", {"uid": user_id, "amount": amount}).execute()
+    ok = bool(result.data)
+    if not ok:
+        return False, get_user_credits(user_id)
     sb.table("credit_transactions").insert({
         "user_id": user_id,
         "amount": -amount,
         "type": "usage",
         "description": description,
     }).execute()
-    return True, balance - amount
+    return True, get_user_credits(user_id)
 
 
 def get_credit_history(user_id: str) -> list[dict]:

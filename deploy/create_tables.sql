@@ -6,7 +6,7 @@
 -- 1. User credits balance
 CREATE TABLE IF NOT EXISTS user_credits (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    credits INTEGER DEFAULT 0,
+    credits NUMERIC(12,3) DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS user_credits (
 CREATE TABLE IF NOT EXISTS credit_transactions (
     id SERIAL PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    amount INTEGER NOT NULL,
+    amount NUMERIC(12,3) NOT NULL,
     type TEXT NOT NULL,
     description TEXT,
     stripe_session_id TEXT,
@@ -32,11 +32,31 @@ CREATE TABLE IF NOT EXISTS user_settings (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. RPC function to atomically increment credits
-CREATE OR REPLACE FUNCTION increment_credits(uid UUID, amount INTEGER)
+-- 4. RPC: increment credits (purchases/bonuses)
+CREATE OR REPLACE FUNCTION increment_credits(uid UUID, amount NUMERIC)
 RETURNS void AS $$
 BEGIN
     UPDATE user_credits SET credits = credits + amount WHERE user_id = uid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4b. RPC: atomically deduct credits — returns TRUE if ok, FALSE if insufficient
+CREATE OR REPLACE FUNCTION use_credits_safe(uid UUID, amount NUMERIC)
+RETURNS BOOLEAN AS $$
+DECLARE
+    current_balance NUMERIC;
+BEGIN
+    SELECT credits INTO current_balance
+    FROM user_credits
+    WHERE user_id = uid
+    FOR UPDATE;
+
+    IF current_balance IS NULL OR current_balance < amount THEN
+        RETURN FALSE;
+    END IF;
+
+    UPDATE user_credits SET credits = credits - amount WHERE user_id = uid;
+    RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

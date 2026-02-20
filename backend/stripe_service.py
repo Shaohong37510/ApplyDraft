@@ -72,10 +72,21 @@ def handle_webhook(payload: bytes, sig_header: str) -> dict:
     return {"ok": True, "event": event["type"]}
 
 
-def _credits_to_cents(credits: int) -> int:
-    """Convert credit amount to price in cents.
+# Fixed credit packages: credits → price in cents
+CREDIT_PACKAGES = {
+    10: 900,    # $9
+    100: 6900,  # $69
+    300: 16500, # $165
+}
 
-    Pricing: 100 credits = $5.00 (5 cents per credit)
-    Adjust as needed.
-    """
-    return credits * 5
+
+def _credits_to_cents(credits: int) -> int:
+    """Convert credit amount to price in cents using tiered pricing."""
+    if credits in CREDIT_PACKAGES:
+        return CREDIT_PACKAGES[credits]
+    if credits < 100:
+        return credits * 90
+    elif credits < 300:
+        return credits * 69
+    else:
+        return credits * 55

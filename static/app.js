@@ -170,7 +170,8 @@ async function updateUserInfo() {
   try {
     const me = await api("GET", "/auth/me");
     currentUser = me;
-    document.getElementById("creditsDisplay").textContent = `${me.credits} credits`;
+    const creditsVal = Number(me.credits || 0);
+    document.getElementById("creditsDisplay").textContent = `${creditsVal.toFixed(1)} credits`;
     document.getElementById("userEmail").textContent = me.gmail_email || me.outlook_email || me.user_id.slice(0, 8);
   } catch (e) {
     console.warn("Failed to get user info:", e);
@@ -178,10 +179,15 @@ async function updateUserInfo() {
 }
 
 async function buyCredits() {
-  const amount = prompt("How many credits? (min 10)", "100");
-  if (!amount) return;
-  const credits = parseInt(amount);
-  if (isNaN(credits) || credits < 10) { toast("Minimum 10 credits", "error"); return; }
+  const choice = prompt(
+    "Select a package:\n1. 10 credits — $9\n2. 100 credits — $69\n3. 300 credits — $165\n\nEnter 1, 2, or 3:",
+    "2"
+  );
+  if (!choice) return;
+  const packages = [10, 100, 300];
+  const idx = parseInt(choice) - 1;
+  if (isNaN(idx) || idx < 0 || idx > 2) { toast("Invalid selection", "error"); return; }
+  const credits = packages[idx];
   try {
     const { checkout_url } = await api("POST", "/stripe/checkout", { credits });
     window.open(checkout_url, "_blank");
@@ -526,7 +532,7 @@ async function renderProject(id) {
 
       <div class="customize-files-header">
         <label style="margin:0">File Types</label>
-        <button class="btn btn-secondary btn-sm add-type-btn" onclick="promptAddCustomizeFile('${id}')">+ Add Type</button>
+        ${customizeFiles.length >= 4 ? "" : `<button class="btn btn-secondary btn-sm add-type-btn" onclick="promptAddCustomizeFile('${id}')">+ Add Type</button>`}
       </div>
 
       <div id="customizeFilesContainer">
