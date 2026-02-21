@@ -68,25 +68,20 @@ def _call_claude_with_search(api_key: str, system: str, user_msg: str, max_token
     Retries up to 3 times on rate limit errors with increasing delays."""
     client = Anthropic(api_key=api_key)
 
-    for attempt in range(3):
-        try:
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=max_tokens,
-                system=system,
-                tools=[{
-                    "type": "web_search_20250305",
-                    "name": "web_search",
-                    "max_uses": max_searches,
-                }],
-                messages=[{"role": "user", "content": user_msg}],
-            )
-            break
-        except RateLimitError:
-            if attempt < 2:
-                time.sleep(30 * (attempt + 1))  # 30s, 60s
-            else:
-                raise
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=max_tokens,
+            system=system,
+            tools=[{
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": max_searches,
+            }],
+            messages=[{"role": "user", "content": user_msg}],
+        )
+    except RateLimitError:
+        raise RateLimitError("API rate limit reached. Please wait 1-2 minutes and try again.")
 
     # Extract text from response (may contain multiple content blocks)
     text_parts = []
