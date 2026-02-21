@@ -81,7 +81,7 @@ def _call_claude_with_search(api_key: str, system: str, user_msg: str, max_token
             messages=[{"role": "user", "content": user_msg}],
         )
     except RateLimitError:
-        raise RateLimitError("API rate limit reached. Please wait 1-2 minutes and try again.")
+        raise
 
     # Extract text from response (may contain multiple content blocks)
     text_parts = []
