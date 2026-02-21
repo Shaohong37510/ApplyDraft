@@ -302,6 +302,20 @@ async function loadApp() {
   navigateToProjects();
 }
 
+// ── Top Bar Project Selector ──────────────────────────────
+
+function updateTopBarSelect() {
+  const sel = document.getElementById('topBarProjectSelect');
+  if (!sel) return;
+  sel.innerHTML = projects.length === 0
+    ? '<option value="">No projects</option>'
+    : projects.map(p => `<option value="${p.id}"${p.id === activeProjectId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+}
+
+function onTopBarProjectChange(id) {
+  if (id) navigateToProjectHome(id);
+}
+
 // ── View Navigation ───────────────────────────────────────
 
 function showView(viewId) {
@@ -316,12 +330,14 @@ function showView(viewId) {
 
 function navigateToProjects() {
   showView('viewProjectsList');
+  updateTopBarSelect();
   renderProjectsList();
 }
 
 async function navigateToProjectHome(id) {
   activeProjectId = id;
   showView('viewProjectHome');
+  updateTopBarSelect();
   await renderProjectHome(id);
 }
 

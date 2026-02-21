@@ -132,6 +132,12 @@
     <div class="top-bar-left">
       <span class="app-name" onclick="navigateToProjects()" style="cursor:pointer">ApplyDraft</span>
     </div>
+    <div class="top-bar-center">
+      <select class="project-select" id="topBarProjectSelect" onchange="onTopBarProjectChange(this.value)">
+        <option value="">No projects</option>
+      </select>
+      <button class="btn-icon" onclick="promptNewProject()" title="New project">+</button>
+    </div>
     <div class="top-bar-right">
       <span class="credits-display" id="creditsDisplay">0 credits</span>
       <button class="btn btn-sm btn-buy" onclick="buyCredits()">Buy Credits</button>
