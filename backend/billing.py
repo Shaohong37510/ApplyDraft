@@ -118,6 +118,16 @@ def generate_token_limit(count: int) -> float:
     return (GENERATE_INPUT_PER_ITEM + GENERATE_OUTPUT_PER_ITEM) * count
 
 
+def search_cost(count: int) -> float:
+    """Base credit cost for a search batch of `count` targets."""
+    return count * SEARCH_CREDITS_PER_TARGET
+
+
+def generate_cost(count: int) -> float:
+    """Base credit cost for a generate batch of `count` targets."""
+    return count * DELIVERY_CREDITS_PER_TARGET
+
+
 def overage_credits_for_tokens(input_tokens: float, output_tokens: float, limit_tokens: float | None) -> float:
     """Calculate overage credits based on total token limit."""
     if limit_tokens is None:
