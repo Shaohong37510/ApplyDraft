@@ -305,24 +305,21 @@ async function loadApp() {
 // ── Top Bar Project Selector ──────────────────────────────
 
 function updateTopBarSelect() {
-  const sel = document.getElementById('projectSelect');
-  if (!sel) return;
-  sel.innerHTML = projects.length === 0
-    ? '<option value="">No projects</option>'
-    : projects.map(p => `<option value="${p.id}"${p.id === activeProjectId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
-  const del = document.getElementById('deleteProjectBtn');
-  if (del) del.style.display = projects.length === 0 ? 'none' : '';
-}
-
-function switchProject(id) {
-  if (id) navigateToProjectHome(id);
-}
-
-async function deleteActiveProject() {
-  if (!activeProjectId) return;
-  const proj = projects.find(p => p.id === activeProjectId);
-  const name = proj ? proj.name : 'this project';
-  await confirmDeleteProject(activeProjectId, name);
+  const el = document.getElementById('topBarProjectName');
+  if (!el) return;
+  if (activeProjectId) {
+    const proj = projects.find(p => p.id === activeProjectId);
+    const name = proj ? proj.name : '';
+    if (name) {
+      el.textContent = name;
+      el.style.display = '';
+      el.onclick = () => navigateToProjectHome(activeProjectId);
+    } else {
+      el.style.display = 'none';
+    }
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ── View Navigation ───────────────────────────────────────
@@ -372,28 +369,23 @@ function renderProjectsList() {
   const grid = document.getElementById('projectsGrid');
   if (!grid) return;
 
-  if (projects.length === 0) {
-    grid.innerHTML = `
-      <div class="projects-empty">
-        <div class="projects-empty-icon">📋</div>
-        <h2>No Projects Yet</h2>
-        <p>Create your first project to start applying</p>
-        <button class="btn btn-primary" onclick="promptNewProject()">+ New Project</button>
-      </div>`;
-    return;
-  }
-
-  grid.innerHTML = projects.map(p => `
+  const cards = projects.map(p => `
     <div class="project-card" onclick="navigateToProjectHome('${p.id}')">
-      <div class="project-card-top">
-        <span class="project-card-icon">📋</span>
-        <button class="project-card-delete" onclick="event.stopPropagation();confirmDeleteProject('${p.id}','${esc(p.name)}')" title="Delete project">×</button>
-      </div>
+      <button class="project-card-delete" onclick="event.stopPropagation();confirmDeleteProject('${p.id}','${esc(p.name)}')" title="Delete project">×</button>
       <div class="project-card-name">${esc(p.name)}</div>
-      <div class="project-card-count">${p.tracker_count || 0} applications</div>
+      <div class="project-card-count">${p.tracker_count || 0} application${(p.tracker_count || 0) !== 1 ? 's' : ''}</div>
       <div class="project-card-arrow">→</div>
     </div>
   `).join('');
+
+  const newCard = `
+    <div class="project-card project-card-new" onclick="promptNewProject()">
+      <div class="project-card-new-icon">+</div>
+      <div class="project-card-new-label">New Project</div>
+    </div>
+  `;
+
+  grid.innerHTML = cards + newCard;
 }
 
 // ── Project Home ──────────────────────────────────────────
@@ -713,25 +705,25 @@ async function renderStartApply(id) {
             <div class="email-field-row">
               <span class="email-field-label">Subject</span>
               <span class="email-field-value">${esc(subjectPreview)}</span>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject">✏</button>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
             <div class="email-field-row">
               <span class="email-field-label">From</span>
               <span class="email-field-value">${connectedEmail ? esc(connectedEmail) : '<em style="color:var(--orange)">Not connected</em>'}</span>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'global')" title="Edit email account">✏</button>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'global')" title="Edit email account"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
             <div class="email-field-row email-field-body">
               <span class="email-field-label">Body</span>
               <span class="email-field-value email-body-preview">${esc(bodyPreview)}</span>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template">✏</button>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
             <div class="email-field-row">
               <span class="email-field-label">Attachments</span>
               <div class="email-attachments-list">${attachmentChips}</div>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'project')" title="Edit attachments">✏</button>
+              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'project')" title="Edit attachments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
           </div>
