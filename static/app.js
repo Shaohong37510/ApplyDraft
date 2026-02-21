@@ -257,11 +257,13 @@ async function init() {
 
   if (supabaseClient) {
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
+      if (event === 'SIGNED_IN') {
         accessToken = session.access_token;
         showApp();
         await loadApp();
-      } else {
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        accessToken = session.access_token; // just update token, don't reset view
+      } else if (!session) {
         accessToken = null;
         showLanding();
       }
@@ -307,19 +309,30 @@ async function loadApp() {
 function updateTopBarSelect() {
   const el = document.getElementById('topBarProjectName');
   if (!el) return;
-  if (activeProjectId) {
-    const proj = projects.find(p => p.id === activeProjectId);
-    const name = proj ? proj.name : '';
-    if (name) {
-      el.textContent = name;
-      el.style.display = '';
-      el.onclick = () => navigateToProjectHome(activeProjectId);
-    } else {
-      el.style.display = 'none';
-    }
+  if (!activeProjectId) { el.style.display = 'none'; return; }
+  // Use projects[] first; fall back to _homeProj if list doesn't have it yet
+  const proj = projects.find(p => String(p.id) === String(activeProjectId))
+             || (_homeProj && String(_homeProj.id) === String(activeProjectId) ? _homeProj : null);
+  const name = proj ? proj.name : '';
+  if (!name) { el.style.display = 'none'; return; }
+
+  const homeBtn = `<button class="btn-breadcrumb" onclick="navigateToProjects()">My Projects</button>`;
+  const sep = `<span class="breadcrumb-sep">/</span>`;
+  const projBtn = `<button class="btn-breadcrumb" onclick="navigateToProjectHome('${activeProjectId}')">${esc(name)}</button>`;
+
+  let html;
+  if (currentView === 'viewProjectHome') {
+    html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}</span>`;
+  } else if (currentView === 'viewStartApply') {
+    html = homeBtn + sep + projBtn + sep + `<span class="breadcrumb-current">Start Apply</span>`;
+  } else if (currentView === 'viewEdit') {
+    html = homeBtn + sep + projBtn + sep + `<span class="breadcrumb-current">Edit Settings</span>`;
   } else {
-    el.style.display = 'none';
+    html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}</span>`;
   }
+
+  el.innerHTML = html;
+  el.style.display = '';
 }
 
 // ── View Navigation ───────────────────────────────────────
@@ -332,6 +345,16 @@ function showView(viewId) {
   const target = document.getElementById(viewId);
   if (target) target.style.display = '';
   currentView = viewId;
+  const backBtn = document.getElementById('topBarBack');
+  if (backBtn) backBtn.style.display = (viewId === 'viewProjectsList') ? 'none' : '';
+}
+
+function navigateBack() {
+  if (currentView === 'viewProjectHome') {
+    navigateToProjects();
+  } else if (currentView === 'viewStartApply' || currentView === 'viewEdit') {
+    navigateToProjectHome(activeProjectId);
+  }
 }
 
 function navigateToProjects() {
@@ -348,13 +371,18 @@ async function navigateToProjectHome(id) {
 }
 
 async function navigateToStartApply(id) {
+  activeProjectId = id;
   showView('viewStartApply');
+  updateTopBarSelect();
   await renderStartApply(id);
 }
 
 async function navigateToEdit(id, section) {
+  activeProjectId = id;
   showView('viewEdit');
+  updateTopBarSelect();
   await renderEditView(id);
+  updateTopBarSelect(); // refresh after async render in case something cleared it
   if (section) {
     setTimeout(() => {
       const el = document.querySelector(`[data-section="${section}"]`);
@@ -373,8 +401,8 @@ function renderProjectsList() {
     <div class="project-card" onclick="navigateToProjectHome('${p.id}')">
       <button class="project-card-delete" onclick="event.stopPropagation();confirmDeleteProject('${p.id}','${esc(p.name)}')" title="Delete project">×</button>
       <div class="project-card-name">${esc(p.name)}</div>
+      ${p.job_requirements ? `<div class="project-card-subtitle">${esc(p.job_requirements)}</div>` : ''}
       <div class="project-card-count">${p.tracker_count || 0} application${(p.tracker_count || 0) !== 1 ? 's' : ''}</div>
-      <div class="project-card-arrow">→</div>
     </div>
   `).join('');
 
@@ -417,19 +445,20 @@ async function renderProjectHome(id) {
     const chartData = buildDailyChart(trackerData, 30);
     const chartSvg = buildLineChartSVG(chartData);
 
-    page.innerHTML = `
-      <div class="view-breadcrumb">
-        <button class="btn-breadcrumb" onclick="navigateToProjects()">← Projects</button>
-        <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">${esc(cfg.project_name || id)}</span>
-      </div>
+    const jobReq = (cfg.job_requirements || '').split('\n')[0].trim();
 
+    page.innerHTML = `
       <div class="project-home-content">
+
+        <div class="project-home-header">
+          <div class="project-home-title">${esc(cfg.project_name || id)}</div>
+          ${jobReq ? `<div class="project-home-desc">${esc(jobReq)}</div>` : ''}
+        </div>
 
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-value">${total}</div>
-            <div class="stat-label">Total Applications</div>
+            <div class="stat-label">Total</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${thisWeek}</div>
@@ -446,26 +475,22 @@ async function renderProjectHome(id) {
           <div class="chart-container">${chartSvg}</div>
         </div>
 
-        <button class="btn-start-apply" onclick="navigateToStartApply('${id}')">
-          ▶ &nbsp;Start Apply
-        </button>
-
         <div class="home-panels">
           <div class="home-panel" onclick="openFilesModal('${id}')">
-            <span class="home-panel-icon">📁</span>
+            <span class="home-panel-icon"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="36" height="36"><path d="M128 320A106.666667 106.666667 0 0 1 234.666667 213.333333h85.333333a106.666667 106.666667 0 0 1 104.533333 85.333334H810.666667a85.333333 85.333333 0 0 1 85.333333 85.333333v341.333333a85.333333 85.333333 0 0 1-85.333333 85.333334H213.333333a85.333333 85.333333 0 0 1-85.333333-85.333334V320zM490.666667 213.333333a21.333333 21.333333 0 1 0 0 42.666667h298.666666a21.333333 21.333333 0 1 0 0-42.666667h-298.666666z" fill="currentColor"/></svg></span>
             <span class="home-panel-label">All Files</span>
-            <span class="home-panel-arrow">›</span>
           </div>
           <div class="home-panel" onclick="openTableModal()">
-            <span class="home-panel-icon">📊</span>
+            <span class="home-panel-icon"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="36" height="36"><path d="M887 373H137c-22.09 0-40-17.91-40-40V135c0-22.09 17.91-40 40-40h750c22.09 0 40 17.91 40 40v198c0 22.09-17.91 40-40 40zM304 651H138c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM594.5 651h-166c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM885 651H719c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40z" fill="currentColor"/><path d="M304 929H138c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM594.5 929h-166c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM885 929H719c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40z" fill="currentColor"/></svg></span>
             <span class="home-panel-label">Application Table</span>
-            <span class="home-panel-arrow">›</span>
           </div>
         </div>
 
-        <button class="btn btn-secondary btn-edit-settings" onclick="navigateToEdit('${id}')">
-          ✏ Edit Settings
-        </button>
+        <div class="home-action-row">
+          <button class="btn-start-apply btn-start-apply-compact" onclick="navigateToStartApply('${id}')">
+            ▶ &nbsp;Start Apply
+          </button>
+        </div>
 
       </div>
     `;
@@ -547,15 +572,20 @@ function buildLineChartSVG(data) {
 
 // ── Files Modal ───────────────────────────────────────────
 
+function _fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
 async function openFilesModal(id) {
-  // Remove any existing modal
   document.getElementById('filesModal')?.remove();
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.id = 'filesModal';
   overlay.innerHTML = `
-    <div class="modal-panel">
+    <div class="modal-panel modal-panel-wide">
       <div class="modal-header">
         <h3>📁 All Files</h3>
         <button class="modal-close" onclick="document.getElementById('filesModal').remove()">×</button>
@@ -568,44 +598,91 @@ async function openFilesModal(id) {
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
   document.body.appendChild(overlay);
 
+  await _refreshFilesModal(id);
+}
+
+async function _refreshFilesModal(id) {
+  const body = document.getElementById('filesModalBody');
+  if (!body) return;
   try {
-    const proj = _homeProj || await api("GET", `/projects/${id}`);
+    const [proj, files] = await Promise.all([
+      _homeProj || api("GET", `/projects/${id}`),
+      api("GET", `/projects/${id}/files`)
+    ]);
     const materials = proj.materials || [];
     let html = '';
 
-    // Uploaded Materials
+    // ── Uploaded Materials ──
     html += `<div class="files-section-title">Uploaded Materials</div>`;
     if (materials.length > 0) {
       html += materials.map(f => `
         <div class="file-list-row">
           <span class="file-list-icon">📎</span>
           <span class="file-list-name">${esc(f)}</span>
-          <button class="btn btn-sm btn-secondary" onclick="deleteMaterial('${id}','${esc(f)}');document.getElementById('filesModal').remove()">Delete</button>
+          <div class="file-list-actions">
+            <button class="btn btn-sm btn-secondary" onclick="deleteMaterialRefresh('${id}','${esc(f)}')">Delete</button>
+          </div>
         </div>
       `).join('');
     } else {
-      html += `<div class="files-empty-note">No materials uploaded yet. Go to Edit Settings → Project to upload CV/Portfolio.</div>`;
+      html += `<div class="files-empty-note">No materials uploaded. Go to Edit Settings → Project to upload CV/Portfolio.</div>`;
     }
 
-    // Generated files section
-    html += `<div class="files-section-title" style="margin-top:20px">Generated Applications</div>`;
-    if (_homeTrackerData.length > 0) {
-      html += `<div class="files-stat-note">${_homeTrackerData.length} application(s) generated</div>`;
-      html += `
-        <div class="link-row" onclick="openOutputFolder('${id}')">
-          <span class="icon">📂</span> Open Output Folder (Email files)
+    // ── Cover Letters (PDF) ──
+    html += `<div class="files-section-title" style="margin-top:20px">Cover Letters</div>`;
+    if (files.pdf.length > 0) {
+      html += files.pdf.map(f => `
+        <div class="file-list-row">
+          <span class="file-list-icon">📄</span>
+          <span class="file-list-name">${esc(f.name)}<span class="file-size">${_fmtSize(f.size)}</span></span>
+          <div class="file-list-actions">
+            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/pdf/${encodeURIComponent(f.name)}" target="_blank">Preview</a>
+            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/pdf/${encodeURIComponent(f.name)}" download="${esc(f.name)}">Download</a>
+            <button class="btn btn-sm btn-danger" onclick="deleteOutputFile('${id}','pdf','${esc(f.name)}')">Delete</button>
+          </div>
         </div>
-        <div class="link-row" onclick="openTracker('${id}')">
-          <span class="icon">📊</span> Open tracker.csv
-        </div>
-      `;
+      `).join('');
     } else {
-      html += `<div class="files-empty-note">No applications generated yet.</div>`;
+      html += `<div class="files-empty-note">No cover letters generated yet.</div>`;
     }
 
-    document.getElementById('filesModalBody').innerHTML = html;
+    // ── Email Drafts (.eml) ──
+    html += `<div class="files-section-title" style="margin-top:20px">Email Drafts (.eml)</div>`;
+    if (files.eml.length > 0) {
+      html += files.eml.map(f => `
+        <div class="file-list-row">
+          <span class="file-list-icon">✉️</span>
+          <span class="file-list-name">${esc(f.name)}<span class="file-size">${_fmtSize(f.size)}</span></span>
+          <div class="file-list-actions">
+            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/eml/${encodeURIComponent(f.name)}" download="${esc(f.name)}">Download</a>
+            <button class="btn btn-sm btn-danger" onclick="deleteOutputFile('${id}','eml','${esc(f.name)}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      html += `<div class="files-empty-note">No email drafts generated yet.</div>`;
+    }
+
+    body.innerHTML = html;
   } catch (e) {
-    document.getElementById('filesModalBody').innerHTML = `<div style="color:var(--red);padding:16px">${esc(e.message)}</div>`;
+    body.innerHTML = `<div style="color:var(--red);padding:16px">${esc(e.message)}</div>`;
+  }
+}
+
+async function deleteMaterialRefresh(id, filename) {
+  await api("DELETE", `/projects/${id}/material/${encodeURIComponent(filename)}`);
+  toast("File removed");
+  await _refreshFilesModal(id);
+}
+
+async function deleteOutputFile(id, filetype, filename) {
+  if (!confirm(`Delete "${filename}"?`)) return;
+  try {
+    await api("DELETE", `/projects/${id}/output/${filetype}/${encodeURIComponent(filename)}`);
+    toast("Deleted");
+    await _refreshFilesModal(id);
+  } catch (e) {
+    toast(e.message, "error");
   }
 }
 
@@ -682,19 +759,18 @@ async function renderStartApply(id) {
       ...attachableFiles.map(f => `<span class="attachment-chip generated-chip">📄 ${esc(f.label)} (generated)</span>`)
     ].join('') || `<span class="text-muted">No attachments configured</span>`;
 
-    const bodyPreview = emailTpl.template
-      ? emailTpl.template.slice(0, 280) + (emailTpl.template.length > 280 ? '...' : '')
-      : '(No email template yet — go to Edit Settings → Email Template to generate one)';
+    const bodyPreview = (() => {
+      if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to generate one)';
+      let src = emailTpl.template;
+      src = src.replace(/<style[\s\S]*?<\/style>/gi, '');
+      src = src.replace(/<head[\s\S]*?<\/head>/gi, '');
+      const plain = src.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      return plain;
+    })();
 
     const subjectPreview = emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}';
 
     page.innerHTML = `
-      <div class="view-breadcrumb">
-        <button class="btn-breadcrumb" onclick="navigateToProjectHome('${id}')">← ${esc(cfg.project_name || id)}</button>
-        <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">Start Apply</span>
-      </div>
-
       <div class="start-apply-content">
 
         <!-- ─ Part A: Email Preview ─ -->
@@ -716,7 +792,7 @@ async function renderStartApply(id) {
 
             <div class="email-field-row email-field-body">
               <span class="email-field-label">Body</span>
-              <span class="email-field-value email-body-preview">${esc(bodyPreview)}</span>
+              <div class="email-field-value email-body-preview" style="max-height:120px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-word">${esc(bodyPreview)}</div>
               <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
@@ -729,7 +805,7 @@ async function renderStartApply(id) {
           </div>
 
           <button class="btn btn-secondary" onclick="navigateToEdit('${id}')" style="margin-top:14px">
-            ✏ Edit Application Files
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Edit Application Files
           </button>
         </div>
 
@@ -741,18 +817,6 @@ async function renderStartApply(id) {
           <textarea id="projJobReq" rows="3"
             placeholder="e.g. Junior Architect positions in New York, 0-3 years experience, prefer cultural/museum projects"
           >${esc(cfg.job_requirements || '')}</textarea>
-
-          <div class="run-bar">
-            <div class="count-selector">
-              <label style="margin:0">Positions:</label>
-              <select id="runCount">
-                ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}" ${n===5?"selected":""}>${n}</option>`).join("")}
-              </select>
-            </div>
-            <button class="btn btn-run" id="runBtn" onclick="runSearch('${id}')">
-              ▶ Search
-            </button>
-          </div>
 
           <!-- Manual Entry -->
           <div class="manual-entry-section">
@@ -784,26 +848,37 @@ async function renderStartApply(id) {
               <label>Website</label>
               <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
               <div class="manual-entry-actions">
-                <button class="btn btn-primary btn-sm" onclick="addManualEntry('${id}')">&#43; Add to Queue</button>
+                <button class="btn btn-primary btn-sm" onclick="addManualEntry()">&#43; Add to Queue</button>
                 <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
               </div>
             </div>
             <div class="manual-entries-list" id="manualEntriesList"></div>
-            <div id="generateManualBtnContainer"></div>
           </div>
 
           <div id="runResults"></div>
 
-          <div class="link-row" onclick="openTracker('${id}')" style="margin-top:8px">
+          <div class="link-row" onclick="openTableModal()" style="margin-top:8px">
             <span class="icon">📊</span> View Generated Positions (${proj.tracker_count} records)
           </div>
+
+        </div>
+
+        <div class="search-action-row">
+          <div class="count-selector">
+            <label style="margin:0">Positions:</label>
+            <select id="runCount">
+              ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}" ${n===5?"selected":""}>${n}</option>`).join("")}
+            </select>
+          </div>
+          <button class="btn btn-run" id="runBtn" onclick="runSearch('${id}')">
+            ▶ Search
+          </button>
         </div>
 
       </div>
     `;
 
     renderManualEntries();
-    updateGenerateManualBtn(id);
 
     if (pendingTargets.length > 0) {
       restoreSearchResults(id);
@@ -842,7 +917,10 @@ async function renderEditView(id) {
     const typeExamples = examplesMap[cf.id] || [];
     const typeTpl = tpls[cf.id] || {};
     const tplText = typeTpl.template || "";
-    const defsText = typeTpl.definitions || "";
+    const defsText = (typeTpl.definitions || "")
+      .replace(/^Prompt:/gm, 'PROMPT:')
+      .replace(/^Examples:/gm, 'EXAMPLES:')
+      .replace(/^Constrains:/gm, 'CONSTRAINTS:');
     const inputId = `exInput_${cf.id}`;
     const fnFmt = cf.filename_format || "";
 
@@ -900,13 +978,6 @@ async function renderEditView(id) {
 
   document.getElementById("mainContent").innerHTML = `
 
-  <!-- Breadcrumb -->
-  <div class="view-breadcrumb" style="margin-bottom:16px">
-    <button class="btn-breadcrumb" onclick="navigateToProjectHome('${id}')">← ${esc(cfg.project_name || id)}</button>
-    <span class="breadcrumb-sep">/</span>
-    <span class="breadcrumb-current">Edit Settings</span>
-  </div>
-
   <!-- ═══ Section: Global Config ═══════════════════════════ -->
   <div class="section" data-section="global">
     <div class="section-header" onclick="toggleSection(this)">
@@ -926,8 +997,8 @@ async function renderEditView(id) {
 
       <div id="gmailSettings" style="display:${(globalConfig.email_provider || "gmail") === "gmail" ? "block" : "none"}">
         ${globalConfig.gmail_connected
-          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
-              <span style="color:#2e7d32;font-size:18px">&#10003;</span>
+          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(30,60,40,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px">
+              <span style="color:#4ade80;font-size:18px">&#10003;</span>
               <span>Connected: <strong>${esc(globalConfig.gmail_email || globalConfig.email || "")}</strong></span>
               <button class="btn btn-secondary btn-sm" onclick="disconnectGmail()" style="margin-left:auto">Disconnect</button>
             </div>`
@@ -938,8 +1009,8 @@ async function renderEditView(id) {
 
       <div id="outlookSettings" style="display:${globalConfig.email_provider === "outlook" ? "block" : "none"}">
         ${globalConfig.outlook_connected
-          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:#e8f5e9;border-radius:6px">
-              <span style="color:#2e7d32;font-size:18px">&#10003;</span>
+          ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(30,60,40,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px">
+              <span style="color:#4ade80;font-size:18px">&#10003;</span>
               <span>Connected: <strong>${esc(globalConfig.outlook_email || "")}</strong></span>
               <button class="btn btn-secondary btn-sm" onclick="disconnectOutlook()" style="margin-left:auto">Disconnect</button>
             </div>`
@@ -995,9 +1066,6 @@ async function renderEditView(id) {
         <button class="btn btn-secondary btn-sm" onclick="generateProjectMd('${id}')">Generate AI Instructions</button>
       </div>
 
-      <div class="link-row" onclick="openFile('${id}','project.md')">
-        <span class="icon">&#128196;</span> Open project.md (AI instruction file)
-      </div>
     </div>
   </div>
 
@@ -1018,7 +1086,7 @@ async function renderEditView(id) {
         ${customizeHtml}
       </div>
 
-      <div class="link-row" onclick="openOutputFolder('${id}')" style="margin-top:8px">
+      <div class="link-row" onclick="openFilesModal('${id}')" style="margin-top:8px">
         <span class="icon">&#128194;</span> View All Generated Files
       </div>
 
@@ -1055,7 +1123,7 @@ async function renderEditView(id) {
       <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(extractEditableContent(emailTpl.template || ""))}</textarea>
 
       <label>Custom Definitions</label>
-      <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(emailTpl.definitions || "")}</textarea>
+      <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc((emailTpl.definitions || "").replace(/^Prompt:/gm,'PROMPT:').replace(/^Examples:/gm,'EXAMPLES:').replace(/^Constrains:/gm,'CONSTRAINTS:'))}</textarea>
 
       <div style="margin-top:8px">
         <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
@@ -1063,21 +1131,14 @@ async function renderEditView(id) {
     </div>
   </div>
 
-  <!-- ═══ Section: Token Usage ══════════════════════════════ -->
-  <div class="section" data-section="token">
-    <div class="section-header" onclick="toggleSection(this)">
-      <h3><span>&#128200;</span> Token Usage</h3>
-      <span class="arrow">&#9662;</span>
-    </div>
-    <div class="section-body">
-      <div id="tokenUsageSummary">
-        <span style="color:var(--text2);font-size:12px">Loading...</span>
-      </div>
-    </div>
+  <div style="display:flex;justify-content:flex-end;padding:20px 0 8px">
+    <button class="btn btn-primary" onclick="saveProjectConfig('${id}').then(()=>navigateToStartApply('${id}'))">
+      Save &amp; Go to Apply &nbsp;→
+    </button>
   </div>
+
   `;
 
-  loadTokenUsage(id);
 }
 
 // Keep renderProject as an alias for backward compatibility
@@ -1486,10 +1547,37 @@ async function runSearch(id) {
   const btn = document.getElementById("runBtn");
   const resultsDiv = document.getElementById("runResults");
   const count = parseInt(document.getElementById("runCount").value);
+  const aiCount = Math.max(0, count - manualTargets.length);
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Searching...';
   resultsDiv.innerHTML = "";
+
+  // If manual entries already cover the requested count, skip AI search
+  if (aiCount === 0) {
+    pendingTargets = [];
+    const totalReady = manualTargets.length;
+    let html = '<div class="search-results-panel">';
+    html += '<div class="search-results-title">Search Results - Review & Confirm</div>';
+    manualTargets.forEach((t, i) => {
+      html += `<div class="manual-entry-row" id="manualConfirmRow_${i}">
+        <div class="search-result-info">
+          <span class="firm-name">${esc(t.firm)}</span>
+          <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
+        </div>
+        <span class="manual-badge">Manual</span>
+        <button class="btn-remove-target" onclick="removeManualEntry(${i});updateConfirmCount('${id}')" title="Remove">&times;</button>
+      </div>`;
+    });
+    html += `<div class="search-results-actions">
+      <span class="search-count" id="confirmCount">${totalReady} position(s) ready</span>
+      <button class="btn btn-run" onclick="confirmAndGenerate('${id}')" id="confirmBtn">&#9654; Confirm &amp; Generate</button>
+    </div></div>`;
+    resultsDiv.innerHTML = html;
+    btn.disabled = false;
+    btn.innerHTML = "&#9654; Search";
+    return;
+  }
 
   showProgress("Searching for Positions", "Preparing search...", true);
 
@@ -1498,7 +1586,7 @@ async function runSearch(id) {
     updateProgress(null, "Connecting to AI...");
     animateSearchProgress();
 
-    const result = await api("POST", `/projects/${id}/search`, { count });
+    const result = await api("POST", `/projects/${id}/search`, { count: aiCount });
 
     finishAllProgressSteps();
     updateProgress(100, "Search complete!");
@@ -1897,7 +1985,7 @@ function toggleManualEntry() {
   form.classList.toggle("visible");
 }
 
-function addManualEntry(projectId) {
+function addManualEntry() {
   const firm = document.getElementById("manualFirm").value.trim();
   const email = document.getElementById("manualEmail").value.trim();
   const position = document.getElementById("manualPosition").value.trim();
@@ -1921,7 +2009,6 @@ function addManualEntry(projectId) {
 
   manualTargets.push(entry);
   renderManualEntries();
-  updateGenerateManualBtn(projectId);
 
   document.getElementById("manualFirm").value = "";
   document.getElementById("manualEmail").value = "";
@@ -1930,46 +2017,6 @@ function addManualEntry(projectId) {
   document.getElementById("manualWebsite").value = "";
 
   toast(`Added ${firm} (manual)`);
-}
-
-function updateGenerateManualBtn(projectId) {
-  const container = document.getElementById("generateManualBtnContainer");
-  if (!container) return;
-  if (manualTargets.length > 0) {
-    container.innerHTML = `<button class="btn btn-run" onclick="generateManualOnly('${projectId}')" style="margin-top:12px">
-      &#9654; Generate ${manualTargets.length} Manual Position${manualTargets.length > 1 ? "s" : ""}
-    </button>`;
-  } else {
-    container.innerHTML = "";
-  }
-}
-
-async function generateManualOnly(id) {
-  pendingTargets = [];
-  const resultsDiv = document.getElementById("runResults");
-  resultsDiv.innerHTML = "";
-
-  const totalReady = manualTargets.length;
-  let html = '<div class="search-results-panel">';
-  html += '<div class="search-results-title">Manual Positions - Generating</div>';
-  manualTargets.forEach((t, i) => {
-    html += `<div class="manual-entry-row">
-      <div class="search-result-info">
-        <span class="firm-name">${esc(t.firm)}</span>
-        <span class="search-detail">${esc(t.position || "")} | ${esc(t.location || "")} | ${esc(t.email || "")}</span>
-      </div>
-      <span class="manual-badge">Manual</span>
-    </div>`;
-  });
-  html += `<div class="search-results-actions">
-    <span class="search-count" id="confirmCount">${totalReady} position(s)</span>
-    <button class="btn btn-run" id="confirmBtn" disabled>
-      <span class="spinner"></span> Generating...
-    </button>
-  </div></div>`;
-  resultsDiv.innerHTML = html;
-
-  await confirmAndGenerate(id);
 }
 
 function removeManualEntry(index) {
@@ -2016,7 +2063,7 @@ init().catch(e => {
   }
 });
 
-// ── Scroll Glow Orbs ─────────────────────────────────────
+// ── Scroll Glow Orbs — depth parallax via top (vh) ───────
 (function () {
   function makeOrb(cls) {
     const el = document.createElement("div");
@@ -2024,19 +2071,27 @@ init().catch(e => {
     document.body.appendChild(el);
     return el;
   }
-  const orb1 = makeOrb("glow-orb glow-orb-r");
-  const orb2 = makeOrb("glow-orb glow-orb-l");
-  let c1 = 15, t1 = 15, c2 = 55, t2 = 55;
+
+  // startVh = initial top (vh), travel = how many vh it moves across full scroll
+  // Near orbs: large + big travel. Far orbs: small (CSS) + tiny travel.
+  const layers = [
+    { el: makeOrb("glow-orb glow-orb-r"), startVh:  8, travel: 65, lerp: 0.045 },
+    { el: makeOrb("glow-orb glow-orb-l"), startVh: 42, travel: 42, lerp: 0.038 },
+    { el: makeOrb("glow-orb glow-orb-t"), startVh: 18, travel: 22, lerp: 0.030 },
+    { el: makeOrb("glow-orb glow-orb-b"), startVh: 62, travel:  8, lerp: 0.022 },
+  ];
+  layers.forEach(l => { l.cur = l.startVh; l.tgt = l.startVh; });
+
   window.addEventListener("scroll", function () {
-    const f = window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1);
-    t1 = 5 + f * 70;
-    t2 = 35 + f * 55;
+    const f = Math.min(window.scrollY / Math.max(document.body.scrollHeight - window.innerHeight, 1), 1);
+    layers.forEach(l => { l.tgt = l.startVh + f * l.travel; });
   }, { passive: true });
+
   (function tick() {
-    c1 += (t1 - c1) * 0.04;
-    c2 += (t2 - c2) * 0.03;
-    orb1.style.top = c1 + "vh";
-    orb2.style.top = c2 + "vh";
+    layers.forEach(l => {
+      l.cur += (l.tgt - l.cur) * l.lerp;
+      l.el.style.top = l.cur.toFixed(2) + "vh";
+    });
     requestAnimationFrame(tick);
   })();
 })();

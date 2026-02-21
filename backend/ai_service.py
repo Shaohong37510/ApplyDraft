@@ -186,14 +186,16 @@ You must return valid JSON with exactly two keys:
 - "definitions": a structured description of each CUSTOM_X placeholder using this EXACT format:
 
 [CUSTOM_1]: <brief description of what this section is about>
-Prompt: <detailed instruction for AI to generate this content for a specific firm>
-Examples: <one real example extracted from the provided samples>
-Constrains: <word count and sentence limits, e.g. "30 words. two sentences">
+PROMPT: <detailed instruction for AI to generate this content for a specific firm>
+EXAMPLES: <one real example extracted from the provided samples>
+CONSTRAINTS: <word count and sentence limits, e.g. "30 words. two sentences">
+KEY INFORMATIONS: <key personal/professional keywords relevant to this placeholder, e.g. internship companies, software skills, notable projects — drawn from the applicant's background>
 
 [CUSTOM_2]: <brief description>
-Prompt: <detailed instruction>
-Examples: <example>
-Constrains: <constraints>
+PROMPT: <detailed instruction>
+EXAMPLES: <example>
+CONSTRAINTS: <constraints>
+KEY INFORMATIONS: <key info>
 
 (continue for all CUSTOM_X placeholders, each block separated by a blank line)
 """
@@ -276,7 +278,7 @@ CUSTOM PLACEHOLDER DEFINITIONS:
 RULES:
 - Search the web for real, current job openings matching the requirements
 - Each entry must be a JSON object with: firm, email, location, position, openDate, subject, source, and custom content fields
-- For custom content: read the CUSTOM PLACEHOLDER DEFINITIONS above. For each [CUSTOM_X] defined, include a "custom_X" field (e.g. custom_1, custom_2, custom_3...) with content generated according to its Prompt and Constrains
+- For custom content: read the CUSTOM PLACEHOLDER DEFINITIONS above. For each [CUSTOM_X] defined, include a "custom_X" field (e.g. custom_1, custom_2, custom_3...) with content generated according to its PROMPT and CONSTRAINTS, naturally incorporating the KEY INFORMATIONS keywords where relevant
 - SKIP firms that only accept applications through web portals (Greenhouse, Workday, etc.) with no email alternative
 - If a firm must be skipped, include it in a separate "skipped" array with reason and portal URL
 - Do NOT include firms already applied to: {json.dumps(existing_firms)}
@@ -343,7 +345,7 @@ PROJECT INSTRUCTIONS:
 PLACEHOLDER DEFINITIONS:
 {custom_definitions}
 
-Return valid JSON. For each [CUSTOM_X] in the definitions, include a "custom_X" key (e.g. custom_1, custom_2...) with content following its Prompt and Constrains."""
+Return valid JSON. For each [CUSTOM_X] in the definitions, include a "custom_X" key (e.g. custom_1, custom_2...) with content following its PROMPT and CONSTRAINTS, naturally incorporating the KEY INFORMATIONS keywords where relevant."""
 
     user_msg = f"""Generate custom content for:
 Firm: {firm_info.get('firm', '')}

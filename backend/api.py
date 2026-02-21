@@ -669,7 +669,7 @@ def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_c
     # Parse examples from definitions for each CUSTOM_X
     import re
     custom_examples = {}
-    for match in re.finditer(r'\[CUSTOM_(\d+)\].*?Examples:\s*(.+?)(?:\n|Constrains:)', definitions, re.DOTALL):
+    for match in re.finditer(r'\[CUSTOM_(\d+)\].*?(?:EXAMPLES|Examples):\s*(.+?)(?=\n(?:CONSTRAINTS|Constrains|KEY INFORMATIONS|\[CUSTOM_)|\Z)', definitions, re.DOTALL | re.IGNORECASE):
         custom_examples[f"CUSTOM_{match.group(1)}"] = match.group(2).strip()
 
     # Fill template with sample/real values locally — no API call needed
@@ -1495,7 +1495,7 @@ def get_tracker(project_id: str, user_id: str = Depends(get_current_user)):
 
 @router.get("/projects/{project_id}/files")
 def list_project_files(project_id: str, user_id: str = Depends(get_current_user)):
-    proj_dir = pm.get_tracker_path(user_id, project_id).parent
+    proj_dir = pm.get_project_dir(user_id, project_id)
     result = {"eml": [], "pdf": []}
     email_dir = proj_dir / "Email"
     if email_dir.exists():
@@ -1505,8 +1505,44 @@ def list_project_files(project_id: str, user_id: str = Depends(get_current_user)
     cl_dir = proj_dir / "Email" / "CoverLetters"
     if cl_dir.exists():
         for f in sorted(cl_dir.iterdir()):
-            if f.is_file() and f.suffix.lower() == ".pdf":
+            if f.is_file() and f.suffix.lower() == ".pdf" and not f.name.startswith("PREVIEW_"):
                 result["pdf"].append({"name": f.name, "size": f.stat().st_size})
     return result
+
+
+@router.get("/projects/{project_id}/output/{filetype}/{filename:path}")
+def download_output_file(project_id: str, filetype: str, filename: str, user_id: str = Depends(get_current_user)):
+    """Download or inline-preview a generated output file."""
+    proj_dir = pm.get_project_dir(user_id, project_id)
+    if filetype == "eml":
+        file_path = proj_dir / "Email" / filename
+        media_type = "message/rfc822"
+        disposition = "attachment"
+    elif filetype == "pdf":
+        file_path = proj_dir / "Email" / "CoverLetters" / filename
+        media_type = "application/pdf"
+        disposition = "inline"
+    else:
+        raise HTTPException(400, "Invalid file type")
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(404, "File not found")
+    return FileResponse(str(file_path), media_type=media_type,
+                        headers={"Content-Disposition": f'{disposition}; filename="{filename}"'})
+
+
+@router.delete("/projects/{project_id}/output/{filetype}/{filename:path}")
+def delete_output_file(project_id: str, filetype: str, filename: str, user_id: str = Depends(get_current_user)):
+    """Delete a generated output file."""
+    proj_dir = pm.get_project_dir(user_id, project_id)
+    if filetype == "eml":
+        file_path = proj_dir / "Email" / filename
+    elif filetype == "pdf":
+        file_path = proj_dir / "Email" / "CoverLetters" / filename
+    else:
+        raise HTTPException(400, "Invalid file type")
+    if not file_path.exists():
+        raise HTTPException(404, "File not found")
+    file_path.unlink()
+    return {"ok": True}
 
 
