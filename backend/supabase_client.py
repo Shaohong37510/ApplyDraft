@@ -63,13 +63,13 @@ def use_credits(user_id: str, amount: float, description: str = "") -> tuple[boo
     Uses use_credits_safe RPC to prevent overdraft and race conditions.
     """
     sb = get_client()
-    result = sb.rpc("use_credits_safe", {"uid": user_id, "amount": amount}).execute()
+    result = sb.rpc("use_credits_safe", {"uid": user_id, "amount": float(amount)}).execute()
     ok = bool(result.data)
     if not ok:
         return False, get_user_credits(user_id)
     sb.table("credit_transactions").insert({
         "user_id": user_id,
-        "amount": -amount,
+        "amount": float(-amount),
         "type": "usage",
         "description": description,
     }).execute()

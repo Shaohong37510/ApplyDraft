@@ -18,7 +18,7 @@ MAX_OUTPUT_TOKENS_SUBJECT = 200   # Subject line only
 # max_searches: count*2 + 4; max_output: count*1000 + 2000 (cap 12000)
 def _search_limits(count: int) -> tuple[int, int]:
     """Return (max_searches, max_output_tokens) for a given position count."""
-    max_searches = count * 2 + 4
+    max_searches = count + 2
     max_output = min(count * 1000 + 2000, 12000)
     return max_searches, max_output
 
