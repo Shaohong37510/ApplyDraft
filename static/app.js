@@ -305,15 +305,24 @@ async function loadApp() {
 // ── Top Bar Project Selector ──────────────────────────────
 
 function updateTopBarSelect() {
-  const sel = document.getElementById('topBarProjectSelect');
+  const sel = document.getElementById('projectSelect');
   if (!sel) return;
   sel.innerHTML = projects.length === 0
     ? '<option value="">No projects</option>'
     : projects.map(p => `<option value="${p.id}"${p.id === activeProjectId ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+  const del = document.getElementById('deleteProjectBtn');
+  if (del) del.style.display = projects.length === 0 ? 'none' : '';
 }
 
-function onTopBarProjectChange(id) {
+function switchProject(id) {
   if (id) navigateToProjectHome(id);
+}
+
+async function deleteActiveProject() {
+  if (!activeProjectId) return;
+  const proj = projects.find(p => p.id === activeProjectId);
+  const name = proj ? proj.name : 'this project';
+  await confirmDeleteProject(activeProjectId, name);
 }
 
 // ── View Navigation ───────────────────────────────────────
