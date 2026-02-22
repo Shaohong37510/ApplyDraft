@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import csv
+import hashlib
 from datetime import datetime
 from pathlib import Path
 
@@ -196,6 +197,30 @@ def load_project_md(user_id: str, project_id: str) -> str:
 def save_project_md(user_id: str, project_id: str, content: str):
     path = _user_dir(user_id) / project_id / "project.md"
     path.write_text(content, encoding="utf-8")
+
+
+def get_job_req_hash(user_id: str, project_id: str) -> str:
+    """Return stored hash of job_requirements used for last project.md generation."""
+    path = _user_dir(user_id) / project_id / "project_md.hash"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
+
+
+def save_job_req_hash(user_id: str, project_id: str, job_requirements: str):
+    """Save hash of job_requirements after generating project.md."""
+    h = hashlib.md5(job_requirements.encode("utf-8")).hexdigest()
+    path = _user_dir(user_id) / project_id / "project_md.hash"
+    path.write_text(h, encoding="utf-8")
+
+
+def job_req_changed(user_id: str, project_id: str, job_requirements: str) -> bool:
+    """Return True if job_requirements changed since last project.md generation."""
+    stored = get_job_req_hash(user_id, project_id)
+    if not stored:
+        return True  # never generated
+    current = hashlib.md5(job_requirements.encode("utf-8")).hexdigest()
+    return stored != current
 
 
 # ── Internal helpers ───────────────────────────────────────────

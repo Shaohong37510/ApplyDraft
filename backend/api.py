@@ -916,18 +916,22 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
                 all_definitions.append(f"[{cf['label']}]\n{defs_text}")
     combined_definitions = "\n\n".join(all_definitions)
 
-    # Auto-generate project.md with full user profile before each search
-    gcfg = _get_user_config(user_id)
-    user_profile = {
-        "name": proj_config.get("name", ""),
-        "phone": proj_config.get("phone", ""),
-        "email": gcfg.get("email", "") or gcfg.get("outlook_email", ""),
-    }
-    try:
-        project_md, md_usage = ai.generate_project_md(api_key, job_req, user_profile)
-        pm.save_project_md(user_id, project_id, project_md)
-        pm.append_token_usage(user_id, project_id, "generate_project_md", md_usage)
-    except Exception:
+    # Auto-generate project.md only if job_requirements changed or never generated
+    if pm.job_req_changed(user_id, project_id, job_req):
+        gcfg = _get_user_config(user_id)
+        user_profile = {
+            "name": proj_config.get("name", ""),
+            "phone": proj_config.get("phone", ""),
+            "email": gcfg.get("email", "") or gcfg.get("outlook_email", ""),
+        }
+        try:
+            project_md, md_usage = ai.generate_project_md(api_key, job_req, user_profile)
+            pm.save_project_md(user_id, project_id, project_md)
+            pm.save_job_req_hash(user_id, project_id, job_req)
+            pm.append_token_usage(user_id, project_id, "generate_project_md", md_usage)
+        except Exception:
+            project_md = pm.load_project_md(user_id, project_id)
+    else:
         project_md = pm.load_project_md(user_id, project_id)
 
     # Get existing firms to avoid duplicates
