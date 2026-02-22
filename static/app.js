@@ -1632,7 +1632,7 @@ async function runSearch(id) {
 
     if (pendingTargets.length > 0) {
       pendingTargets.forEach((t, i) => {
-        const sourceLink = t.source ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
+        const sourceLink = (t.source && t.source.startsWith('http')) ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
         html += `<div class="search-result-row" id="searchRow_${i}">
           <div class="search-result-info">
             <span class="firm-name">${esc(t.firm)}${sourceLink}</span>
@@ -1687,7 +1687,7 @@ function restoreSearchResults(id) {
   let html = '<div class="search-results-panel">';
   html += '<div class="search-results-title">Search Results - Review & Confirm</div>';
   pendingTargets.forEach((t, i) => {
-    const sourceLink = t.source ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
+    const sourceLink = (t.source && t.source.startsWith('http')) ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View job posting">&#128279;</a>` : '';
     html += `<div class="search-result-row" id="searchRow_${i}">
       <div class="search-result-info">
         <span class="firm-name">${esc(t.firm)}${sourceLink}</span>
