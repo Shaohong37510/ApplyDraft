@@ -336,6 +336,151 @@ Find real firms with open positions and generate {count} target entries. Return 
     return {"targets": [], "skipped": [], "error": f"Could not parse AI response: {snippet}..."}, usage
 
 
+# ── Phase 1a: DuckDuckGo pre-search ───────────────────────────
+
+def _ddg_search_jobs(job_requirements: str, count: int) -> str:
+    """Pre-search with DuckDuckGo for job context. Returns formatted summary string."""
+    try:
+        from duckduckgo_search import DDGS
+        first_line = job_requirements.split('\n')[0].strip()[:120]
+        queries = [
+            f"{first_line} job opening apply email",
+            f"{first_line} hiring careers",
+        ]
+        results = []
+        with DDGS() as ddgs:
+            for q in queries:
+                for r in ddgs.text(q, max_results=count):
+                    title = r.get('title', '')
+                    href = r.get('href', '')
+                    body = r.get('body', '')[:100]
+                    results.append(f"- {title} | {href} | {body}")
+                    if len(results) >= count * 2:
+                        break
+                if len(results) >= count * 2:
+                    break
+        if results:
+            return "Supplementary search results:\n" + "\n".join(results)
+    except Exception:
+        pass
+    return ""
+
+
+# ── Phase 1a: Discover job listings (no email, no custom content) ──
+
+def discover_job_listings(
+    api_key: str,
+    project_md: str,
+    job_requirements: str,
+    count: int,
+    existing_firms: list[str],
+) -> tuple[list, list, dict]:
+    """Phase 1a: Discover real job openings. Returns (candidates, skipped, usage).
+    candidates = [{firm, url, position, location, source}] — no email or custom content."""
+    ddg_context = _ddg_search_jobs(job_requirements, count)
+
+    system = f"""You are a job search assistant. Use web search to find real, current job openings.
+
+PROJECT INSTRUCTIONS:
+{project_md}
+
+RULES:
+- Search for real job openings matching the requirements, posted within the last 60 days if possible
+- Return discovery data only: firm name, job URL, position title, location, source URL
+- Do NOT find email addresses yet — that is handled separately
+- SKIP firms that only accept applications through web portals (Greenhouse, Workday, Lever, BambooHR, etc.) with no email option
+- Do NOT include firms already applied to: {json.dumps(existing_firms)}
+- Return valid JSON: {{"candidates": [...], "skipped": []}}
+- Each candidate: {{"firm": "...", "url": "...", "position": "...", "location": "...", "source": "..."}}
+- Each skipped: {{"firm": "...", "reason": "portal only", "portal_url": "..."}}"""
+
+    user_msg = f"""Search for {count} job openings matching these requirements:
+
+{job_requirements}
+
+{ddg_context}
+
+Return JSON with candidates array (firm/url/position/location/source). No email addresses needed yet."""
+
+    max_searches = count + 3
+    max_output = min(count * 400 + 1000, 6000)
+    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=max_output, max_searches=max_searches)
+
+    if not result or not result.strip():
+        return [], [], usage
+
+    parsed = None
+    for pattern in [r'\{[\s\S]*"candidates"[\s\S]*\}', r'\{[\s\S]*\}']:
+        try:
+            m = re.search(pattern, result)
+            if m:
+                parsed = json.loads(m.group())
+                if "candidates" in parsed:
+                    break
+        except json.JSONDecodeError:
+            continue
+
+    if not parsed:
+        try:
+            m = re.search(r'\[[\s\S]*\]', result)
+            if m:
+                arr = json.loads(m.group())
+                if isinstance(arr, list):
+                    parsed = {"candidates": arr, "skipped": []}
+        except json.JSONDecodeError:
+            pass
+
+    if not parsed:
+        return [], [], usage
+
+    return parsed.get("candidates", []) or [], parsed.get("skipped", []) or [], usage
+
+
+# ── Phase 1b: Extract email for a single firm ──────────────────
+
+def extract_firm_email(api_key: str, firm: str, url: str, position: str) -> tuple[dict, dict]:
+    """Phase 1b: Find application email for a specific firm. Returns (details, usage).
+    details = {email, openDate, subject}. Handles obfuscated emails."""
+
+    system = """You are a job application assistant. Find the exact email address to submit a job application.
+
+RULES:
+- Search the firm's website, careers page, and the job posting URL provided
+- Firms often obfuscate emails to block spam scrapers. Decode these formats:
+  * "jobs [at] firm [dot] com" → "jobs@firm.com"
+  * "careers(at)firm(dot)com" → "careers@firm.com"
+  * "info AT company DOT com" → "info@company.com"
+  * Emails split with spaces: "jobs @ firm .com" → "jobs@firm.com"
+  * HTML-encoded: "&#106;obs&#64;firm.com" → decode to real address
+- Common patterns: jobs@, careers@, hr@, apply@, studio@, hello@, info@, hiring@
+- Also note: application deadline or open date if visible; required subject line format if specified
+- Return JSON only: {"email": "...", "openDate": "YYYY-MM", "subject": ""}
+- If truly no email found: {"email": "", "openDate": "", "subject": ""}"""
+
+    user_msg = f"""Find the application email address for:
+Firm: {firm}
+Position: {position}
+Job URL: {url}
+
+Search their careers page and job posting. Decode any obfuscated email. Return JSON only."""
+
+    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=400, max_searches=4)
+
+    try:
+        m = re.search(r'\{[\s\S]*\}', result)
+        if m:
+            parsed = json.loads(m.group())
+            return {
+                "email": (parsed.get("email") or "").strip(),
+                "openDate": (parsed.get("openDate") or "").strip(),
+                "subject": (parsed.get("subject") or "").strip(),
+            }, usage
+    except json.JSONDecodeError:
+        pass
+
+    return {"email": "", "openDate": "", "subject": ""}, usage
+
+
 # ── Generate custom content for a single firm ──────────────────
 
 def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:

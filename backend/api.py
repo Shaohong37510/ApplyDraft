@@ -947,10 +947,27 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
         raise HTTPException(402, f"Insufficient credits: need {min_cost:.1f}, have {balance:.1f}")
 
     try:
-        search_result, usage = ai.search_and_generate_targets(
-            api_key, project_md, combined_definitions, job_req, count,
+        # Phase 1a: discover job listings (firm + url + position, no email yet)
+        candidates, skipped, usage = ai.discover_job_listings(
+            api_key, project_md, job_req, count,
             existing_firms + generated_firms,
         )
+        # Phase 1b: find email for each candidate individually
+        for candidate in candidates:
+            try:
+                email_data, email_usage = ai.extract_firm_email(
+                    api_key,
+                    candidate.get("firm", ""),
+                    candidate.get("url", "") or candidate.get("source", ""),
+                    candidate.get("position", ""),
+                )
+                candidate.update(email_data)
+                usage["input_tokens"] += email_usage.get("input_tokens", 0)
+                usage["output_tokens"] += email_usage.get("output_tokens", 0)
+                usage["api_calls"] += email_usage.get("api_calls", 0)
+            except Exception:
+                pass  # keep candidate without email
+        search_result = {"targets": candidates, "skipped": skipped}
     except Exception as e:
         err_msg = str(e)
         if "rate_limit" in err_msg.lower() or "429" in err_msg:
@@ -1265,6 +1282,18 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     existing_targets = pm.load_targets(user_id, project_id)
     tracker_rows = pm.load_tracker(user_id, project_id)
 
+    # Load definitions and project.md for Phase 2 custom content generation
+    all_definitions_gen = []
+    for cf in customize_files:
+        defs_path = tpl_dir / cf["id"] / "definitions.txt"
+        if defs_path.exists():
+            defs_text = defs_path.read_text(encoding="utf-8")
+            if defs_text:
+                all_definitions_gen.append(f"[{cf['label']}]\n{defs_text}")
+    combined_definitions_gen = "\n\n".join(all_definitions_gen)
+    project_md_gen = pm.load_project_md(user_id, project_id)
+    api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
+
     def event_stream():
         nonlocal gcfg
         total = len(confirmed_targets)
@@ -1283,6 +1312,26 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 "NAME": user_name, "PHONE": user_phone, "EMAIL": user_email,
                 "FIRM_NAME": firm, "POSITION": target.get("position", ""),
             }
+
+            # Phase 2 step 1: Generate custom content if not already present
+            if api_key_gen and combined_definitions_gen and not any(k.startswith("custom_") for k in target):
+                yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'detail': f'Generating personalized content for {firm}...', 'step': f'Writing content for {firm}'})}\n\n"
+                try:
+                    content, gen_usage = ai.generate_custom_content(api_key_gen, target, combined_definitions_gen, project_md_gen)
+                    if content:
+                        target.update(content)
+                        total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
+                        total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
+                        total_usage["api_calls"] += gen_usage.get("api_calls", 0)
+                    else:
+                        yield f"data: {json.dumps({'type': 'target_done', 'firm': firm, 'pdf': False, 'draft': False, 'error': 'Content generation returned empty, skipped'})}\n\n"
+                        results.append({**status_obj, "error": "Content generation failed"})
+                        continue
+                except Exception as e:
+                    yield f"data: {json.dumps({'type': 'target_done', 'firm': firm, 'pdf': False, 'draft': False, 'error': f'Content generation failed: {str(e)[:80]}'})}\n\n"
+                    results.append({**status_obj, "error": f"Content generation failed: {str(e)[:80]}"})
+                    continue
+
             for key in target:
                 if key.startswith("custom_"):
                     base_replacements[key.upper()] = target[key]
