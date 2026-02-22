@@ -771,12 +771,14 @@ async function renderStartApply(id) {
     ].join('') || `<span class="text-muted">No attachments configured</span>`;
 
     const bodyPreview = (() => {
-      if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to generate one)';
+      // Show example email (user's sample) as preview; fall back to template
+      if (emailTpl.example) return emailTpl.example.trim();
+      if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to set one)';
+      // Strip HTML if template is HTML
       let src = emailTpl.template;
       src = src.replace(/<style[\s\S]*?<\/style>/gi, '');
       src = src.replace(/<head[\s\S]*?<\/head>/gi, '');
-      const plain = src.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      return plain;
+      return src.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     })();
 
     const subjectPreview = emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}';
@@ -1050,6 +1052,24 @@ async function renderEditView(id) {
       <span class="arrow">&#9662;</span>
     </div>
     <div class="section-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:12px">
+        <div>
+          <label>Full Name</label>
+          <input type="text" id="projName" value="${esc(cfg.name || '')}" placeholder="e.g. Jane Smith">
+        </div>
+        <div>
+          <label>Phone</label>
+          <input type="text" id="projPhone" value="${esc(cfg.phone || '')}" placeholder="e.g. 215-555-1234">
+        </div>
+        <div>
+          <label>Personal Email</label>
+          <input type="text" id="projPersonalEmail" value="${esc(cfg.personal_email || '')}" placeholder="e.g. jane@email.com">
+        </div>
+        <div>
+          <label>Address</label>
+          <input type="text" id="projAddress" value="${esc(cfg.address || '')}" placeholder="e.g. Philadelphia, PA">
+        </div>
+      </div>
       <label>Job Requirements (natural language)</label>
       <textarea id="projJobReq" rows="3" placeholder="e.g. Junior Architect positions in New York, 0-3 years experience, prefer cultural/museum projects">${esc(cfg.job_requirements || "")}</textarea>
 
@@ -1223,10 +1243,8 @@ async function connectOutlook() {
 async function disconnectOutlook() {
   if (!confirm("Disconnect Outlook account?")) return;
   await api("POST", "/oauth/outlook/disconnect");
-  globalConfig.outlook_connected = false;
-  globalConfig.outlook_email = "";
-  globalConfig.email_provider = "none";
-  location.reload();
+  globalConfig = await api("GET", "/global-config").catch(() => ({}));
+  if (activeProjectId) renderEditView(activeProjectId);
 }
 
 async function connectGmail() {
@@ -1241,10 +1259,8 @@ async function connectGmail() {
 async function disconnectGmail() {
   if (!confirm("Disconnect Gmail account?")) return;
   await api("POST", "/oauth/gmail/disconnect");
-  globalConfig.gmail_connected = false;
-  globalConfig.gmail_email = "";
-  globalConfig.email_provider = "none";
-  location.reload();
+  globalConfig = await api("GET", "/global-config").catch(() => ({}));
+  if (activeProjectId) renderEditView(activeProjectId);
 }
 
 // ── Project config ────────────────────────────────────────
@@ -1253,6 +1269,14 @@ async function saveProjectConfig(id) {
   const reqEl = document.getElementById("projJobReq");
   if (!reqEl) return;
   const data = { job_requirements: reqEl.value };
+  const nameEl = document.getElementById("projName");
+  const phoneEl = document.getElementById("projPhone");
+  const emailEl = document.getElementById("projPersonalEmail");
+  const addrEl = document.getElementById("projAddress");
+  if (nameEl) data.name = nameEl.value;
+  if (phoneEl) data.phone = phoneEl.value;
+  if (emailEl) data.personal_email = emailEl.value;
+  if (addrEl) data.address = addrEl.value;
   await api("PUT", `/projects/${id}/config`, data);
   toast("Saved");
 }

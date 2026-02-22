@@ -676,7 +676,8 @@ def preview_template(project_id: str, type_id: str, user_id: str = Depends(get_c
     filled = template
     filled = filled.replace("{{NAME}}", proj_config.get("name", "Jane Doe"))
     filled = filled.replace("{{PHONE}}", proj_config.get("phone", "555-123-4567"))
-    filled = filled.replace("{{EMAIL}}", "jane.doe@email.com")
+    filled = filled.replace("{{EMAIL}}", proj_config.get("personal_email", "jane.doe@email.com"))
+    filled = filled.replace("{{ADDRESS}}", proj_config.get("address", ""))
     filled = filled.replace("{{FIRM_NAME}}", "Example Studio")
     filled = filled.replace("{{POSITION}}", "Designer")
 
@@ -1047,6 +1048,8 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
     user_name = proj_config.get("name", "Applicant")
     user_phone = proj_config.get("phone", "")
     user_email = gcfg.get("email", "") or gcfg.get("outlook_email", "")
+    user_personal_email = proj_config.get("personal_email", "")
+    user_address = proj_config.get("address", "")
 
     output_dir = project_dir / "Email" / "CoverLetters"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1068,7 +1071,8 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
         base_replacements = {
             "NAME": user_name,
             "PHONE": user_phone,
-            "EMAIL": user_email,
+            "EMAIL": user_personal_email or user_email,
+            "ADDRESS": user_address,
             "FIRM_NAME": firm,
             "POSITION": target.get("position", ""),
         }
@@ -1254,6 +1258,8 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     user_name = proj_config.get("name", "Applicant")
     user_phone = proj_config.get("phone", "")
     user_email = gcfg.get("email", "") or gcfg.get("outlook_email", "")
+    user_personal_email = proj_config.get("personal_email", "")
+    user_address = proj_config.get("address", "")
     output_dir = project_dir / "Email" / "CoverLetters"
     output_dir.mkdir(parents=True, exist_ok=True)
     materials = [
@@ -1293,7 +1299,9 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
             yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'status': f'Processing {firm} ({i+1}/{total})', 'detail': 'Filling templates...', 'step': f'Filling templates for {firm}'})}\n\n"
 
             base_replacements = {
-                "NAME": user_name, "PHONE": user_phone, "EMAIL": user_email,
+                "NAME": user_name, "PHONE": user_phone,
+                "EMAIL": user_personal_email or user_email,
+                "ADDRESS": user_address,
                 "FIRM_NAME": firm, "POSITION": target.get("position", ""),
             }
 
