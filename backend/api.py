@@ -1314,10 +1314,12 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
             }
 
             # Phase 2 step 1: Generate custom content if not already present
+            print(f"[PHASE2] firm={firm} api_key_gen={bool(api_key_gen)} defs_len={len(combined_definitions_gen)} has_custom={any(k.startswith('custom_') for k in target)} target_keys={list(target.keys())}", flush=True)
             if api_key_gen and combined_definitions_gen and not any(k.startswith("custom_") for k in target):
                 yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'detail': f'Generating personalized content for {firm}...', 'step': f'Writing content for {firm}'})}\n\n"
                 try:
                     content, gen_usage = ai.generate_custom_content(api_key_gen, target, combined_definitions_gen, project_md_gen)
+                    print(f"[PHASE2] content_keys={list(content.keys()) if content else 'EMPTY'}", flush=True)
                     if content:
                         target.update(content)
                         total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
