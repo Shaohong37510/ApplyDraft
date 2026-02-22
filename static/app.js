@@ -212,6 +212,12 @@ async function updateUserInfo() {
   }
 }
 
+function updateCreditsDisplay(balance) {
+  if (balance == null || isNaN(Number(balance))) return;
+  const el = document.getElementById("creditsDisplay");
+  if (el) el.textContent = `${Number(balance).toFixed(1)} credits`;
+}
+
 function buyCredits() {
   const modal = document.getElementById("creditModal");
   modal.style.cssText = "display:flex!important; position:fixed!important; top:0!important; left:0!important; width:100%!important; height:100%!important; background:rgba(0,0,0,.65)!important; z-index:9999!important; align-items:center!important; justify-content:center!important;";
@@ -1602,6 +1608,7 @@ async function runSearch(id) {
     await new Promise(r => setTimeout(r, 600));
     hideProgress();
 
+    if (result.credit_usage?.balance != null) updateCreditsDisplay(result.credit_usage.balance);
     pendingTargets = result.targets || [];
     const skipped = result.skipped || [];
 
@@ -1819,6 +1826,7 @@ async function confirmAndGenerate(id) {
       }
 
       if (usage) showTokenUsage(usage);
+      if (finalResult.credit_usage?.balance != null) updateCreditsDisplay(finalResult.credit_usage.balance);
       if (finalResult.save_error) {
         toast(finalResult.save_error, "error");
       }

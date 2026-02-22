@@ -1212,12 +1212,6 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     if not confirmed_targets:
         raise HTTPException(400, "No targets provided")
 
-    # Deduct credits immediately on generation start
-    cost = billing.generate_cost(len(confirmed_targets))
-    ok, balance = db.use_credits(user_id, cost, f"Generate {len(confirmed_targets)} targets")
-    if not ok:
-        raise HTTPException(402, f"Insufficient credits: need {cost:.1f}, have {balance:.1f}")
-
     smart_subject = data.get("smart_subject", False)
     subject_template = data.get("subject_template", "")
 
@@ -1227,11 +1221,13 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
         1 for t in confirmed_targets
         if t.get("_manual") or (t.get("source", "") or "").lower() == "manual"
     )
+    # Pre-flight balance check (no charge yet — billed at completion)
     est_base = (manual_count * billing.SEARCH_CREDITS_PER_TARGET) + (
         len(confirmed_targets) * billing.DELIVERY_CREDITS_PER_TARGET
     )
-    if db.get_user_credits(user_id) < est_base:
-        raise HTTPException(402, "Not enough credits for this batch")
+    balance = db.get_user_credits(user_id)
+    if balance < est_base:
+        raise HTTPException(402, f"Insufficient credits: need {est_base:.1f}, have {balance:.1f}")
 
     proj = pm.get_project(user_id, project_id)
     if not proj:
