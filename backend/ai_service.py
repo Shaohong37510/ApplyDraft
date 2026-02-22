@@ -396,7 +396,7 @@ RULES:
 - Do NOT include firms already applied to: {json.dumps(existing_firms)}
 - Return valid JSON: {{"candidates": [...], "skipped": []}}
 - Each candidate must have ALL these fields:
-  {{"firm": "Firm Name", "email": "jobs@firm.com", "position": "Job Title", "location": "City, State", "website": "https://firm.com", "source": "https://firm.com/careers/job-posting-url (MUST be a full https:// URL to the actual job posting, NOT a company name or description)", "openDate": "YYYY-MM", "subject": "Application for [Position] - [Name]", "salutation": "Hiring Manager", "firm_research": "Notable projects: X, Y. Design philosophy: ..."}}
+  {{"firm": "Firm Name", "email": "jobs@firm.com", "position": "Job Title", "location": "City, State", "website": "https://firm.com", "source": "https://... (MUST be a full https:// URL — use the job posting page if available, otherwise any URL showing this firm is hiring: job board listing, LinkedIn, Indeed, Glassdoor, firm careers page, etc.)", "openDate": "YYYY-MM", "subject": "Application for [Position] - [Name]", "salutation": "Hiring Manager", "firm_research": "Notable projects: X, Y. Design philosophy: ..."}}
 - Each skipped: {{"firm": "...", "reason": "portal only", "portal_url": "..."}}"""
 
     user_msg = f"""Search for {count} job openings matching these requirements:
