@@ -515,13 +515,18 @@ Steps:
 
 Return JSON only with keys custom_1, custom_2, etc."""
 
-    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE, max_searches=4)
+    try:
+        result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE, max_searches=4)
+    except Exception as e:
+        print(f"[PHASE2] _call_claude_with_search raised: {type(e).__name__}: {str(e)[:200]}", flush=True)
+        return {}, {}
+    print(f"[PHASE2] raw_result_len={len(result)} result_preview={result[:200].replace(chr(10),' ')}", flush=True)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             return json.loads(json_match.group()), usage
-    except json.JSONDecodeError:
-        pass
+    except json.JSONDecodeError as e:
+        print(f"[PHASE2] JSON parse error: {e}", flush=True)
     return {}, usage
 
 
