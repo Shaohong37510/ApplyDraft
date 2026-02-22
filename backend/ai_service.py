@@ -498,6 +498,7 @@ OUTPUT RULES:
 - Keys must be exactly: "custom_1", "custom_2", "custom_3", etc. — one key per [CUSTOM_N] defined above
 - Do NOT use nested keys, do NOT use keys like "cover_letter" or "email_body"
 - Each value is the paragraph text for that placeholder
+- If a definition includes KEY INFORMATIONS, naturally incorporate those keywords into the paragraph
 - Example: {{"custom_1": "I am writing to apply...", "custom_2": "At Snøhetta, I..."}}"""
 
     user_msg = f"""Write tailored cover letter paragraphs for:
