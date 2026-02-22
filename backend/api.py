@@ -947,26 +947,11 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
         raise HTTPException(402, f"Insufficient credits: need {min_cost:.1f}, have {balance:.1f}")
 
     try:
-        # Phase 1a: discover job listings (firm + url + position, no email yet)
-        candidates, skipped, usage = ai.discover_job_listings(
+        # Single call: find firms + emails + firm background research
+        candidates, skipped, usage = ai.search_firms(
             api_key, project_md, job_req, count,
             existing_firms + generated_firms,
         )
-        # Phase 1b: find email for each candidate individually
-        for candidate in candidates:
-            try:
-                email_data, email_usage = ai.extract_firm_email(
-                    api_key,
-                    candidate.get("firm", ""),
-                    candidate.get("url", "") or candidate.get("source", ""),
-                    candidate.get("position", ""),
-                )
-                candidate.update(email_data)
-                usage["input_tokens"] += email_usage.get("input_tokens", 0)
-                usage["output_tokens"] += email_usage.get("output_tokens", 0)
-                usage["api_calls"] += email_usage.get("api_calls", 0)
-            except Exception:
-                pass  # keep candidate without email
         search_result = {"targets": candidates, "skipped": skipped}
     except Exception as e:
         err_msg = str(e)

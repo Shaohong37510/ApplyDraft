@@ -366,32 +366,37 @@ def _ddg_search_jobs(job_requirements: str, count: int) -> str:
     return ""
 
 
-# ── Phase 1a: Discover job listings (no email, no custom content) ──
+# ── Phase 1: Search firms (find jobs + email + firm background in one call) ──
 
-def discover_job_listings(
+def search_firms(
     api_key: str,
     project_md: str,
     job_requirements: str,
     count: int,
     existing_firms: list[str],
 ) -> tuple[list, list, dict]:
-    """Phase 1a: Discover real job openings. Returns (candidates, skipped, usage).
-    candidates = [{firm, url, position, location, source}] — no email or custom content."""
+    """Search for job openings in one call: finds firm + email + firm_research.
+    Returns (candidates, skipped, usage).
+    candidates = [{firm, email, position, location, website, source, openDate, subject, salutation, firm_research}]
+    """
     ddg_context = _ddg_search_jobs(job_requirements, count)
 
-    system = f"""You are a job search assistant. Use web search to find real, current job openings.
+    system = f"""You are a job application assistant. Use web search to find real, current job openings and gather key information about each firm.
 
 PROJECT INSTRUCTIONS:
 {project_md}
 
 RULES:
 - Search for real job openings matching the requirements, posted within the last 60 days if possible
-- Return discovery data only: firm name, job URL, position title, location, source URL
-- Do NOT find email addresses yet — that is handled separately
+- For each firm found, also:
+  1. Find the application email (check careers page, job posting, contact page; decode obfuscated emails like "jobs [at] firm.com" → "jobs@firm.com")
+  2. Note any required email subject line format from the job posting
+  3. Research the firm briefly: 1-2 notable projects by name, their design philosophy or approach, what makes them distinctive
 - SKIP firms that only accept applications through web portals (Greenhouse, Workday, Lever, BambooHR, etc.) with no email option
 - Do NOT include firms already applied to: {json.dumps(existing_firms)}
 - Return valid JSON: {{"candidates": [...], "skipped": []}}
-- Each candidate: {{"firm": "...", "url": "...", "position": "...", "location": "...", "source": "..."}}
+- Each candidate must have ALL these fields:
+  {{"firm": "...", "email": "...", "position": "...", "location": "...", "website": "...", "source": "...", "openDate": "YYYY-MM", "subject": "...", "salutation": "Hiring Manager", "firm_research": "Notable projects: X, Y. Design philosophy: ..."}}
 - Each skipped: {{"firm": "...", "reason": "portal only", "portal_url": "..."}}"""
 
     user_msg = f"""Search for {count} job openings matching these requirements:
@@ -400,10 +405,10 @@ RULES:
 
 {ddg_context}
 
-Return JSON with candidates array (firm/url/position/location/source). No email addresses needed yet."""
+For each firm: find their application email, note the required subject line format if any, and briefly research their notable projects and design approach. Return JSON with candidates array."""
 
-    max_searches = count + 3
-    max_output = min(count * 400 + 1000, 6000)
+    max_searches = count * 2 + 3
+    max_output = min(count * 700 + 1500, 10000)
     result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=max_output, max_searches=max_searches)
 
     if not result or not result.strip():
@@ -485,10 +490,15 @@ Search their careers page and job posting. Decode any obfuscated email. Return J
 
 def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:
     """Generate custom content for a firm. Returns (content_dict, token_usage)."""
+    firm_research = firm_info.get('firm_research', '')
+
     system = f"""You generate tailored cover letter paragraphs for a specific job application.
 
 PROJECT INSTRUCTIONS:
 {project_md if project_md else "(none)"}
+
+FIRM RESEARCH (use this to write firm-specific paragraphs):
+{firm_research if firm_research else "(none)"}
 
 PLACEHOLDER DEFINITIONS:
 {custom_definitions}
@@ -497,36 +507,29 @@ CRITICAL RULES:
 - Return ONLY a flat JSON object with keys "custom_1", "custom_2", etc. — one per [CUSTOM_N] above
 - Do NOT use nested keys or keys like "cover_letter" / "email_body"
 - Follow each [CUSTOM_N]'s PROMPT and CONSTRAINTS strictly
-- IMPORTANT: The EXAMPLES in each definition contain the applicant's REAL background. You MUST extract all proper nouns from those examples — employer names, school names, degrees, project names, software tools — and USE THEM verbatim in your output. Do not invent or substitute different names.
-- If KEY INFORMATIONS is present, incorporate those keywords naturally
-- Tailor any firm-specific paragraph to the firm provided below"""
+- The EXAMPLES in each definition contain the applicant's REAL background — extract all proper nouns (employer names, school, degrees, project names, software) and USE THEM verbatim
+- Use FIRM RESEARCH to reference the firm's specific projects and design philosophy
+- If KEY INFORMATIONS is present, incorporate those keywords naturally"""
 
-    website = firm_info.get('website', '') or firm_info.get('source', '')
     user_msg = f"""Write tailored cover letter paragraphs for:
 Firm: {firm_info.get('firm', '')}
 Position: {firm_info.get('position', '')}
 Location: {firm_info.get('location', '')}
-{f"Website: {website}" if website else ""}
 
-Steps:
-1. Search the firm's website and portfolio to find 1-2 notable projects, their design philosophy, and any stated values or approach
-2. Use the applicant's real background extracted from the EXAMPLES in the definitions (exact employer names, school, software, project names)
-3. Write each paragraph using the firm research + applicant background
+Use the firm research provided and the applicant's real background from EXAMPLES. Return JSON only with keys custom_1, custom_2, etc."""
 
-Return JSON only with keys custom_1, custom_2, etc."""
-
-    try:
-        result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE, max_searches=4)
-    except Exception as e:
-        print(f"[PHASE2] _call_claude_with_search raised: {type(e).__name__}: {str(e)[:200]}", flush=True)
-        return {}, {}
-    print(f"[PHASE2] raw_result_len={len(result)} result_preview={result[:200].replace(chr(10),' ')}", flush=True)
+    print(f"[PHASE2] firm={firm_info.get('firm','')} has_research={bool(firm_research)}", flush=True)
+    result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
+    print(f"[PHASE2] raw_result_len={len(result)}", flush=True)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
-            return json.loads(json_match.group()), usage
+            content = json.loads(json_match.group())
+            print(f"[PHASE2] content_keys={list(content.keys()) if content else 'EMPTY'}", flush=True)
+            return content, usage
     except json.JSONDecodeError as e:
         print(f"[PHASE2] JSON parse error: {e}", flush=True)
+    print(f"[PHASE2] content_keys=EMPTY", flush=True)
     return {}, usage
 
 
