@@ -501,14 +501,21 @@ CRITICAL RULES:
 - If KEY INFORMATIONS is present, incorporate those keywords naturally
 - Tailor any firm-specific paragraph to the firm provided below"""
 
+    website = firm_info.get('website', '') or firm_info.get('source', '')
     user_msg = f"""Write tailored cover letter paragraphs for:
 Firm: {firm_info.get('firm', '')}
 Position: {firm_info.get('position', '')}
 Location: {firm_info.get('location', '')}
+{f"Website: {website}" if website else ""}
 
-Use the applicant's real background extracted from the EXAMPLES in the definitions (exact employer names, school, software, project names). Return JSON only with keys custom_1, custom_2, etc."""
+Steps:
+1. Search the firm's website and portfolio to find 1-2 notable projects, their design philosophy, and any stated values or approach
+2. Use the applicant's real background extracted from the EXAMPLES in the definitions (exact employer names, school, software, project names)
+3. Write each paragraph using the firm research + applicant background
 
-    result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
+Return JSON only with keys custom_1, custom_2, etc."""
+
+    result, usage = _call_claude_with_search(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE, max_searches=4)
     try:
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
