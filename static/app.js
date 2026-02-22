@@ -1161,10 +1161,15 @@ function toggleSection(header) {
 async function promptNewProject() {
   const name = prompt("Project name:");
   if (!name) return;
-  const proj = await api("POST", "/projects", { name });
-  projects.push(proj);
-  toast("Project created");
-  navigateToProjectHome(proj.id);
+  try {
+    const proj = await api("POST", "/projects", { name });
+    projects.push(proj);
+    toast("Project created");
+    navigateToProjectHome(proj.id);
+  } catch (e) {
+    toast("Failed to create project: " + e.message, "error");
+    console.error("Create project error:", e);
+  }
 }
 
 async function confirmDeleteProject(id, name) {
