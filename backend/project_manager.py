@@ -48,10 +48,13 @@ def list_projects(user_id: str) -> list[dict]:
         if p.is_dir():
             config = _load_project_config(p)
             tracker_count = _count_tracker(p)
+            job_req = config.get("job_requirements", "")
+            job_req_short = job_req.split('\n')[0].strip()[:80] if job_req else ""
             results.append({
                 "id": p.name,
                 "name": config.get("project_name", p.name),
                 "tracker_count": tracker_count,
+                "job_requirements": job_req_short,
             })
     return results
 
