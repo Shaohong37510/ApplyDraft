@@ -1437,6 +1437,7 @@ Best regards,
 
             # Step 3: Creating email draft
             email_provider = gcfg.get("email_provider", "gmail")
+            print(f"[DRAFT] firm={firm} provider={email_provider} to_email={target.get('email','(empty)')} gmail_connected={bool((gcfg.get('gmail_tokens') or {}).get('refresh_token'))}", flush=True)
             if email_provider != "none":
                 provider_label = "Outlook" if email_provider == "outlook" else "Gmail"
                 yield f"data: {json.dumps({'type': 'progress', 'pct': pct + int(0.6/total*100), 'detail': f'Creating {provider_label} draft for {firm}...'})}\n\n"
@@ -1452,6 +1453,7 @@ Best regards,
                 draft_ok, draft_err, updated_gcfg = _create_draft(
                     gcfg, target, email_body, user_name, attachments
                 )
+                print(f"[DRAFT] result: ok={draft_ok} err={draft_err}", flush=True)
                 status_obj["draft"] = draft_ok
                 if draft_err:
                     status_obj["draft_error"] = draft_err
