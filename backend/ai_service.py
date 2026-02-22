@@ -485,28 +485,28 @@ Search their careers page and job posting. Decode any obfuscated email. Return J
 
 def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:
     """Generate custom content for a firm. Returns (content_dict, token_usage)."""
-    system = f"""You generate tailored cover letter paragraphs for a job application.
+    system = f"""You generate tailored cover letter paragraphs for a specific job application.
 
 PROJECT INSTRUCTIONS:
-{project_md}
+{project_md if project_md else "(none)"}
 
-PLACEHOLDER DEFINITIONS (each [CUSTOM_N] section tells you what to write for that paragraph):
+PLACEHOLDER DEFINITIONS:
 {custom_definitions}
 
-OUTPUT RULES:
-- Return ONLY a flat JSON object
-- Keys must be exactly: "custom_1", "custom_2", "custom_3", etc. — one key per [CUSTOM_N] defined above
-- Do NOT use nested keys, do NOT use keys like "cover_letter" or "email_body"
-- Each value is the paragraph text for that placeholder
-- If a definition includes KEY INFORMATIONS, naturally incorporate those keywords into the paragraph
-- Example: {{"custom_1": "I am writing to apply...", "custom_2": "At Snøhetta, I..."}}"""
+CRITICAL RULES:
+- Return ONLY a flat JSON object with keys "custom_1", "custom_2", etc. — one per [CUSTOM_N] above
+- Do NOT use nested keys or keys like "cover_letter" / "email_body"
+- Follow each [CUSTOM_N]'s PROMPT and CONSTRAINTS strictly
+- IMPORTANT: The EXAMPLES in each definition contain the applicant's REAL background. You MUST extract all proper nouns from those examples — employer names, school names, degrees, project names, software tools — and USE THEM verbatim in your output. Do not invent or substitute different names.
+- If KEY INFORMATIONS is present, incorporate those keywords naturally
+- Tailor any firm-specific paragraph to the firm provided below"""
 
     user_msg = f"""Write tailored cover letter paragraphs for:
 Firm: {firm_info.get('firm', '')}
 Position: {firm_info.get('position', '')}
 Location: {firm_info.get('location', '')}
 
-Return JSON only with keys custom_1, custom_2, etc."""
+Use the applicant's real background extracted from the EXAMPLES in the definitions (exact employer names, school, software, project names). Return JSON only with keys custom_1, custom_2, etc."""
 
     result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
     try:
