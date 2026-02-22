@@ -6,6 +6,7 @@ let projects = [];
 let activeProjectId = null;
 let currentView = 'projects';
 let globalConfig = {};
+let _appLoaded = false;
 let pendingTargets = []; // search results awaiting confirmation
 let manualTargets = []; // manually added targets
 let supabaseClient = null;
@@ -147,6 +148,7 @@ async function logout() {
   if (supabaseClient) await supabaseClient.auth.signOut();
   accessToken = null;
   currentUser = null;
+  _appLoaded = false;
   showLogin();
 }
 
@@ -301,7 +303,10 @@ async function loadApp() {
     console.error("load projects failed:", e);
     projects = [];
   }
-  navigateToProjects();
+  if (!_appLoaded) {
+    _appLoaded = true;
+    navigateToProjects();
+  }
 }
 
 // ── Top Bar Project Selector ──────────────────────────────
