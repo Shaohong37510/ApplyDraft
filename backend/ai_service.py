@@ -105,20 +105,28 @@ def generate_project_md(api_key: str, job_requirements: str, user_profile: dict)
 for an AI agent that will search for jobs and write tailored application materials.
 Output ONLY the markdown content, no code fences."""
 
-    user_msg = f"""Based on the following job requirements, generate a project.md file that includes:
+    profile_lines = []
+    if user_profile.get("name"):
+        profile_lines.append(f"- Name: {user_profile['name']}")
+    if user_profile.get("email"):
+        profile_lines.append(f"- Email: {user_profile['email']}")
+    if user_profile.get("phone"):
+        profile_lines.append(f"- Phone: {user_profile['phone']}")
+    profile_text = "\n".join(profile_lines) if profile_lines else "Not provided"
+
+    user_msg = f"""Based on the following job requirements and applicant profile, generate a project.md file that includes:
 1. Target locations (cities, priority order)
-2. Target positions (job titles to search for)
-3. Industry/specialization preferences
-4. Search platforms to use
-5. Application filtering rules (email vs portal)
-6. Custom writing style guidelines for cover letters and emails
+2. Target positions (exact job titles to search for)
+3. Required experience level and qualifications to match
+4. Industry/specialization preferences
+5. Application filtering rules (experience level, email vs portal, job recency)
+6. Custom writing style guidelines that highlight the applicant's background
 
 Job Requirements (natural language):
 {job_requirements}
 
-User Profile:
-- Name: {user_profile.get('name', 'Not provided')}
-- Phone: {user_profile.get('phone', 'Not provided')}
+Applicant Profile:
+{profile_text}
 """
     return _call_claude(api_key, system, user_msg)
 

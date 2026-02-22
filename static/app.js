@@ -1068,7 +1068,6 @@ async function renderEditView(id) {
 
       <div style="margin-top:12px">
         <button class="btn btn-primary btn-sm" onclick="saveProjectConfig('${id}')">Save</button>
-        <button class="btn btn-secondary btn-sm" onclick="generateProjectMd('${id}')">Generate AI Instructions</button>
       </div>
 
     </div>

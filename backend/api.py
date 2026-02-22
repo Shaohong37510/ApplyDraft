@@ -834,9 +834,11 @@ def generate_project_md(project_id: str, user_id: str = Depends(get_current_user
     if not job_req:
         raise HTTPException(400, "No job requirements specified")
 
+    gcfg = _get_user_config(user_id)
     user_profile = {
         "name": proj_config.get("name", ""),
         "phone": proj_config.get("phone", ""),
+        "email": gcfg.get("email", "") or gcfg.get("outlook_email", ""),
     }
 
     md_content, usage = ai.generate_project_md(api_key, job_req, user_profile)
@@ -914,7 +916,19 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
                 all_definitions.append(f"[{cf['label']}]\n{defs_text}")
     combined_definitions = "\n\n".join(all_definitions)
 
-    project_md = pm.load_project_md(user_id, project_id)
+    # Auto-generate project.md with full user profile before each search
+    gcfg = _get_user_config(user_id)
+    user_profile = {
+        "name": proj_config.get("name", ""),
+        "phone": proj_config.get("phone", ""),
+        "email": gcfg.get("email", "") or gcfg.get("outlook_email", ""),
+    }
+    try:
+        project_md, md_usage = ai.generate_project_md(api_key, job_req, user_profile)
+        pm.save_project_md(user_id, project_id, project_md)
+        pm.append_token_usage(user_id, project_id, "generate_project_md", md_usage)
+    except Exception:
+        project_md = pm.load_project_md(user_id, project_id)
 
     # Get existing firms to avoid duplicates
     existing_targets = pm.load_targets(user_id, project_id)
