@@ -1283,13 +1283,16 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     tracker_rows = pm.load_tracker(user_id, project_id)
 
     # Load definitions and project.md for Phase 2 custom content generation
+    # Exclude email_body: its CUSTOM_X defs collide with cover_letter's CUSTOM_X keys
     all_definitions_gen = []
     for cf in customize_files:
+        if cf["id"] == "email_body":
+            continue
         defs_path = tpl_dir / cf["id"] / "definitions.txt"
         if defs_path.exists():
             defs_text = defs_path.read_text(encoding="utf-8")
             if defs_text:
-                all_definitions_gen.append(f"[{cf['label']}]\n{defs_text}")
+                all_definitions_gen.append(defs_text)
     combined_definitions_gen = "\n\n".join(all_definitions_gen)
     project_md_gen = pm.load_project_md(user_id, project_id)
     api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -1351,6 +1354,11 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 for k, v in base_replacements.items():
                     filled = filled.replace("{{" + k + "}}", v or "")
                 if cf_id == "email_body":
+                    # Strip HTML tags if template is HTML so Gmail body is plain text
+                    if "<html" in filled.lower() or "</p>" in filled.lower():
+                        filled = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', filled, flags=re.IGNORECASE)
+                        filled = re.sub(r'<[^>]+>', '', filled)
+                        filled = re.sub(r'\n{3,}', '\n\n', filled.strip())
                     try:
                         _enforce_text_limit(filled, MAX_EMAIL_UNITS, "Email body")
                     except HTTPException as e:

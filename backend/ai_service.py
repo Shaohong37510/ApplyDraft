@@ -485,22 +485,27 @@ Search their careers page and job posting. Decode any obfuscated email. Return J
 
 def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:
     """Generate custom content for a firm. Returns (content_dict, token_usage)."""
-    system = f"""Generate custom content for a specific firm based on the placeholder definitions.
+    system = f"""You generate tailored cover letter paragraphs for a job application.
 
 PROJECT INSTRUCTIONS:
 {project_md}
 
-PLACEHOLDER DEFINITIONS:
+PLACEHOLDER DEFINITIONS (each [CUSTOM_N] section tells you what to write for that paragraph):
 {custom_definitions}
 
-Return valid JSON. For each [CUSTOM_X] in the definitions, include a "custom_X" key (e.g. custom_1, custom_2...) with content following its PROMPT and CONSTRAINTS, naturally incorporating the KEY INFORMATIONS keywords where relevant."""
+OUTPUT RULES:
+- Return ONLY a flat JSON object
+- Keys must be exactly: "custom_1", "custom_2", "custom_3", etc. — one key per [CUSTOM_N] defined above
+- Do NOT use nested keys, do NOT use keys like "cover_letter" or "email_body"
+- Each value is the paragraph text for that placeholder
+- Example: {{"custom_1": "I am writing to apply...", "custom_2": "At Snøhetta, I..."}}"""
 
-    user_msg = f"""Generate custom content for:
+    user_msg = f"""Write tailored cover letter paragraphs for:
 Firm: {firm_info.get('firm', '')}
 Position: {firm_info.get('position', '')}
 Location: {firm_info.get('location', '')}
 
-Return JSON only."""
+Return JSON only with keys custom_1, custom_2, etc."""
 
     result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
     try:
