@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=29">
+  <link rel="stylesheet" href="/static/style.css?v=30">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -203,9 +203,25 @@
 
     <section class="about-section" id="about-contact">
       <h2>Contact</h2>
-      <p>Have a question, feedback, or need help? We'd love to hear from you.</p>
-      <p>📧 <a href="mailto:support@applydraft.top">support@applydraft.top</a></p>
-      <p style="margin-top:24px;font-size:13px;color:#888">We typically respond within 24 hours.</p>
+      <p>Have a question, feedback, or need help? Send us a message and we'll get back to you within 24 hours.</p>
+      <form class="contact-form" id="contactForm" onsubmit="submitContactForm(event)">
+        <div class="contact-row">
+          <div class="contact-field">
+            <label>Your Name</label>
+            <input type="text" id="contactName" placeholder="Jane Smith" required>
+          </div>
+          <div class="contact-field">
+            <label>Your Email</label>
+            <input type="email" id="contactEmail" placeholder="jane@email.com" required>
+          </div>
+        </div>
+        <div class="contact-field">
+          <label>Message</label>
+          <textarea id="contactMessage" rows="5" placeholder="Describe your question or feedback..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
+        <div id="contactResult" style="margin-top:12px;font-size:13px;display:none"></div>
+      </form>
     </section>
 
     <section class="about-section">
@@ -359,6 +375,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=19"></script>
+<script src="/static/app.js?v=20"></script>
 </body>
 </html>

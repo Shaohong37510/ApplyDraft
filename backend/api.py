@@ -115,6 +115,45 @@ def get_public_config():
     }
 
 
+@router.post("/contact")
+def submit_contact(data: dict):
+    """Receive contact form and forward to owner email via SMTP."""
+    import smtplib
+    from email.mime.text import MIMEText
+
+    name = (data.get("name") or "").strip()[:100]
+    email = (data.get("email") or "").strip()[:200]
+    message = (data.get("message") or "").strip()[:2000]
+    if not name or not email or not message:
+        raise HTTPException(400, "All fields are required")
+
+    notify_email = os.environ.get("CONTACT_NOTIFY_EMAIL", "")
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+
+    if not notify_email or not smtp_user or not smtp_pass:
+        # SMTP not configured — log and return success anyway
+        print(f"[CONTACT] from={email} name={name} msg={message[:80]}", flush=True)
+        return {"ok": True}
+
+    body = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
+    msg = MIMEText(body, "plain")
+    msg["Subject"] = f"[ApplyDraft] Contact from {name}"
+    msg["From"] = smtp_user
+    msg["To"] = notify_email
+    msg["Reply-To"] = email
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as srv:
+            srv.login(smtp_user, smtp_pass)
+            srv.sendmail(smtp_user, notify_email, msg.as_string())
+    except Exception as exc:
+        print(f"[CONTACT] SMTP error: {exc}", flush=True)
+        raise HTTPException(500, "Failed to send message. Please try again later.")
+
+    return {"ok": True}
+
+
 # ═══════════════════════════════════════════════════════════════
 #  Helpers: user config from Supabase + env vars
 # ═══════════════════════════════════════════════════════════════

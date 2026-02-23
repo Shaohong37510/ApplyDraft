@@ -251,6 +251,42 @@ function hideAboutPage() {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
+async function submitContactForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById("contactSubmitBtn");
+  const result = document.getElementById("contactResult");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  result.style.display = "none";
+  try {
+    const res = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: document.getElementById("contactName").value,
+        email: document.getElementById("contactEmail").value,
+        message: document.getElementById("contactMessage").value,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      result.style.display = "";
+      result.style.color = "#4ade80";
+      result.textContent = "✓ Message sent! We'll get back to you within 24 hours.";
+      document.getElementById("contactForm").reset();
+    } else {
+      throw new Error(data.detail || "Failed to send");
+    }
+  } catch (err) {
+    result.style.display = "";
+    result.style.color = "var(--orange)";
+    result.textContent = "Failed to send: " + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Send Message";
+  }
+}
+
 function showApp() {
   hideLoading();
   const landingPage = document.getElementById("landingPage");
