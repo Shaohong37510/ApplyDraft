@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyDraft - Job Application Kit</title>
-  <link rel="stylesheet" href="/static/style.css?v=27">
+  <link rel="stylesheet" href="/static/style.css?v=28">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -96,12 +96,126 @@
   <div class="landing-cta">
     <div class="landing-container">
       <h2>Ready to Land Your Dream Job?</h2>
-      <p>Join thousands of job seekers who save hours every week with ApplyDraft.</p>
+      <p>Stop spending hours on each application — let AI handle the research and writing.</p>
       <button class="btn-landing-cta" onclick="showLoginFromLanding()">
         Start Applying Today
         <span class="arrow">→</span>
       </button>
     </div>
+  </div>
+
+  <footer class="landing-footer">
+    <div class="landing-container">
+      <div class="footer-links">
+        <a href="#" onclick="showAboutPage();return false;">About</a>
+        <a href="#" onclick="showAboutPage('faq');return false;">FAQ</a>
+        <a href="#" onclick="showAboutPage('pricing');return false;">Pricing</a>
+        <a href="#" onclick="showAboutPage('contact');return false;">Contact</a>
+        <a href="/privacy.html" target="_blank">Privacy Policy</a>
+        <a href="/terms.html" target="_blank">Terms of Service</a>
+      </div>
+      <p class="footer-copy">© 2026 ApplyDraft. All rights reserved.</p>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══ About / Info Page ════════════════════════════════ -->
+<div id="aboutPage" style="display:none">
+  <div class="about-topbar">
+    <button class="btn-back-landing" onclick="hideAboutPage()">← Back</button>
+    <span class="about-logo">ApplyDraft</span>
+  </div>
+  <div class="about-content">
+
+    <section class="about-section" id="about-about">
+      <h2>About ApplyDraft</h2>
+      <p>ApplyDraft is an AI-powered job application tool that helps you find opportunities, write personalized cover letters, and save email drafts — all in one place. Built for job seekers who want to apply smarter, not harder.</p>
+      <p>Upload your resume and portfolio once. Tell us what you're looking for. We'll handle the research and writing, so you can focus on the interviews.</p>
+    </section>
+
+    <section class="about-section" id="about-howitworks">
+      <h2>How It Works</h2>
+      <div class="about-steps">
+        <div class="about-step"><span class="about-step-num">1</span><div><strong>Create a Project</strong><p>Set up your profile, upload your resume and portfolio, and describe the jobs you want.</p></div></div>
+        <div class="about-step"><span class="about-step-num">2</span><div><strong>AI Finds Jobs</strong><p>Our AI searches job boards and company websites to find positions matching your criteria, complete with contact emails.</p></div></div>
+        <div class="about-step"><span class="about-step-num">3</span><div><strong>Review &amp; Generate</strong><p>Review the results, select positions you like, and generate personalized cover letters for each one.</p></div></div>
+        <div class="about-step"><span class="about-step-num">4</span><div><strong>Send &amp; Track</strong><p>Applications are saved as drafts in your Gmail or Outlook. Review each one, then send when ready.</p></div></div>
+      </div>
+    </section>
+
+    <section class="about-section" id="about-pricing">
+      <h2>Pricing</h2>
+      <p>ApplyDraft uses a credit system — pay only for what you use. Credits never expire.</p>
+      <div class="about-pricing-grid">
+        <div class="about-pricing-card">
+          <div class="pricing-name">Starter</div>
+          <div class="pricing-amount">10 credits</div>
+          <div class="pricing-price">$9</div>
+          <div class="pricing-rate">$0.90 / credit</div>
+        </div>
+        <div class="about-pricing-card about-pricing-featured">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-name">Standard</div>
+          <div class="pricing-amount">100 credits</div>
+          <div class="pricing-price">$69</div>
+          <div class="pricing-rate">$0.69 / credit</div>
+        </div>
+        <div class="about-pricing-card">
+          <div class="pricing-name">Pro</div>
+          <div class="pricing-amount">300 credits</div>
+          <div class="pricing-price">$165</div>
+          <div class="pricing-rate">$0.55 / credit</div>
+        </div>
+      </div>
+      <p class="about-pricing-note">Each application (search + cover letter + draft) costs approximately 1 credit.</p>
+      <button class="btn-landing-cta" onclick="hideAboutPage();showLoginFromLanding();" style="margin-top:16px;font-size:15px;padding:12px 28px">Get Started Free →</button>
+    </section>
+
+    <section class="about-section" id="about-faq">
+      <h2>FAQ</h2>
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q">Does ApplyDraft send emails automatically?</div>
+          <div class="faq-a">No. We only create drafts in your Gmail or Outlook inbox. You review each email before deciding to send — you stay in full control.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can I use my own Claude API key?</div>
+          <div class="faq-a">Yes. You can connect your own Anthropic API key in Settings. This gives you more control over AI usage and costs.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What file types can I upload?</div>
+          <div class="faq-a">You can upload PDF, DOCX, and TXT files as attachments (resume, portfolio, etc.). Example files for AI analysis should be .txt or .pdf.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How personalized are the cover letters?</div>
+          <div class="faq-a">The AI researches each firm — their projects, design philosophy, and job requirements — before writing. Each cover letter is unique to that firm and position.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Do credits expire?</div>
+          <div class="faq-a">No, credits never expire. Buy once, use whenever you need.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can I get a refund?</div>
+          <div class="faq-a">Unused credits are non-refundable once purchased. If you have an issue, please contact us at support@applydraft.top.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section" id="about-contact">
+      <h2>Contact</h2>
+      <p>Have a question, feedback, or need help? We'd love to hear from you.</p>
+      <p>📧 <a href="mailto:support@applydraft.top">support@applydraft.top</a></p>
+      <p style="margin-top:24px;font-size:13px;color:#888">We typically respond within 24 hours.</p>
+    </section>
+
+    <section class="about-section">
+      <h2>Legal</h2>
+      <p>
+        <a href="/privacy.html" target="_blank">Privacy Policy</a> &nbsp;·&nbsp;
+        <a href="/terms.html" target="_blank">Terms of Service</a>
+      </p>
+    </section>
+
   </div>
 </div>
 
@@ -130,7 +244,8 @@
   <!-- ═══ Top Bar ════════════════════════════════════════════ -->
   <div class="top-bar" id="topBar">
     <div class="top-bar-left">
-      <span class="app-name" onclick="navigateToProjects()" style="cursor:pointer">ApplyDraft</span>
+      <span class="app-name" onclick="navigateToProjects()" style="cursor:pointer" title="My Projects">ApplyDraft</span>
+      <button class="btn-about-link" onclick="showAboutPage()" title="Help & About">?</button>
       <button class="btn-back" id="topBarBack" style="display:none" onclick="navigateBack()"><span class="btn-back-chevron">‹</span> back</button>
     </div>
     <div class="top-bar-center">
@@ -244,6 +359,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=18"></script>
+<script src="/static/app.js?v=19"></script>
 </body>
 </html>

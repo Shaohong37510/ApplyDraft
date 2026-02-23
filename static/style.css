@@ -2168,3 +2168,173 @@ textarea { resize: vertical; min-height: 80px; }
   .projects-grid { grid-template-columns: 1fr; }
   .modal-wide { width: 100%; }
 }
+
+/* ── Landing Footer ──────────────────────────────────────── */
+.landing-footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 32px 20px;
+  text-align: center;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+  margin-bottom: 12px;
+}
+.footer-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.15s;
+}
+.footer-links a:hover { color: var(--accent); }
+.footer-copy {
+  color: var(--text2);
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ── About Page ──────────────────────────────────────────── */
+#aboutPage {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+.about-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 32px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.about-logo {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4361ee, #7209b7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.about-content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+.about-section {
+  margin-bottom: 56px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.about-section:last-child { border-bottom: none; }
+.about-section h2 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.about-section p { color: var(--text2); line-height: 1.7; margin-bottom: 12px; }
+.about-section a { color: var(--accent); text-decoration: none; }
+.about-section a:hover { text-decoration: underline; }
+
+/* About steps */
+.about-steps { display: flex; flex-direction: column; gap: 20px; }
+.about-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.about-step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4361ee, #7209b7);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.about-step strong { color: var(--text); font-size: 15px; }
+.about-step p { margin: 4px 0 0; font-size: 14px; }
+
+/* Pricing cards */
+.about-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 24px 0 12px;
+}
+.about-pricing-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+}
+.about-pricing-featured {
+  border-color: var(--accent);
+  background: rgba(67,97,238,0.08);
+}
+.pricing-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.pricing-name { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+.pricing-amount { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.pricing-price { font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+.pricing-rate { font-size: 12px; color: var(--text2); }
+.about-pricing-note { font-size: 13px; color: var(--text2); margin-top: 8px; }
+
+/* FAQ */
+.faq-list { display: flex; flex-direction: column; gap: 16px; }
+.faq-item {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+.faq-q { font-weight: 600; color: var(--text); margin-bottom: 8px; font-size: 14px; }
+.faq-a { color: var(--text2); font-size: 13px; line-height: 1.6; }
+
+/* ? help button in top bar */
+.btn-about-link {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text2);
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-about-link:hover { color: var(--accent); border-color: var(--accent); }
+
+@media (max-width: 600px) {
+  .about-pricing-grid { grid-template-columns: 1fr; }
+  .about-content { padding: 24px 16px 60px; }
+}

@@ -211,6 +211,46 @@ function showLoginFromLanding() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── About / Info Page ─────────────────────────────────────
+
+let _aboutReturnState = null; // tracks where to go back to
+
+function showAboutPage(section) {
+  const about = document.getElementById("aboutPage");
+  const landing = document.getElementById("landingPage");
+  const login = document.getElementById("loginPage");
+  const app = document.getElementById("appContainer");
+  // remember current state for back button
+  _aboutReturnState = landing?.style.display !== "none" ? "landing"
+    : login?.style.display !== "none" ? "login"
+    : "app";
+  if (landing) landing.style.display = "none";
+  if (login) login.style.display = "none";
+  if (app) app.style.display = "none";
+  if (about) about.style.display = "";
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  if (section) {
+    setTimeout(() => {
+      const el = document.getElementById("about-" + section);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+}
+
+function hideAboutPage() {
+  const about = document.getElementById("aboutPage");
+  if (about) about.style.display = "none";
+  if (_aboutReturnState === "landing") {
+    showLanding();
+  } else if (_aboutReturnState === "login") {
+    showLogin();
+  } else {
+    const app = document.getElementById("appContainer");
+    if (app) app.style.display = "";
+  }
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
 function showApp() {
   hideLoading();
   const landingPage = document.getElementById("landingPage");
