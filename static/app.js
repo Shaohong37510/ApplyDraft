@@ -81,6 +81,27 @@ async function apiOpenPdf(path) {
   window.open(url, "_blank");
 }
 
+async function apiDownloadPdf(path, filename) {
+  try {
+    const res = await fetch("/api" + path, {
+      headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || "Request failed");
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    toast(e.message, "error");
+  }
+}
+
 // ── API helpers ───────────────────────────────────────────
 
 async function api(method, path, body) {
@@ -647,8 +668,8 @@ async function _refreshFilesModal(id) {
           <span class="file-list-icon">📄</span>
           <span class="file-list-name">${esc(f.name)}<span class="file-size">${_fmtSize(f.size)}</span></span>
           <div class="file-list-actions">
-            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/pdf/${encodeURIComponent(f.name)}" target="_blank">Preview</a>
-            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/pdf/${encodeURIComponent(f.name)}" download="${esc(f.name)}">Download</a>
+            <button class="btn btn-sm btn-secondary" onclick="apiOpenPdf('/projects/${id}/output/pdf/${encodeURIComponent(f.name)}').catch(e=>toast(e.message,'error'))">Preview</button>
+            <button class="btn btn-sm btn-secondary" onclick="apiDownloadPdf('/projects/${id}/output/pdf/${encodeURIComponent(f.name)}','${esc(f.name)}')">Download</button>
             <button class="btn btn-sm btn-danger" onclick="deleteOutputFile('${id}','pdf','${esc(f.name)}')">Delete</button>
           </div>
         </div>
@@ -665,7 +686,7 @@ async function _refreshFilesModal(id) {
           <span class="file-list-icon">✉️</span>
           <span class="file-list-name">${esc(f.name)}<span class="file-size">${_fmtSize(f.size)}</span></span>
           <div class="file-list-actions">
-            <a class="btn btn-sm btn-secondary" href="/api/projects/${id}/output/eml/${encodeURIComponent(f.name)}" download="${esc(f.name)}">Download</a>
+            <button class="btn btn-sm btn-secondary" onclick="apiDownloadPdf('/projects/${id}/output/eml/${encodeURIComponent(f.name)}','${esc(f.name)}')">Download</button>
             <button class="btn btn-sm btn-danger" onclick="deleteOutputFile('${id}','eml','${esc(f.name)}')">Delete</button>
           </div>
         </div>
