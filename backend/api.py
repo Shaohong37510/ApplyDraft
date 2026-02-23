@@ -117,9 +117,8 @@ def get_public_config():
 
 @router.post("/contact")
 def submit_contact(data: dict):
-    """Receive contact form and forward to owner email via SMTP."""
-    import smtplib
-    from email.mime.text import MIMEText
+    """Receive contact form and forward to owner email via Resend API."""
+    import requests as _requests
 
     name = (data.get("name") or "").strip()[:100]
     email = (data.get("email") or "").strip()[:200]
@@ -128,27 +127,33 @@ def submit_contact(data: dict):
         raise HTTPException(400, "All fields are required")
 
     notify_email = os.environ.get("CONTACT_NOTIFY_EMAIL", "")
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_pass = os.environ.get("SMTP_PASS", "")
+    resend_key = os.environ.get("RESEND_API_KEY", "")
 
-    if not notify_email or not smtp_user or not smtp_pass:
-        # SMTP not configured — log and return success anyway
+    if not notify_email or not resend_key:
         print(f"[CONTACT] from={email} name={name} msg={message[:80]}", flush=True)
         return {"ok": True}
 
     body = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
-    msg = MIMEText(body, "plain")
-    msg["Subject"] = f"[ApplyDraft] Contact from {name}"
-    msg["From"] = smtp_user
-    msg["To"] = notify_email
-    msg["Reply-To"] = email
-
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as srv:
-            srv.login(smtp_user, smtp_pass)
-            srv.sendmail(smtp_user, notify_email, msg.as_string())
+        resp = _requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+            json={
+                "from": "ApplyDraft <onboarding@resend.dev>",
+                "to": [notify_email],
+                "reply_to": email,
+                "subject": f"[ApplyDraft] Contact from {name}",
+                "text": body,
+            },
+            timeout=10,
+        )
+        if not resp.ok:
+            print(f"[CONTACT] Resend error: {resp.status_code} {resp.text}", flush=True)
+            raise HTTPException(500, "Failed to send message. Please try again later.")
+    except HTTPException:
+        raise
     except Exception as exc:
-        print(f"[CONTACT] SMTP error: {exc}", flush=True)
+        print(f"[CONTACT] Resend exception: {exc}", flush=True)
         raise HTTPException(500, "Failed to send message. Please try again later.")
 
     return {"ok": True}
