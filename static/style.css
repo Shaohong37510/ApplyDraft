@@ -2206,13 +2206,25 @@ textarea { resize: vertical; min-height: 80px; }
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 32px;
+  padding: 12px 24px;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 10;
 }
+.about-back-btn {
+  font-size: 13px;
+  padding: 6px 14px;
+  color: var(--text2);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.about-back-btn:hover { color: var(--accent); border-color: var(--accent); }
 .about-logo {
   font-size: 20px;
   font-weight: 700;
