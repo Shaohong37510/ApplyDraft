@@ -559,7 +559,12 @@ async function renderProjectHome(id) {
       <div class="project-home-content">
 
         <div class="project-home-header">
-          <div class="project-home-title">${esc(cfg.project_name || id)}</div>
+          <div class="project-home-title-row">
+            <span class="project-home-title" id="projTitleDisplay">${esc(cfg.project_name || id)}</span>
+            <button class="btn-edit-proj-name" onclick="startRenameProject('${id}', ${JSON.stringify(cfg.project_name || id)})" title="Rename project">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </button>
+          </div>
           ${jobReq ? `<div class="project-home-desc">${esc(jobReq)}</div>` : ''}
         </div>
 
@@ -604,6 +609,36 @@ async function renderProjectHome(id) {
     `;
   } catch (e) {
     page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
+  }
+}
+
+function startRenameProject(id, currentName) {
+  const row = document.querySelector('.project-home-title-row');
+  if (!row) return;
+  row.innerHTML = `
+    <input id="projNameInput" class="proj-name-input" value="${esc(currentName)}" maxlength="80"
+      onkeydown="if(event.key==='Enter')saveRenameProject('${id}');if(event.key==='Escape')navigateToProjectHome('${id}')">
+    <button class="btn-save-proj-name" onclick="saveRenameProject('${id}')">Save</button>
+    <button class="btn-cancel-proj-name" onclick="navigateToProjectHome('${id}')">Cancel</button>
+  `;
+  document.getElementById('projNameInput').focus();
+}
+
+async function saveRenameProject(id) {
+  const input = document.getElementById('projNameInput');
+  if (!input) return;
+  const newName = input.value.trim();
+  if (!newName) { toast('Name cannot be empty', 'error'); return; }
+  try {
+    await api('PUT', `/projects/${id}/config`, { project_name: newName });
+    // Update cached data
+    if (_homeProj) _homeProj.name = newName;
+    const p = projects.find(p => String(p.id) === String(id));
+    if (p) p.name = newName;
+    toast('Renamed');
+    await navigateToProjectHome(id);
+  } catch (e) {
+    toast(e.message, 'error');
   }
 }
 
