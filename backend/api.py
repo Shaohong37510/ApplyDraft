@@ -765,6 +765,33 @@ def download_preview_pdf(project_id: str, type_id: str, user_id: str = Depends(g
 #  Email Template
 # ═══════════════════════════════════════════════════════════════
 
+def _build_email_preview(template: str, definitions: str, user_id: str, project_id: str) -> str:
+    """Fill email template with definition examples + project config values for preview."""
+    proj = pm.get_project(user_id, project_id)
+    proj_config = (proj or {}).get("config", {})
+
+    custom_examples: dict = {}
+    for match in re.finditer(
+        r'\[CUSTOM_(\d+)\].*?(?:EXAMPLES|Examples):\s*(.+?)(?=\n(?:CONSTRAINTS|Constrains|KEY INFORMATIONS|\[CUSTOM_)|\Z)',
+        definitions, re.DOTALL | re.IGNORECASE
+    ):
+        custom_examples[f"CUSTOM_{match.group(1)}"] = match.group(2).strip()
+
+    filled = template
+    filled = filled.replace("{{NAME}}", proj_config.get("name", "Your Name"))
+    filled = filled.replace("{{PHONE}}", proj_config.get("phone", "555-123-4567"))
+    filled = filled.replace("{{EMAIL}}", proj_config.get("personal_email", "your.email@example.com"))
+    filled = filled.replace("{{ADDRESS}}", proj_config.get("address", ""))
+    filled = filled.replace("{{FIRM_NAME}}", "Example Studio")
+    filled = filled.replace("{{POSITION}}", "Architect")
+
+    for key, example in custom_examples.items():
+        filled = filled.replace("{{" + key + "}}", example)
+    filled = re.sub(r'\{\{CUSTOM_\d+\}\}', '[Sample content]', filled)
+
+    return filled.strip()
+
+
 @router.get("/projects/{project_id}/email-template")
 def get_email_template(project_id: str, user_id: str = Depends(get_current_user)):
     """Get current email template and definitions."""
@@ -772,6 +799,7 @@ def get_email_template(project_id: str, user_id: str = Depends(get_current_user)
     tpl_path = tpl_dir / "template.txt"
     defs_path = tpl_dir / "definitions.txt"
     example_path = tpl_dir / "example.txt"
+    preview_path = tpl_dir / "preview.txt"
     settings_path = tpl_dir / "subject_settings.json"
     subject_settings = {}
     if settings_path.exists():
@@ -783,6 +811,7 @@ def get_email_template(project_id: str, user_id: str = Depends(get_current_user)
         "template": tpl_path.read_text(encoding="utf-8") if tpl_path.exists() else "",
         "definitions": defs_path.read_text(encoding="utf-8") if defs_path.exists() else "",
         "example": example_path.read_text(encoding="utf-8") if example_path.exists() else "",
+        "preview": preview_path.read_text(encoding="utf-8") if preview_path.exists() else "",
         "subject_template": subject_settings.get("subject_template", ""),
         "smart_subject": subject_settings.get("smart_subject", False),
     }
@@ -825,6 +854,14 @@ def generate_email_template(project_id: str, user_id: str = Depends(get_current_
     (tpl_dir / "template.txt").write_text(result["template"], encoding="utf-8")
     (tpl_dir / "definitions.txt").write_text(result["definitions"], encoding="utf-8")
 
+    # Auto-generate a filled preview using definition examples
+    try:
+        preview = _build_email_preview(result["template"], result["definitions"], user_id, project_id)
+        (tpl_dir / "preview.txt").write_text(preview, encoding="utf-8")
+        result["preview"] = preview
+    except Exception:
+        pass
+
     # Ensure email_body is in customize_files list for the generate flow
     proj = pm.get_project(user_id, project_id)
     customize_files = proj["config"].get("customize_files", [])
@@ -855,6 +892,13 @@ def save_template(project_id: str, type_id: str, data: dict, user_id: str = Depe
     definitions_content = data.get("definitions_content", "")
     (type_dir / "template.txt").write_text(template_content, encoding="utf-8")
     (type_dir / "definitions.txt").write_text(definitions_content, encoding="utf-8")
+    # Regenerate email body preview when template is saved manually
+    if type_id == "email_body" and template_content:
+        try:
+            preview = _build_email_preview(template_content, definitions_content, user_id, project_id)
+            (type_dir / "preview.txt").write_text(preview, encoding="utf-8")
+        except Exception:
+            pass
     return {"ok": True}
 
 
