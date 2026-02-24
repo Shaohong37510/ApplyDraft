@@ -903,7 +903,7 @@ async function renderStartApply(id) {
 
             <div class="email-field-row email-field-body">
               <span class="email-field-label">Body</span>
-              <div class="email-field-value email-body-preview" style="max-height:120px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-word">${esc(bodyPreview)}</div>
+              <textarea class="email-field-value email-body-preview" readonly rows="5" style="resize:vertical;line-height:1.6;word-break:break-word;background:transparent;border:none;width:100%;outline:none;cursor:default;color:inherit;font:inherit;padding:0">${esc(bodyPreview)}</textarea>
               <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
             </div>
 
