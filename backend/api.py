@@ -1122,7 +1122,7 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
         }
         for key in target:
             if key.startswith("custom_"):
-                base_replacements[key.upper()] = target[key]
+                base_replacements[key.upper()] = (target[key] or "").strip()
 
         generated_pdfs = []
         email_body = None
@@ -1372,7 +1372,7 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
 
             for key in target:
                 if key.startswith("custom_"):
-                    base_replacements[key.upper()] = target[key]
+                    base_replacements[key.upper()] = (target[key] or "").strip()
 
             generated_pdfs = []
             email_body = None
