@@ -32,8 +32,15 @@ def index():
 
 
 @app.get("/privacy")
+@app.get("/privacy.html")
 def privacy():
     return FileResponse(str(static_dir / "privacy.html"))
+
+
+@app.get("/terms")
+@app.get("/terms.html")
+def terms():
+    return FileResponse(str(static_dir / "terms.html"))
 
 
 def open_browser(port):
