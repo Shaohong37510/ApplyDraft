@@ -905,8 +905,7 @@ async function renderStartApply(id) {
     ].join('') || `<span class="text-muted">No attachments configured</span>`;
 
     const bodyPreview = (() => {
-      // Priority: auto-generated filled preview > user's pasted example > raw template
-      if (emailTpl.preview) return emailTpl.preview.trim();
+      // Show user's pasted example; fall back to raw template
       if (emailTpl.example) return emailTpl.example.trim();
       if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to set one)';
       // Strip HTML if template is HTML
