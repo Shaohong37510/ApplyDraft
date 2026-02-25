@@ -391,9 +391,8 @@ async function init() {
       showApp();
       await loadApp();
     } else {
-      // Guest mode: show app without loading user data; search will prompt login
-      showApp();
-      navigateToProjects();
+      // Guest: show landing page first; "Get Started Free" will call showApp()
+      showLanding();
     }
   } else {
     showApp();
