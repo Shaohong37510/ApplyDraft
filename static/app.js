@@ -207,7 +207,7 @@ function showLogin() {
 }
 
 function showLoginFromLanding() {
-  showLogin();
+  showApp();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
