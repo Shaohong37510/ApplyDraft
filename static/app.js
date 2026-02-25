@@ -208,6 +208,7 @@ function showLogin() {
 
 function showLoginFromLanding() {
   showApp();
+  navigateToProjects();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
