@@ -211,6 +211,16 @@ function showLoginFromLanding() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function showAuthModal() {
+  const modal = document.getElementById('authModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function hideAuthModal() {
+  const modal = document.getElementById('authModal');
+  if (modal) modal.style.display = 'none';
+}
+
 // ── About / Info Page ─────────────────────────────────────
 
 let _aboutReturnState = null; // tracks where to go back to
@@ -364,6 +374,7 @@ async function init() {
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         accessToken = session.access_token;
+        hideAuthModal();
         showApp();
         await loadApp();
       } else if (event === 'TOKEN_REFRESHED' && session) {
@@ -380,7 +391,8 @@ async function init() {
       showApp();
       await loadApp();
     } else {
-      showLanding();
+      // Guest mode: show app without loading user data; search will prompt login
+      showApp();
     }
   } else {
     showApp();
@@ -1713,6 +1725,11 @@ function animateSearchProgress() {
 // ── Search + Confirm + Generate pipeline ─────────────────
 
 async function runSearch(id) {
+  if (!accessToken) {
+    showAuthModal();
+    return;
+  }
+
   const btn = document.getElementById("runBtn");
   const resultsDiv = document.getElementById("runResults");
   const count = parseInt(document.getElementById("runCount").value);
