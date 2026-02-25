@@ -207,19 +207,8 @@ function showLogin() {
 }
 
 function showLoginFromLanding() {
-  showApp();
-  navigateToProjects();
+  showLogin();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function showAuthModal() {
-  const modal = document.getElementById('authModal');
-  if (modal) modal.style.display = 'flex';
-}
-
-function hideAuthModal() {
-  const modal = document.getElementById('authModal');
-  if (modal) modal.style.display = 'none';
 }
 
 // ── About / Info Page ─────────────────────────────────────
@@ -375,7 +364,6 @@ async function init() {
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         accessToken = session.access_token;
-        hideAuthModal();
         showApp();
         await loadApp();
       } else if (event === 'TOKEN_REFRESHED' && session) {
@@ -1726,11 +1714,6 @@ function animateSearchProgress() {
 // ── Search + Confirm + Generate pipeline ─────────────────
 
 async function runSearch(id) {
-  if (!accessToken) {
-    showAuthModal();
-    return;
-  }
-
   const btn = document.getElementById("runBtn");
   const resultsDiv = document.getElementById("runResults");
   const count = parseInt(document.getElementById("runCount").value);
