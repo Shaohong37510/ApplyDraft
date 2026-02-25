@@ -1499,7 +1499,6 @@ async function generateTypeTemplate(id, typeId) {
     toast("Generating template... (this may take a moment)", "success");
     const result = await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
     toast("Template generated!");
-    if (result.token_usage) showTokenUsage(result.token_usage);
     renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
@@ -1535,7 +1534,6 @@ async function generateEmailTemplate(id) {
     toast("Generating email template...", "success");
     const result = await api("POST", `/projects/${id}/email-template/generate`);
     toast("Email template generated!");
-    if (result.token_usage) showTokenUsage(result.token_usage);
     renderEditView(id);
   } catch (e) {
     toast(e.message, "error");
@@ -1553,7 +1551,6 @@ async function previewTypeTemplate(id, typeId) {
       pathEl.innerHTML = `<a href="#" class="preview-link" onclick="apiOpenPdf('/projects/${id}/customize/${typeId}/preview-pdf');return false;">&#128065; Open Preview PDF</a>`;
     }
     toast("Preview generated!");
-    if (result.token_usage) showTokenUsage(result.token_usage);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -1584,7 +1581,6 @@ async function generateProjectMd(id) {
     toast("Generating AI instructions...", "success");
     const result = await api("POST", `/projects/${id}/generate-project-md`);
     toast("project.md generated!");
-    if (result.token_usage) showTokenUsage(result.token_usage);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -1767,6 +1763,7 @@ async function runSearch(id) {
     hideProgress();
 
     if (result.credit_usage?.balance != null) updateCreditsDisplay(result.credit_usage.balance);
+    if (result.credit_usage?.total != null) showCreditUsage(result.credit_usage);
     pendingTargets = result.targets || [];
     const skipped = result.skipped || [];
 
@@ -1821,8 +1818,8 @@ async function runSearch(id) {
       });
     }
 
-    if (result.token_usage) {
-      html += `<div class="token-usage-inline">${renderTokenBadge(result.token_usage)}</div>`;
+    if (result.credit_usage?.total != null) {
+      html += `<div class="token-usage-inline"><span class="token-badge">Used ${result.credit_usage.total.toFixed(1)} credits</span></div>`;
     }
 
     html += `<div class="search-results-actions">
@@ -1978,12 +1975,10 @@ async function confirmAndGenerate(id) {
         </div>`;
       });
 
-      const usage = finalResult.token_usage;
-      if (usage && (usage.input_tokens || usage.output_tokens)) {
-        html += `<div class="token-usage-inline">${renderTokenBadge(usage)}</div>`;
+      if (finalResult.credit_usage?.total != null) {
+        html += `<div class="token-usage-inline"><span class="token-badge">Used ${finalResult.credit_usage.total.toFixed(1)} credits</span></div>`;
+        showCreditUsage(finalResult.credit_usage);
       }
-
-      if (usage) showTokenUsage(usage);
       if (finalResult.credit_usage?.balance != null) updateCreditsDisplay(finalResult.credit_usage.balance);
       if (finalResult.save_error) {
         toast(finalResult.save_error, "error");
@@ -2014,79 +2009,11 @@ async function confirmAndGenerate(id) {
   }
 }
 
-// ── Token Usage ───────────────────────────────────────────
+// ── Credit Usage ───────────────────────────────────────────
 
-function formatTokenUsage(usage) {
-  if (!usage) return "";
-  const inp = usage.input_tokens || 0;
-  const out = usage.output_tokens || 0;
-  const calls = usage.api_calls || 0;
-  const costIn = (inp * 0.80 / 1000000).toFixed(4);
-  const costOut = (out * 4 / 1000000).toFixed(4);
-  const costTotal = (parseFloat(costIn) + parseFloat(costOut)).toFixed(4);
-  return `Tokens: ${inp.toLocaleString()} in / ${out.toLocaleString()} out (${calls} call${calls>1?"s":""}) | Cost: $${costTotal}`;
-}
-
-function showTokenUsage(usage) {
-  if (!usage || (!usage.input_tokens && !usage.output_tokens)) return;
-  toast(formatTokenUsage(usage), "success");
-}
-
-function renderTokenBadge(usage) {
-  if (!usage) return "";
-  const inp = usage.input_tokens || 0;
-  const out = usage.output_tokens || 0;
-  if (!inp && !out) return "";
-  const costIn = (inp * 0.80 / 1000000).toFixed(4);
-  const costOut = (out * 4 / 1000000).toFixed(4);
-  const costTotal = (parseFloat(costIn) + parseFloat(costOut)).toFixed(4);
-  return `<span class="token-badge">${inp.toLocaleString()} in / ${out.toLocaleString()} out | $${costTotal}</span>`;
-}
-
-async function loadTokenUsage(id) {
-  try {
-    const data = await api("GET", `/projects/${id}/token-usage`);
-    const el = document.getElementById("tokenUsageSummary");
-    if (!el) return;
-    const t = data.totals || {};
-    if (!t.input_tokens && !t.output_tokens) {
-      el.innerHTML = '<span style="color:var(--text2);font-size:12px">No API usage yet</span>';
-      return;
-    }
-    el.innerHTML = `
-      <div class="token-summary">
-        <div class="token-stat">
-          <span class="token-stat-label">Input Tokens</span>
-          <span class="token-stat-value">${(t.input_tokens||0).toLocaleString()}</span>
-          <span class="token-stat-cost">$${(t.input_cost||0).toFixed(4)}</span>
-        </div>
-        <div class="token-stat">
-          <span class="token-stat-label">Output Tokens</span>
-          <span class="token-stat-value">${(t.output_tokens||0).toLocaleString()}</span>
-          <span class="token-stat-cost">$${(t.output_cost||0).toFixed(4)}</span>
-        </div>
-        <div class="token-stat">
-          <span class="token-stat-label">Total Cost</span>
-          <span class="token-stat-value token-stat-total">$${(t.total_cost||0).toFixed(4)}</span>
-          <span class="token-stat-cost">${(t.api_calls||0)} API calls</span>
-        </div>
-      </div>
-      <details class="token-log-details">
-        <summary>View Log (${(data.log||[]).length} entries)</summary>
-        <div class="token-log">
-          ${(data.log||[]).reverse().map(e => `
-            <div class="token-log-row">
-              <span class="token-log-time">${e.timestamp ? new Date(e.timestamp).toLocaleString() : ""}</span>
-              <span class="token-log-op">${esc(e.operation)}</span>
-              <span class="token-log-tokens">${(e.input_tokens||0).toLocaleString()} in / ${(e.output_tokens||0).toLocaleString()} out</span>
-            </div>
-          `).join("")}
-        </div>
-      </details>
-    `;
-  } catch (e) {
-    // silently ignore
-  }
+function showCreditUsage(creditUsage) {
+  if (!creditUsage || creditUsage.total == null) return;
+  toast(`Used ${creditUsage.total.toFixed(1)} credits`, "success");
 }
 
 // ── Celebration Modal ─────────────────────────────────────
