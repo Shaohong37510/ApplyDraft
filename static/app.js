@@ -393,6 +393,7 @@ async function init() {
     } else {
       // Guest mode: show app without loading user data; search will prompt login
       showApp();
+      navigateToProjects();
     }
   } else {
     showApp();
