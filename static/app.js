@@ -1496,6 +1496,7 @@ async function deleteTypeExample(id, typeId, filename) {
 // ── Per-type Template generation ─────────────────────────
 
 async function generateTypeTemplate(id, typeId) {
+  gtag('event', 'template_generate_click', { event_category: 'engagement', type_id: typeId });
   try {
     toast("Generating template... (this may take a moment)", "success");
     const result = await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
@@ -1524,6 +1525,7 @@ async function saveEmailExample(id) {
 }
 
 async function generateEmailTemplate(id) {
+  gtag('event', 'template_generate_click', { event_category: 'engagement', type_id: 'email_body' });
   const text = document.getElementById("emailExampleText").value;
   const subjectTemplate = document.getElementById("emailSubjectTemplate").value;
   const smartSubject = document.getElementById("smartSubjectEnabled").checked;
@@ -1560,6 +1562,7 @@ async function previewTypeTemplate(id, typeId) {
 // ── Template inline editing ────────────────────────────────
 
 async function saveTemplate(projectId, typeId) {
+  gtag('event', 'template_save_click', { event_category: 'engagement', type_id: typeId });
   const tplEl = document.getElementById(`tpl-${typeId}`);
   const defEl = document.getElementById(`def-${typeId}`);
   if (!tplEl) return;
@@ -1714,6 +1717,7 @@ function animateSearchProgress() {
 // ── Search + Confirm + Generate pipeline ─────────────────
 
 async function runSearch(id) {
+  gtag('event', 'search_click', { event_category: 'engagement' });
   const btn = document.getElementById("runBtn");
   const resultsDiv = document.getElementById("runResults");
   const count = parseInt(document.getElementById("runCount").value);
@@ -1886,6 +1890,7 @@ function updateConfirmCount() {
 }
 
 async function confirmAndGenerate(id) {
+  gtag('event', 'generate_click', { event_category: 'engagement' });
   const allTargets = [...manualTargets, ...pendingTargets];
   if (allTargets.length === 0) {
     toast("No positions to generate", "error");
