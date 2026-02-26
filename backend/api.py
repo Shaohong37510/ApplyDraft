@@ -1156,6 +1156,17 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
     existing_targets = pm.load_targets(user_id, project_id)
     tracker_rows = pm.load_tracker(user_id, project_id)
 
+    # Load definitions per file separately to avoid CUSTOM_X collisions across files
+    file_definitions = {}
+    for cf in customize_files:
+        defs_path = tpl_dir / cf["id"] / "definitions.txt"
+        if defs_path.exists():
+            defs_text = defs_path.read_text(encoding="utf-8")
+            if defs_text:
+                file_definitions[cf["id"]] = defs_text
+    api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
+    project_md_gen = pm.load_project_md(user_id, project_id)
+
     total_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
 
     for target in confirmed_targets:
@@ -1170,9 +1181,6 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
             "FIRM_NAME": firm,
             "POSITION": target.get("position", ""),
         }
-        for key in target:
-            if key.startswith("custom_"):
-                base_replacements[key.upper()] = (target[key] or "").strip()
 
         generated_pdfs = []
         email_body = None
@@ -1184,11 +1192,32 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
             if not tpl_text:
                 continue
 
+            # Fill standard placeholders
             filled = tpl_text
             for k, v in base_replacements.items():
                 filled = filled.replace("{{" + k + "}}", v or "")
 
+            # Generate custom content using this file's definitions only
+            file_defs = file_definitions.get(cf_id, "")
+            if api_key_gen and file_defs:
+                content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen)
+                total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
+                total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
+                total_usage["api_calls"] += gen_usage.get("api_calls", 0)
+                if content:
+                    for k, v in content.items():
+                        filled = filled.replace("{{" + k.upper() + "}}", (v or "").strip())
+            else:
+                # Fallback: use pre-existing custom_x from target (backward compat)
+                for key in target:
+                    if key.startswith("custom_"):
+                        filled = filled.replace("{{" + key.upper() + "}}", (target[key] or "").strip())
+
             if cf_id == "email_body":
+                if "<html" in filled.lower() or "</p>" in filled.lower():
+                    filled = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', filled, flags=re.IGNORECASE)
+                    filled = re.sub(r'<[^>]+>', '', filled)
+                    filled = re.sub(r'\n{3,}', '\n\n', filled.strip())
                 _enforce_text_limit(filled, MAX_EMAIL_UNITS, "Email body")
                 email_body = filled
                 continue
@@ -1363,18 +1392,14 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     existing_targets = pm.load_targets(user_id, project_id)
     tracker_rows = pm.load_tracker(user_id, project_id)
 
-    # Load definitions and project.md for Phase 2 custom content generation
-    # Exclude email_body: its CUSTOM_X defs collide with cover_letter's CUSTOM_X keys
-    all_definitions_gen = []
+    # Load definitions per-file to avoid CUSTOM_X collisions between files
+    file_definitions = {}
     for cf in customize_files:
-        if cf["id"] == "email_body":
-            continue
         defs_path = tpl_dir / cf["id"] / "definitions.txt"
         if defs_path.exists():
             defs_text = defs_path.read_text(encoding="utf-8")
             if defs_text:
-                all_definitions_gen.append(defs_text)
-    combined_definitions_gen = "\n\n".join(all_definitions_gen)
+                file_definitions[cf["id"]] = defs_text
     project_md_gen = pm.load_project_md(user_id, project_id)
     api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
 
@@ -1399,31 +1424,6 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 "FIRM_NAME": firm, "POSITION": target.get("position", ""),
             }
 
-            # Phase 2 step 1: Generate custom content if not already present
-            print(f"[PHASE2] firm={firm} api_key_gen={bool(api_key_gen)} defs_len={len(combined_definitions_gen)} has_custom={any(k.startswith('custom_') for k in target)} target_keys={list(target.keys())}", flush=True)
-            if api_key_gen and combined_definitions_gen and not any(k.startswith("custom_") for k in target):
-                yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'detail': f'Generating personalized content for {firm}...', 'step': f'Writing content for {firm}'})}\n\n"
-                try:
-                    content, gen_usage = ai.generate_custom_content(api_key_gen, target, combined_definitions_gen, project_md_gen)
-                    print(f"[PHASE2] content_keys={list(content.keys()) if content else 'EMPTY'}", flush=True)
-                    if content:
-                        target.update(content)
-                        total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
-                        total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
-                        total_usage["api_calls"] += gen_usage.get("api_calls", 0)
-                    else:
-                        yield f"data: {json.dumps({'type': 'target_done', 'firm': firm, 'pdf': False, 'draft': False, 'error': 'Content generation returned empty, skipped'})}\n\n"
-                        results.append({**status_obj, "error": "Content generation failed"})
-                        continue
-                except Exception as e:
-                    yield f"data: {json.dumps({'type': 'target_done', 'firm': firm, 'pdf': False, 'draft': False, 'error': f'Content generation failed: {str(e)[:80]}'})}\n\n"
-                    results.append({**status_obj, "error": f"Content generation failed: {str(e)[:80]}"})
-                    continue
-
-            for key in target:
-                if key.startswith("custom_"):
-                    base_replacements[key.upper()] = (target[key] or "").strip()
-
             generated_pdfs = []
             email_body = None
 
@@ -1436,6 +1436,25 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 filled = tpl_text
                 for k, v in base_replacements.items():
                     filled = filled.replace("{{" + k + "}}", v or "")
+                # Per-file custom content generation
+                file_defs = file_definitions.get(cf_id, "")
+                if api_key_gen and file_defs:
+                    yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'detail': f'Generating personalized content for {firm} ({cf_id})...', 'step': f'Writing content for {firm}'})}\n\n"
+                    try:
+                        content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen)
+                        total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
+                        total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
+                        total_usage["api_calls"] += gen_usage.get("api_calls", 0)
+                        if content:
+                            for k, v in content.items():
+                                filled = filled.replace("{{" + k.upper() + "}}", (v or "").strip())
+                    except Exception as e:
+                        yield f"data: {json.dumps({'type': 'progress', 'detail': f'Content generation failed for {firm}/{cf_id}: {str(e)[:80]}'})}\n\n"
+                else:
+                    # Fallback: use pre-existing custom_x from target
+                    for key in target:
+                        if key.startswith("custom_"):
+                            filled = filled.replace("{{" + key.upper() + "}}", (target[key] or "").strip())
                 if cf_id == "email_body":
                     # Strip HTML tags if template is HTML so Gmail body is plain text
                     if "<html" in filled.lower() or "</p>" in filled.lower():
