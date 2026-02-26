@@ -30,7 +30,7 @@ def _text_to_html(text: str) -> str:
     """Convert plain/markdown-ish text to HTML preserving paragraphs, bold, italic.
 
     Handles:
-    - Double newlines → <p> paragraph breaks
+    - Double newlines → <p> paragraph breaks with a spacer div
     - **bold** → <strong>
     - *italic* → <em>
     - Single newlines → <br>
@@ -42,6 +42,7 @@ def _text_to_html(text: str) -> str:
     for para in paragraphs:
         para = para.strip()
         if not para:
+            html_parts.append('<div class="spacer"></div>')
             continue
         # Escape HTML entities first
         para = html_mod.escape(para)
@@ -61,8 +62,9 @@ def _wrap_in_html(body_html: str) -> str:
 <html><head><meta charset="utf-8">
 <style>
 @page {{ margin: 60px 65px; size: letter; }}
-body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; }}
-p {{ margin: 0 0 13px 0; text-align: justify; }}
+body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.65; color: #222; margin: 0; padding: 0; }}
+p {{ margin: 0 0 14px 0; text-indent: 0; text-align: left; }}
+.spacer {{ margin: 0; padding: 0; height: 14px; }}
 strong {{ font-weight: 700; }}
 em {{ font-style: italic; }}
 </style></head><body>
