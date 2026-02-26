@@ -234,15 +234,34 @@ Return JSON with "template" (complete HTML document) and "definitions" keys."""
 
 def generate_email_template(api_key: str, example: str) -> tuple[dict, dict]:
     """Generate email body template. Returns (result_dict, token_usage)."""
-    system = """You are an expert at analyzing emails and creating reusable templates.
-Identify the variable parts and replace them with {{CUSTOM_X}} placeholders.
-Standard placeholders: {{NAME}}, {{PHONE}}, {{EMAIL}}, {{FIRM_NAME}}, {{POSITION}}.
+    system = """You are an expert at analyzing emails and creating reusable plain-text email body templates.
 
-Return valid JSON with:
-- "template": the email template with placeholders
-- "definitions": description of each CUSTOM_X placeholder
+IMPORTANT: This template is for the EMAIL BODY ONLY.
+- Do NOT include sender headers (name, phone, email address block at the top)
+- Do NOT include "From:", "To:", "Subject:" lines
+- The template should start directly with the salutation (e.g. "Dear Hiring Manager,") or opening line
+- Available standard placeholders: {{FIRM_NAME}}, {{POSITION}}, {{NAME}} (for sign-off only)
+- Replace variable content with {{CUSTOM_X}} placeholders (CUSTOM_1, CUSTOM_2, etc.), keep to 2-4 max
+- Output plain text (not HTML)
+
+Return valid JSON with exactly two keys:
+- "template": the plain-text email body template with placeholders
+- "definitions": description of each CUSTOM_X placeholder using this format:
+
+[CUSTOM_1]: <what this section is about>
+PROMPT: <instruction for AI to generate this content for a specific firm>
+EXAMPLES: <one real example from the provided sample>
+CONSTRAINTS: <word/sentence limits>
+KEY INFORMATIONS: <relevant keywords from applicant background>
 """
-    user_msg = f"""Analyze this email example and create a reusable template:\n\n{example}\n\nReturn JSON."""
+    user_msg = f"""Analyze this email example and create a reusable plain-text email body template.
+Do NOT include any sender header block (name, phone, address). Start from the salutation line.
+Keep CUSTOM_X placeholders to 2-4.
+
+Email example:
+{example}
+
+Return JSON with "template" and "definitions" keys."""
 
     result, usage = _call_claude(api_key, system, user_msg)
     try:
@@ -391,12 +410,12 @@ RULES:
 - For each firm found, also:
   1. Find the application email (check careers page, job posting, contact page; decode obfuscated emails like "jobs [at] firm.com" → "jobs@firm.com")
   2. Note any required email subject line format from the job posting
-  3. Research the firm briefly: 1-2 notable projects by name, their design philosophy or approach, what makes them distinctive
+  3. Research the company briefly: 1-2 notable achievements, products, or projects by name, their culture or work approach, what makes them distinctive
 - SKIP firms that only accept applications through web portals (Greenhouse, Workday, Lever, BambooHR, etc.) with no email option
 - Do NOT include firms already applied to: {json.dumps(existing_firms)}
 - Return valid JSON: {{"candidates": [...], "skipped": []}}
 - Each candidate must have ALL these fields:
-  {{"firm": "Firm Name", "email": "jobs@firm.com", "position": "Job Title", "location": "City, State", "website": "https://firm.com", "source": "https://... (MUST be a full https:// URL — use the job posting page if available, otherwise any URL showing this firm is hiring: job board listing, LinkedIn, Indeed, Glassdoor, firm careers page, etc.)", "openDate": "YYYY-MM", "subject": "Application for [Position] - [Name]", "salutation": "Hiring Manager", "firm_research": "Notable projects: X, Y. Design philosophy: ..."}}
+  {{"firm": "Firm Name", "email": "jobs@firm.com", "position": "Job Title", "location": "City, State", "website": "https://firm.com", "source": "https://... (MUST be a full https:// URL — use the job posting page if available, otherwise any URL showing this firm is hiring: job board listing, LinkedIn, Indeed, Glassdoor, firm careers page, etc.)", "openDate": "YYYY-MM", "subject": "Application for [Position] - [Name]", "salutation": "Hiring Manager", "firm_research": "Notable work: X, Y. Company culture/approach: ..."}}
 - Each skipped: {{"firm": "...", "reason": "portal only", "portal_url": "..."}}"""
 
     user_msg = f"""Search for {count} job openings matching these requirements:
@@ -405,7 +424,7 @@ RULES:
 
 {ddg_context}
 
-For each firm: find their application email, note the required subject line format if any, and briefly research their notable projects and design approach. Return JSON with candidates array."""
+For each firm: find their application email, note the required subject line format if any, and briefly research their notable work and company background. Return JSON with candidates array."""
 
     max_searches = count * 2 + 3
     max_output = min(count * 700 + 1500, 10000)

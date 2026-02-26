@@ -849,7 +849,7 @@ def generate_email_template(project_id: str, user_id: str = Depends(get_current_
         raise HTTPException(400, "No email example saved. Paste an example first.")
 
     example = example_path.read_text(encoding="utf-8")
-    result, usage = ai.generate_template_from_examples(api_key, [example], "Email")
+    result, usage = ai.generate_email_template(api_key, example)
     pm.append_token_usage(user_id, project_id, "generate_email_template", usage)
 
     tpl_dir.mkdir(parents=True, exist_ok=True)
