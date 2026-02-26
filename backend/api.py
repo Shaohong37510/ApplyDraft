@@ -1083,9 +1083,13 @@ def search_positions(project_id: str, data: dict, user_id: str = Depends(get_cur
 
 def _build_filename(fmt: str, replacements: dict) -> str:
     """Build a filename from a format template, e.g. '{{NAME}}-{{FIRM_NAME}}-Cover Letter'."""
+    import re
     result = fmt
     for k, v in replacements.items():
         result = result.replace("{{" + k + "}}", v or "")
+    # Clean up consecutive and leading/trailing separators left by empty fields
+    result = re.sub(r'-{2,}', '-', result)
+    result = result.strip('-').strip()
     return pdf.safe_filename(result)
 
 
