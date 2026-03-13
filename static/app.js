@@ -11,6 +11,7 @@ let pendingTargets = []; // search results awaiting confirmation
 let manualTargets = []; // manually added targets
 let currentOnboardingStep = 1; // 1-9 (onboarding wizard)
 let onboardingSearchResults = []; // search results during onboarding wizard
+let _projectHomeSubView = null; // null | 'stats' | 'email' | 'customize'
 let supabaseClient = null;
 let accessToken = null;
 let currentUser = null;
@@ -433,7 +434,9 @@ function updateTopBarSelect() {
 
   let html;
   if (currentView === 'viewProjectHome') {
-    html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}</span>`;
+    const subLabels = { stats: ' — 投递统计', email: ' — 邮件预览', customize: ' — 个性化文件' };
+    const subLabel = _projectHomeSubView ? (subLabels[_projectHomeSubView] || '') : '';
+    html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}${subLabel}</span>`;
   } else if (currentView === 'viewStartApply') {
     html = homeBtn + sep + projBtn + sep + `<span class="breadcrumb-current">Start Apply</span>`;
   } else if (currentView === 'viewEdit') {
@@ -480,12 +483,20 @@ function navigateToProjects() {
 
 async function navigateToProjectHome(id) {
   activeProjectId = id;
+  _projectHomeSubView = null;
   // If onboarding not complete, redirect to setup wizard
   const cachedProj = projects.find(p => p.id === id);
   if (cachedProj && !cachedProj.onboarding_complete) {
     return navigateToOnboarding(id);
   }
   showView('viewProjectHome');
+  updateTopBarSelect();
+  await renderProjectHome(id);
+}
+
+async function navigateToHomeSubView(id, subView) {
+  activeProjectId = id;
+  _projectHomeSubView = subView;
   updateTopBarSelect();
   await renderProjectHome(id);
 }
@@ -542,86 +553,312 @@ async function renderProjectHome(id) {
   const page = document.getElementById('projectHomePage');
   if (!page) return;
   page.innerHTML = '<div class="view-loading">Loading...</div>';
-
   try {
-    const [proj, trackerData] = await Promise.all([
-      api("GET", `/projects/${id}`),
-      api("GET", `/projects/${id}/tracker`).catch(() => [])
-    ]);
-
-    _homeTrackerData = trackerData;
-    _homeProj = proj;
-
-    const cfg = proj.config || {};
-    const total = trackerData.length;
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisWeek = trackerData.filter(r => {
-      if (!r.AppliedDate) return false;
-      return new Date(r.AppliedDate) >= weekAgo;
-    }).length;
-    const generated = trackerData.filter(r => r.Status === 'Generated').length;
-
-    const chartData = buildDailyChart(trackerData, 30);
-    const chartSvg = buildLineChartSVG(chartData);
-
-    const jobReq = (cfg.job_requirements || '').split('\n')[0].trim();
-
-    page.innerHTML = `
-      <div class="project-home-content">
-
-        <div class="project-home-header">
-          <div class="project-home-title-row">
-            <span class="project-home-title" id="projTitleDisplay">${esc(cfg.project_name || id)}</span>
-            <button class="btn-edit-proj-name" data-proj-id="${esc(id)}" data-proj-name="${esc(cfg.project_name || id)}" onclick="startRenameProject(this)" title="Rename project">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-            </button>
-          </div>
-          ${jobReq ? `<div class="project-home-desc">${esc(jobReq)}</div>` : ''}
-        </div>
-
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-value">${total}</div>
-            <div class="stat-label">Total</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${thisWeek}</div>
-            <div class="stat-label">This Week</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">${generated}</div>
-            <div class="stat-label">Generated</div>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <div class="chart-title">Daily Applications — Last 30 Days</div>
-          <div class="chart-container">${chartSvg}</div>
-        </div>
-
-        <div class="home-panels">
-          <div class="home-panel" onclick="openFilesModal('${id}')">
-            <span class="home-panel-icon"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="36" height="36"><path d="M128 320A106.666667 106.666667 0 0 1 234.666667 213.333333h85.333333a106.666667 106.666667 0 0 1 104.533333 85.333334H810.666667a85.333333 85.333333 0 0 1 85.333333 85.333333v341.333333a85.333333 85.333333 0 0 1-85.333333 85.333334H213.333333a85.333333 85.333333 0 0 1-85.333333-85.333334V320zM490.666667 213.333333a21.333333 21.333333 0 1 0 0 42.666667h298.666666a21.333333 21.333333 0 1 0 0-42.666667h-298.666666z" fill="currentColor"/></svg></span>
-            <span class="home-panel-label">All Files</span>
-          </div>
-          <div class="home-panel" onclick="openTableModal()">
-            <span class="home-panel-icon"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="36" height="36"><path d="M887 373H137c-22.09 0-40-17.91-40-40V135c0-22.09 17.91-40 40-40h750c22.09 0 40 17.91 40 40v198c0 22.09-17.91 40-40 40zM304 651H138c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM594.5 651h-166c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM885 651H719c-22.09 0-40-17.91-40-40V445c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40z" fill="currentColor"/><path d="M304 929H138c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM594.5 929h-166c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40zM885 929H719c-22.09 0-40-17.91-40-40V723c0-22.09 17.91-40 40-40h166c22.09 0 40 17.91 40 40v166c0 22.09-17.91 40-40 40z" fill="currentColor"/></svg></span>
-            <span class="home-panel-label">Application Table</span>
-          </div>
-        </div>
-
-        <div class="home-action-row">
-          <button class="btn-start-apply btn-start-apply-compact" onclick="navigateToStartApply('${id}')">
-            ▶ &nbsp;Start Apply
-          </button>
-        </div>
-
-      </div>
-    `;
+    switch (_projectHomeSubView) {
+      case 'stats':    await renderProjectHomeStats(id, page); break;
+      case 'email':    await renderProjectHomeEmail(id, page); break;
+      case 'customize': await renderProjectHomeCustomize(id, page); break;
+      default:         await renderProjectHomeMain(id, page);
+    }
   } catch (e) {
     page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
   }
+}
+
+// ── Project Home: Main (button list) ──────────────────────
+
+async function renderProjectHomeMain(id, page) {
+  const [proj, trackerData] = await Promise.all([
+    api("GET", `/projects/${id}`),
+    api("GET", `/projects/${id}/tracker`).catch(() => [])
+  ]);
+  _homeTrackerData = trackerData;
+  _homeProj = proj;
+
+  const cfg = proj.config || {};
+  const total = trackerData.length;
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thisWeek = trackerData.filter(r => r.AppliedDate && new Date(r.AppliedDate) >= weekAgo).length;
+  const generated = trackerData.filter(r => r.Status === 'Generated').length;
+  const jobReq = (cfg.job_requirements || '').split('\n')[0].trim();
+
+  page.innerHTML = `
+    <div class="project-home-content">
+
+      <div class="project-home-header">
+        <div class="project-home-title-row">
+          <span class="project-home-title" id="projTitleDisplay">${esc(cfg.project_name || id)}</span>
+          <button class="btn-edit-proj-name" data-proj-id="${esc(id)}" data-proj-name="${esc(cfg.project_name || id)}" onclick="startRenameProject(this)" title="Rename project">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </button>
+        </div>
+        ${jobReq ? `<div class="project-home-desc">${esc(jobReq)}</div>` : ''}
+      </div>
+
+      <div class="home-nav-list">
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'stats')">
+          <span class="home-nav-icon">📊</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">投递统计</div>
+            <div class="home-nav-sub">${total} 份投递 · 本周 ${thisWeek} 份 · 已生成 ${generated} 份</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'email')">
+          <span class="home-nav-icon">✉️</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">邮件预览</div>
+            <div class="home-nav-sub">查看邮件主题、正文和附件</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'customize')">
+          <span class="home-nav-icon">📝</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">个性化文件</div>
+            <div class="home-nav-sub">Cover Letter 模板与自定义内容</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="openTableModal()">
+          <span class="home-nav-icon">📋</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">投递记录表格</div>
+            <div class="home-nav-sub">${total} 条记录</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="openFilesModal('${id}')">
+          <span class="home-nav-icon">📁</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">已生成的文件</div>
+            <div class="home-nav-sub">Cover Letters、Email 草稿</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+      </div>
+
+      <div class="home-action-row">
+        <button class="btn-start-apply btn-start-apply-compact" onclick="navigateToStartApply('${id}')">
+          ▶ &nbsp;开始搜索并添加岗位
+        </button>
+      </div>
+
+    </div>
+  `;
+}
+
+// ── Project Home: Stats sub-view ──────────────────────────
+
+async function renderProjectHomeStats(id, page) {
+  const [proj, trackerData] = await Promise.all([
+    _homeProj || api("GET", `/projects/${id}`),
+    _homeTrackerData.length ? Promise.resolve(_homeTrackerData) : api("GET", `/projects/${id}/tracker`).catch(() => [])
+  ]);
+  _homeTrackerData = Array.isArray(trackerData) ? trackerData : _homeTrackerData;
+
+  const total = _homeTrackerData.length;
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thisWeek = _homeTrackerData.filter(r => r.AppliedDate && new Date(r.AppliedDate) >= weekAgo).length;
+  const generated = _homeTrackerData.filter(r => r.Status === 'Generated').length;
+  const chartData = buildDailyChart(_homeTrackerData, 30);
+  const chartSvg = buildLineChartSVG(chartData);
+
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <h2 class="sub-view-title">投递统计</h2>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">${total}</div>
+          <div class="stat-label">TOTAL</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${thisWeek}</div>
+          <div class="stat-label">THIS WEEK</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${generated}</div>
+          <div class="stat-label">GENERATED</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">Daily Applications — Last 30 Days</div>
+        <div class="chart-container">${chartSvg}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Project Home: Email preview sub-view ──────────────────
+
+async function renderProjectHomeEmail(id, page) {
+  const [proj, emailTpl] = await Promise.all([
+    _homeProj || api("GET", `/projects/${id}`),
+    api("GET", `/projects/${id}/email-template`).catch(() => ({}))
+  ]);
+  const cfg = (proj && proj.config) ? proj.config : {};
+  const connectedEmail = globalConfig.gmail_email || globalConfig.outlook_email || '';
+  const customizeFiles = cfg.customize_files || [];
+  const attachableFiles = customizeFiles.filter(cf => cf.id !== 'email_body' && cf.is_attachment !== false);
+  const materials = (proj && proj.materials) ? proj.materials : [];
+
+  const attachmentChips = [
+    ...materials.map(f => `<span class="attachment-chip">📎 ${esc(f)}</span>`),
+    ...attachableFiles.map(f => `<span class="attachment-chip generated-chip">📄 ${esc(f.label)} (generated)</span>`)
+  ].join('') || `<span class="text-muted">No attachments configured</span>`;
+
+  const bodyPreview = (() => {
+    if (emailTpl.example) return emailTpl.example.trim();
+    if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to set one)';
+    let src = emailTpl.template;
+    src = src.replace(/<style[\s\S]*?<\/style>/gi, '');
+    src = src.replace(/<head[\s\S]*?<\/head>/gi, '');
+    return src.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  })();
+
+  const subjectPreview = emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}';
+
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <h2 class="sub-view-title">邮件预览</h2>
+      </div>
+
+      <div class="email-preview-card">
+        <div class="email-field-row">
+          <span class="email-field-label">Subject</span>
+          <span class="email-field-value">${esc(subjectPreview)}</span>
+          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+        </div>
+        <div class="email-field-row">
+          <span class="email-field-label">From</span>
+          <span class="email-field-value">${connectedEmail ? esc(connectedEmail) : '<em style="color:var(--orange)">Not connected</em>'}</span>
+          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'global')" title="Edit email account"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+        </div>
+        <div class="email-field-row email-field-body">
+          <span class="email-field-label">Body</span>
+          <textarea class="email-field-value email-body-preview" readonly rows="5" style="resize:vertical;line-height:1.6;word-break:break-word;background:transparent;border:none;width:100%;outline:none;cursor:default;color:inherit;font:inherit;padding:0">${esc(bodyPreview)}</textarea>
+          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+        </div>
+        <div class="email-field-row">
+          <span class="email-field-label">Attachments</span>
+          <div class="email-attachments-list">${attachmentChips}</div>
+          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'project')" title="Edit attachments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <button class="btn btn-secondary" onclick="navigateToEdit('${id}', 'email')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>编辑邮件模板
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ── Project Home: Customize files sub-view ────────────────
+
+async function renderProjectHomeCustomize(id, page) {
+  const proj = await api("GET", `/projects/${id}`);
+  const cfg = proj.config || {};
+  const tpls = proj.templates || {};
+  const customizeFiles = cfg.customize_files || [];
+
+  const examplesMap = {};
+  await Promise.all(customizeFiles.map(async (cf) => {
+    examplesMap[cf.id] = await api("GET", `/projects/${id}/customize/${cf.id}/examples`).catch(() => []);
+  }));
+
+  let customizeHtml = "";
+  customizeFiles.filter(cf => cf.id !== "email_body").forEach((cf) => {
+    const typeExamples = examplesMap[cf.id] || [];
+    const typeTpl = tpls[cf.id] || {};
+    const tplText = typeTpl.template || "";
+    const defsText = (typeTpl.definitions || "")
+      .replace(/^Prompt:/gm, 'PROMPT:')
+      .replace(/^Examples:/gm, 'EXAMPLES:')
+      .replace(/^Constrains:/gm, 'CONSTRAINTS:');
+    const inputId = `exInput_${cf.id}`;
+    const fnFmt = cf.filename_format || "";
+
+    customizeHtml += `
+      <div class="customize-card" data-type-id="${esc(cf.id)}">
+        <div class="customize-card-header">
+          <span class="customize-card-title">${esc(cf.label)}</span>
+          <span class="customize-card-remove" onclick="removeCustomizeFile('${id}','${esc(cf.id)}','${esc(cf.label)}')" title="Remove">&times;</span>
+        </div>
+
+        <label>File Name Format</label>
+        <div class="filename-format-row">
+          <input type="text" id="fnFmt_${cf.id}" value="${esc(fnFmt)}"
+            placeholder="{{NAME}}-{{FIRM_NAME}}-${esc(cf.label)}">
+          <button class="btn btn-secondary btn-sm" onclick="saveTypeFilenameFormat('${id}','${esc(cf.id)}')" title="Save">Save</button>
+        </div>
+        <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}</div>
+
+        <label>Examples (upload 2-3 for AI analysis)</label>
+        <div class="file-list">
+          ${typeExamples.map(f => `
+            <span class="file-chip">
+              &#128196; ${esc(f)}
+              <span class="remove" onclick="deleteTypeExample('${id}','${esc(cf.id)}','${esc(f)}')">&times;</span>
+            </span>
+          `).join("")}
+        </div>
+        <div class="upload-area" onclick="document.getElementById('${inputId}').click()">
+          <input type="file" id="${inputId}" multiple accept=".txt,.pdf,.docx" onchange="uploadTypeExamples('${id}','${esc(cf.id)}', this.files)">
+          <p>+ Upload example ${esc(cf.label.toLowerCase())} files (.txt recommended)</p>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="generateTypeTemplate('${id}','${esc(cf.id)}')">
+            &#9998; Generate Template
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="previewTypeTemplate('${id}','${esc(cf.id)}')">
+            &#128065; Preview PDF
+          </button>
+          <span class="preview-path" id="previewPath_${cf.id}"></span>
+        </div>
+
+        <label>Template</label>
+        <textarea class="tpl-textarea" id="tpl-${esc(cf.id)}" rows="10">${esc(extractEditableContent(tplText))}</textarea>
+
+        <label>Custom Definitions</label>
+        <textarea class="tpl-textarea" id="def-${esc(cf.id)}" rows="6">${esc(defsText)}</textarea>
+
+        <div style="margin-top:8px">
+          <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','${esc(cf.id)}')">Save Template</button>
+        </div>
+      </div>
+    `;
+  });
+
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <h2 class="sub-view-title">个性化文件</h2>
+      </div>
+      <div class="customize-section">
+        ${customizeHtml || '<div class="empty-state"><p>No file types configured.</p></div>'}
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="promptAddCustomizeFile('${id}').then(()=>navigateToHomeSubView('${id}','customize'))">+ Add File Type</button>
+      </div>
+    </div>
+  `;
 }
 
 function startRenameProject(btn) {
@@ -1457,13 +1694,21 @@ async function toggleAttachment(id, typeId, checked) {
 
 // ── Customize File Types ─────────────────────────────────
 
+function _refreshCustomizeView(id) {
+  if (currentView === 'viewProjectHome' && _projectHomeSubView === 'customize') {
+    navigateToHomeSubView(id, 'customize');
+  } else {
+    renderEditView(id);
+  }
+}
+
 async function promptAddCustomizeFile(id) {
   const label = prompt("File type name (e.g. Work Sample, Thank You Letter):");
   if (!label) return;
   try {
     await api("POST", `/projects/${id}/customize-files`, { label });
     toast(`"${label}" added`);
-    renderEditView(id);
+    _refreshCustomizeView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -1474,7 +1719,7 @@ async function removeCustomizeFile(id, typeId, label) {
   try {
     await api("DELETE", `/projects/${id}/customize-files/${typeId}`);
     toast(`"${label}" removed`);
-    renderEditView(id);
+    _refreshCustomizeView(id);
   } catch (e) {
     toast(e.message, "error");
   }
@@ -1496,13 +1741,13 @@ async function uploadTypeExamples(id, typeId, files) {
     await uploadFile(`/projects/${id}/customize/${typeId}/upload-example`, file);
   }
   toast(`${files.length} example(s) uploaded`);
-  renderEditView(id);
+  _refreshCustomizeView(id);
 }
 
 async function deleteTypeExample(id, typeId, filename) {
   await api("DELETE", `/projects/${id}/customize/${typeId}/examples/${filename}`);
   toast("Example removed");
-  renderEditView(id);
+  _refreshCustomizeView(id);
 }
 
 // ── Per-type Template generation ─────────────────────────
@@ -1511,9 +1756,9 @@ async function generateTypeTemplate(id, typeId) {
   gtag('event', 'template_generate_click', { event_category: 'engagement', type_id: typeId });
   try {
     toast("Generating template... (this may take a moment)", "success");
-    const result = await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
+    await api("POST", `/projects/${id}/customize/${typeId}/generate-template`);
     toast("Template generated!");
-    renderEditView(id);
+    _refreshCustomizeView(id);
   } catch (e) {
     toast(e.message, "error");
   }
