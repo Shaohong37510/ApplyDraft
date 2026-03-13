@@ -20,54 +20,75 @@
     h2 { color: #16213e; margin-top: 32px; }
     a { color: #4361ee; }
     .updated { color: #666; font-size: 14px; }
+    .highlight-box { background: #f0f4ff; border-left: 4px solid #4361ee; padding: 14px 18px; margin: 24px 0; border-radius: 4px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
   </style>
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: February 18, 2026</p>
+  <p class="updated">Last updated: March 13, 2026</p>
 
   <h2>Overview</h2>
-  <p>ApplyDraft is a job application automation tool that helps users create and manage job application emails. We are committed to protecting your privacy and handling your data responsibly.</p>
+  <p>ApplyDraft ("we", "our", or "us") is a job application automation tool that helps users create and manage job application emails. We are committed to protecting your privacy and handling your data responsibly.</p>
+  <p>This policy explains what information we collect, how we use it, and how we protect it when you use ApplyDraft at <a href="https://app.applydraft.top">https://app.applydraft.top</a>.</p>
+
+  <h2>Google API Services — Limited Use Disclosure</h2>
+  <div class="highlight-box">
+    <p>ApplyDraft's use of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">
+    Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+    <p>Specifically: data obtained through the Gmail API is used <strong>only</strong> to create email drafts in the user's Gmail account on their behalf. We do not use this data for any other purpose, including advertising, profiling, or transfer to third parties.</p>
+  </div>
 
   <h2>Information We Collect</h2>
   <ul>
-    <li><strong>Authentication data:</strong> When you sign in with Google or Microsoft, we receive your email address and basic profile information to identify your account.</li>
-    <li><strong>Gmail access:</strong> If you connect your Gmail account, we request permission to create email drafts on your behalf. We only use the <code>gmail.compose</code> scope to create drafts in your Gmail account. We do not read, modify, or delete your existing emails.</li>
-    <li><strong>Application data:</strong> Job requirements, target firms, generated cover letters, and email templates you create within the app.</li>
+    <li><strong>Authentication data:</strong> When you sign in with Google or Microsoft, we receive your email address and basic profile information (name, profile picture) to identify your account.</li>
+    <li><strong>Gmail access (<code>gmail.compose</code> scope):</strong> If you connect your Gmail account, we request the <code>https://www.googleapis.com/auth/gmail.compose</code> permission. This scope allows us to <em>create email drafts</em> in your Gmail account only. We do not read, search, modify, or delete any of your existing emails or other Gmail data.</li>
+    <li><strong>Application data:</strong> Job requirements, target firm information, generated cover letters, and email templates you create within the app.</li>
   </ul>
 
   <h2>How We Use Your Information</h2>
   <ul>
-    <li>To authenticate your identity and manage your account</li>
-    <li>To create email drafts in your Gmail or Outlook account when you generate job applications</li>
-    <li>To generate personalized cover letters and application materials using AI</li>
+    <li>To authenticate your identity and manage your account session.</li>
+    <li>To create email drafts in your Gmail account when you generate job applications — drafts are placed in your Gmail Drafts folder for your review before you choose to send them.</li>
+    <li>To generate personalized cover letters and application materials using AI (Anthropic Claude).</li>
   </ul>
 
   <h2>What We Do NOT Do</h2>
   <ul>
-    <li>We do <strong>not</strong> read your existing emails</li>
-    <li>We do <strong>not</strong> send emails on your behalf — we only create drafts for your review</li>
-    <li>We do <strong>not</strong> sell or share your personal data with third parties</li>
-    <li>We do <strong>not</strong> store your Gmail or Outlook passwords</li>
+    <li>We do <strong>not</strong> read, scan, or analyze your existing emails.</li>
+    <li>We do <strong>not</strong> send emails on your behalf — we only create drafts for your review.</li>
+    <li>We do <strong>not</strong> sell, rent, or share your personal data or Gmail data with third parties.</li>
+    <li>We do <strong>not</strong> use your Gmail data for advertising, profiling, or any purpose other than creating drafts as described above.</li>
+    <li>We do <strong>not</strong> store your Gmail password. We use OAuth 2.0 tokens, which you can revoke at any time.</li>
+    <li>We do <strong>not</strong> transfer your Gmail data to AI models or any third-party service other than the Gmail API itself.</li>
   </ul>
 
-  <h2>Data Storage</h2>
-  <p>Your account settings and OAuth tokens are stored securely in Supabase (our database provider). Application data (cover letters, templates) is stored on our server and associated with your user account.</p>
+  <h2>Data Storage and Security</h2>
+  <p>Your account settings and OAuth tokens are stored securely in Supabase (our database provider), using encryption at rest and in transit. Application data (cover letters, templates, target firms) is stored on our server and associated with your user account. We retain your data as long as your account is active.</p>
 
   <h2>Third-Party Services</h2>
   <ul>
-    <li><strong>Google OAuth:</strong> For authentication and Gmail draft creation</li>
-    <li><strong>Microsoft OAuth:</strong> For authentication and Outlook draft creation</li>
-    <li><strong>Supabase:</strong> For database and authentication infrastructure</li>
-    <li><strong>Anthropic (Claude AI):</strong> For generating cover letters and searching job postings</li>
+    <li><strong>Google OAuth &amp; Gmail API:</strong> For account authentication and Gmail draft creation. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</li>
+    <li><strong>Microsoft OAuth:</strong> For authentication and Outlook draft creation.</li>
+    <li><strong>Supabase:</strong> For secure database and authentication infrastructure.</li>
+    <li><strong>Anthropic (Claude AI):</strong> For generating cover letters. Only your job description inputs are sent — no Gmail data is transmitted.</li>
+    <li><strong>Stripe:</strong> For payment processing. We do not store payment card details.</li>
   </ul>
 
-  <h2>Data Deletion</h2>
-  <p>You can disconnect your Gmail or Outlook account at any time from the Settings page, which removes the stored OAuth tokens. To delete your account and all associated data, please contact us.</p>
+  <h2>Your Rights and Data Deletion</h2>
+  <ul>
+    <li><strong>Disconnect Gmail:</strong> You can disconnect your Gmail account at any time in Settings → Email Accounts. This immediately removes all stored OAuth tokens.</li>
+    <li><strong>Revoke Google access:</strong> You can revoke ApplyDraft's access directly from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions page</a>.</li>
+    <li><strong>Delete your account:</strong> To delete your account and all associated data, contact us at <a href="mailto:support@applydraft.top">support@applydraft.top</a>. We will process the request within 30 days.</li>
+  </ul>
+
+  <h2>Changes to This Policy</h2>
+  <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by updating the "Last updated" date at the top of this page.</p>
 
   <h2>Contact</h2>
-  <p>If you have questions about this privacy policy, please contact us at <a href="mailto:support@applydraft.top">support@applydraft.top</a>.</p>
+  <p>If you have questions or concerns about this privacy policy or your data, please contact us at <a href="mailto:support@applydraft.top">support@applydraft.top</a>.</p>
 
-  <p><a href="/">Back to ApplyDraft</a></p>
+  <p><a href="/">← Back to ApplyDraft</a></p>
 </body>
 </html>
