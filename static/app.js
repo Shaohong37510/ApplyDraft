@@ -9,6 +9,8 @@ let globalConfig = {};
 let _appLoaded = false;
 let pendingTargets = []; // search results awaiting confirmation
 let manualTargets = []; // manually added targets
+let currentOnboardingStep = 1; // 1-9 (onboarding wizard)
+let onboardingSearchResults = []; // search results during onboarding wizard
 let supabaseClient = null;
 let accessToken = null;
 let currentUser = null;
@@ -436,6 +438,8 @@ function updateTopBarSelect() {
     html = homeBtn + sep + projBtn + sep + `<span class="breadcrumb-current">Start Apply</span>`;
   } else if (currentView === 'viewEdit') {
     html = homeBtn + sep + projBtn + sep + `<span class="breadcrumb-current">Edit Settings</span>`;
+  } else if (currentView === 'viewOnboarding') {
+    html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)} — Setup</span>`;
   } else {
     html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}</span>`;
   }
@@ -447,7 +451,7 @@ function updateTopBarSelect() {
 // ── View Navigation ───────────────────────────────────────
 
 function showView(viewId) {
-  ['viewProjectsList', 'viewProjectHome', 'viewStartApply', 'viewEdit'].forEach(id => {
+  ['viewProjectsList', 'viewProjectHome', 'viewStartApply', 'viewEdit', 'viewOnboarding'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -463,6 +467,8 @@ function navigateBack() {
     navigateToProjects();
   } else if (currentView === 'viewStartApply' || currentView === 'viewEdit') {
     navigateToProjectHome(activeProjectId);
+  } else if (currentView === 'viewOnboarding') {
+    navigateToProjects();
   }
 }
 
@@ -474,6 +480,11 @@ function navigateToProjects() {
 
 async function navigateToProjectHome(id) {
   activeProjectId = id;
+  // If onboarding not complete, redirect to setup wizard
+  const cachedProj = projects.find(p => p.id === id);
+  if (cachedProj && !cachedProj.onboarding_complete) {
+    return navigateToOnboarding(id);
+  }
   showView('viewProjectHome');
   updateTopBarSelect();
   await renderProjectHome(id);
@@ -1324,9 +1335,10 @@ async function promptNewProject() {
   if (!name) return;
   try {
     const proj = await api("POST", "/projects", { name });
+    proj.onboarding_complete = false; // new projects always go through onboarding
     projects.push(proj);
     toast("Project created");
-    navigateToProjectHome(proj.id);
+    navigateToOnboarding(proj.id);
   } catch (e) {
     toast("Failed to create project: " + e.message, "error");
     console.error("Create project error:", e);
@@ -2149,6 +2161,797 @@ function renderManualEntries() {
       <button class="btn-remove-target" onclick="removeManualEntry(${i})" title="Remove">&times;</button>
     </div>
   `).join("");
+}
+
+// ── Onboarding Wizard ─────────────────────────────────────
+
+const OB_TOTAL_STEPS = 9;
+
+const OB_SAMPLE_COVER_LETTER = `Dear Hiring Manager,
+
+I am writing to express my sincere interest in joining your team as an architect. With a strong foundation in architectural design, technical documentation, and collaborative project delivery, I am eager to contribute meaningfully to your firm's work.
+
+Throughout my academic and professional experience, I have developed proficiency in industry-standard tools including Revit, AutoCAD, Rhino, and Grasshopper. I have applied these skills across a range of project types—from residential and mixed-use developments to cultural and civic buildings—gaining a versatile perspective on design and construction.
+
+I am particularly drawn to firms that balance bold design vision with practical execution. I bring a detail-oriented mindset, strong communication skills, and the ability to thrive in fast-paced, collaborative environments.
+
+Enclosed please find my resume and portfolio for your review. I would welcome the opportunity to discuss how my background aligns with your team's goals.
+
+Thank you for your time and consideration.
+
+Sincerely,
+[Your Name]`;
+
+const OB_SAMPLE_CL_TEMPLATE = `Dear {{SALUTATION}},
+
+{{CUSTOM_1}}
+
+{{CUSTOM_2}}
+
+I am particularly drawn to {{FIRM_NAME}}'s commitment to design excellence and innovation. I believe my skills and enthusiasm would make a meaningful contribution to your team.
+
+Enclosed please find my resume and portfolio for your review. I would welcome the opportunity to discuss how my background aligns with your goals.
+
+Thank you for your time and consideration.
+
+Sincerely,
+{{NAME}}`;
+
+const OB_SAMPLE_CL_DEFINITIONS = `PROMPT: Write a compelling opening paragraph for a cover letter applying to {{FIRM_NAME}} for the {{POSITION}} role. Mention the applicant's background in architecture and their genuine interest in this specific firm. Reference {{FIRM_NAME}}'s notable projects or design philosophy. Keep it 3-4 sentences.
+EXAMPLES: I am excited to apply for the Junior Architect position at Zaha Hadid Architects, a firm whose boundary-pushing parametric design work has consistently inspired me. | I am writing to express my interest in the architectural role at Snøhetta, whose integration of landscape, interiors, and architecture into holistic experiences deeply resonates with my design philosophy.
+CONSTRAINTS: Do not use generic phrases. Must reference the specific firm. First person. 3-4 sentences.
+
+PROMPT: Write a second paragraph highlighting the applicant's technical skills and experience relevant to {{FIRM_NAME}} and {{POSITION}}. Mention software proficiency and relevant project types.
+EXAMPLES: My experience with computational design tools, including Rhino and Grasshopper, combined with proficiency in Revit for documentation, positions me well to contribute to technically complex projects. | During my internship, I developed strong skills in design development and construction documentation across large-scale mixed-use projects.
+CONSTRAINTS: Specific and professional. Mention at least one software or technical skill. 3-4 sentences.`;
+
+const OB_SAMPLE_EMAIL_SUBJECT = 'Application for {{POSITION}} – {{NAME}}';
+
+const OB_SAMPLE_EMAIL_BODY = `Dear {{SALUTATION}},
+
+I am writing to express my interest in the {{POSITION}} role at {{FIRM_NAME}}. Please find my resume and portfolio attached for your consideration.
+
+I would welcome the opportunity to discuss how my background aligns with your firm's vision and current projects.
+
+Thank you for your time.
+
+Best regards,
+{{NAME}}`;
+
+const OB_SAMPLE_JOB_REQ = 'Entry-level or junior architect positions in major US cities. 0-1 years of experience. Prefer firms working on residential, cultural, civic, or mixed-use projects.';
+
+function obProgressBar(step) {
+  const pct = Math.round(((step - 1) / OB_TOTAL_STEPS) * 100);
+  const dots = Array.from({ length: OB_TOTAL_STEPS }, (_, i) => {
+    const cls = i + 1 < step ? 'ob-dot ob-dot-done' : (i + 1 === step ? 'ob-dot ob-dot-active' : 'ob-dot');
+    return `<div class="${cls}"></div>`;
+  }).join('');
+  return `
+    <div class="ob-progress">
+      <div class="ob-progress-bar"><div class="ob-progress-fill" style="width:${pct}%"></div></div>
+      <div class="ob-dots">${dots}</div>
+      <div class="ob-step-label">Step ${step} of ${OB_TOTAL_STEPS}</div>
+    </div>`;
+}
+
+function obHeader(step, title, subtitle) {
+  return `
+    ${obProgressBar(step)}
+    <div class="ob-title-area">
+      <h2 class="ob-title">${title}</h2>
+      ${subtitle ? `<p class="ob-subtitle">${subtitle}</p>` : ''}
+    </div>`;
+}
+
+function obNavButtons(id, opts = {}) {
+  const { prevStep, nextLabel = 'Continue', nextAction, skipLabel, skipAction } = opts;
+  const backBtn = prevStep != null
+    ? `<button class="btn btn-secondary" onclick="obGoStep('${id}', ${prevStep})">← Back</button>`
+    : `<div></div>`;
+  let rightBtns = '';
+  if (skipLabel && skipAction) rightBtns += `<button class="btn btn-ghost" onclick="${skipAction}">${skipLabel}</button>`;
+  if (nextAction) rightBtns += `<button class="btn btn-primary ob-next-btn" onclick="${nextAction}">${nextLabel} →</button>`;
+  return `<div class="ob-nav">${backBtn}<div class="ob-nav-right">${rightBtns}</div></div>`;
+}
+
+async function navigateToOnboarding(id) {
+  activeProjectId = id;
+  currentOnboardingStep = 1;
+  onboardingSearchResults = [];
+  manualTargets = [];
+  showView('viewOnboarding');
+  updateTopBarSelect();
+  await renderOnboarding(id);
+}
+
+async function renderOnboarding(id) {
+  const page = document.getElementById('onboardingPage');
+  if (!page) return;
+  page.innerHTML = '<div class="view-loading">Loading...</div>';
+  try {
+    switch (currentOnboardingStep) {
+      case 1: await renderObStep1(id, page); break;
+      case 2: await renderObStep2(id, page); break;
+      case 3: await renderObStep3(id, page); break;
+      case 4: await renderObStep4(id, page); break;
+      case 5: await renderObStep5(id, page); break;
+      case 6: await renderObStep6(id, page); break;
+      case 7: await renderObStep7(id, page); break;
+      case 8: await renderObStep8(id, page); break;
+      case 9: await renderObStep9(id, page); break;
+      default: await renderObStep1(id, page);
+    }
+  } catch (e) {
+    page.innerHTML = `<div class="view-error">Failed to load step: ${esc(e.message)}</div>`;
+  }
+  window.scrollTo(0, 0);
+}
+
+async function obGoStep(id, step) {
+  currentOnboardingStep = step;
+  await renderOnboarding(id);
+}
+
+// ── Step 1: Upload Files ──────────────────────────────────
+
+async function renderObStep1(id, page) {
+  const proj = await api("GET", `/projects/${id}`).catch(() => ({ materials: [] }));
+  const materials = proj.materials || [];
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(1, 'Upload Your Files', 'Upload your resume and portfolio so they can be attached to your applications.')}
+      <div class="ob-body">
+        <div class="ob-upload-zone" id="obDropZone"
+          onclick="document.getElementById('obFileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('ob-drag-over')"
+          ondragleave="this.classList.remove('ob-drag-over')"
+          ondrop="event.preventDefault();this.classList.remove('ob-drag-over');obUploadMaterials('${id}',event.dataTransfer.files)">
+          <div class="ob-upload-icon">📁</div>
+          <div class="ob-upload-text">Click or drag files here</div>
+          <div class="ob-upload-hint">PDF, DOCX accepted</div>
+          <input type="file" id="obFileInput" style="display:none" multiple accept=".pdf,.docx,.txt,.doc"
+            onchange="obUploadMaterials('${id}', this.files)">
+        </div>
+        <div class="ob-files-list" id="obFilesList">
+          ${obRenderFileChips(materials, id, 'material')}
+        </div>
+      </div>
+      ${obNavButtons(id, {
+        prevStep: null,
+        nextLabel: materials.length > 0 ? 'Continue' : 'Skip for Now',
+        nextAction: `obGoStep('${id}', 2)`,
+      })}
+    </div>`;
+}
+
+function obRenderFileChips(files, id, type) {
+  if (!files || files.length === 0) return '<div class="ob-empty-hint">No files uploaded yet</div>';
+  return files.map(f => {
+    const removeAction = type === 'material'
+      ? `obDeleteMaterial('${id}','${esc(f)}')`
+      : `obDeleteExample('${id}','cover_letter','${esc(f)}')`;
+    return `<div class="ob-file-chip">📎 ${esc(f)}<button class="ob-file-remove" onclick="${removeAction}" title="Remove">×</button></div>`;
+  }).join('');
+}
+
+async function obUploadMaterials(id, files) {
+  if (!files || files.length === 0) return;
+  try {
+    for (const file of files) await uploadFile(`/projects/${id}/upload-material`, file);
+    toast(`${files.length} file(s) uploaded`);
+    const proj = await api("GET", `/projects/${id}`);
+    const list = document.getElementById('obFilesList');
+    if (list) list.innerHTML = obRenderFileChips(proj.materials || [], id, 'material');
+    const nextBtn = document.querySelector('.ob-next-btn');
+    if (nextBtn) nextBtn.textContent = 'Continue →';
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function obDeleteMaterial(id, filename) {
+  try {
+    await api("DELETE", `/projects/${id}/material/${filename}`);
+    toast('File removed');
+    const proj = await api("GET", `/projects/${id}`);
+    const list = document.getElementById('obFilesList');
+    if (list) list.innerHTML = obRenderFileChips(proj.materials || [], id, 'material');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Step 2: Personal Info ─────────────────────────────────
+
+async function renderObStep2(id, page) {
+  const proj = await api("GET", `/projects/${id}`).catch(() => ({ config: {} }));
+  const cfg = proj.config || {};
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(2, 'Your Information', 'All fields are optional — fill in what you have. This appears on your cover letters.')}
+      <div class="ob-body">
+        <div class="ob-form-grid">
+          <div class="ob-field">
+            <label>Full Name</label>
+            <input type="text" id="obName" placeholder="Jane Smith" value="${esc(cfg.name || '')}">
+          </div>
+          <div class="ob-field">
+            <label>Phone</label>
+            <input type="tel" id="obPhone" placeholder="+1 (555) 000-0000" value="${esc(cfg.phone || '')}">
+          </div>
+          <div class="ob-field">
+            <label>Personal Email</label>
+            <input type="email" id="obPersonalEmail" placeholder="jane@email.com" value="${esc(cfg.personal_email || '')}">
+          </div>
+          <div class="ob-field">
+            <label>Location / Address</label>
+            <input type="text" id="obAddress" placeholder="New York, NY" value="${esc(cfg.address || '')}">
+          </div>
+        </div>
+      </div>
+      ${obNavButtons(id, {
+        prevStep: 1,
+        nextLabel: 'Save & Continue',
+        nextAction: `obSavePersonalInfo('${id}')`,
+        skipLabel: 'Skip',
+        skipAction: `obGoStep('${id}', 3)`,
+      })}
+    </div>`;
+}
+
+async function obSavePersonalInfo(id) {
+  try {
+    await api("PUT", `/projects/${id}/config`, {
+      name: document.getElementById('obName')?.value || '',
+      phone: document.getElementById('obPhone')?.value || '',
+      personal_email: document.getElementById('obPersonalEmail')?.value || '',
+      address: document.getElementById('obAddress')?.value || '',
+    });
+    toast('Saved');
+    await obGoStep(id, 3);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Step 3: Cover Letter Upload ───────────────────────────
+
+async function renderObStep3(id, page) {
+  const examples = await api("GET", `/projects/${id}/customize/cover_letter/examples`).catch(() => []);
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(3, 'Cover Letter Template', 'Upload an example cover letter so AI can learn your style — or start with our sample.')}
+      <div class="ob-body">
+        <div class="ob-sample-banner">
+          <span class="ob-sample-icon">✨</span>
+          <div>
+            <strong>Use Sample Cover Letter</strong>
+            <p>Upload a professional sample so AI can generate a template for you.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="obUseSampleCoverLetter('${id}', this)">Use Sample</button>
+        </div>
+        <div class="ob-divider"><span>or upload your own</span></div>
+        <div class="ob-upload-zone"
+          onclick="document.getElementById('obClInput').click()"
+          ondragover="event.preventDefault();this.classList.add('ob-drag-over')"
+          ondragleave="this.classList.remove('ob-drag-over')"
+          ondrop="event.preventDefault();this.classList.remove('ob-drag-over');obUploadClExample('${id}',event.dataTransfer.files)">
+          <div class="ob-upload-icon">📝</div>
+          <div class="ob-upload-text">Upload cover letter example</div>
+          <div class="ob-upload-hint">PDF or TXT — 1-3 examples recommended</div>
+          <input type="file" id="obClInput" style="display:none" multiple accept=".pdf,.txt,.doc,.docx"
+            onchange="obUploadClExample('${id}', this.files)">
+        </div>
+        <div class="ob-files-list" id="obClFilesList">
+          ${obRenderExampleChips(examples, id)}
+        </div>
+      </div>
+      ${obNavButtons(id, {
+        prevStep: 2,
+        nextLabel: examples.length > 0 ? 'Generate Template' : 'Skip for Now',
+        nextAction: `obGoStep('${id}', 4)`,
+      })}
+    </div>`;
+}
+
+function obRenderExampleChips(examples, id) {
+  if (!examples || examples.length === 0) return '<div class="ob-empty-hint">No examples uploaded yet</div>';
+  return examples.map(f =>
+    `<div class="ob-file-chip">📄 ${esc(f)}<button class="ob-file-remove" onclick="obDeleteExample('${id}','cover_letter','${esc(f)}')" title="Remove">×</button></div>`
+  ).join('');
+}
+
+async function obUploadClExample(id, files) {
+  if (!files || files.length === 0) return;
+  try {
+    for (const file of files) await uploadFile(`/projects/${id}/customize/cover_letter/upload-example`, file);
+    toast(`${files.length} example(s) uploaded`);
+    const examples = await api("GET", `/projects/${id}/customize/cover_letter/examples`).catch(() => []);
+    const list = document.getElementById('obClFilesList');
+    if (list) list.innerHTML = obRenderExampleChips(examples, id);
+    const nextBtn = document.querySelector('.ob-next-btn');
+    if (nextBtn) nextBtn.textContent = 'Generate Template →';
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function obDeleteExample(id, typeId, filename) {
+  try {
+    await api("DELETE", `/projects/${id}/customize/${typeId}/examples/${filename}`);
+    toast('Removed');
+    const examples = await api("GET", `/projects/${id}/customize/${typeId}/examples`).catch(() => []);
+    const list = document.getElementById('obClFilesList');
+    if (list) list.innerHTML = obRenderExampleChips(examples, id);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function obUseSampleCoverLetter(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+  try {
+    const blob = new Blob([OB_SAMPLE_COVER_LETTER], { type: 'text/plain' });
+    const file = new File([blob], 'sample-cover-letter.txt', { type: 'text/plain' });
+    await uploadFile(`/projects/${id}/customize/cover_letter/upload-example`, file);
+    toast('Sample uploaded — generating template next');
+    await obGoStep(id, 4);
+  } catch (e) {
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Use Sample';
+  }
+}
+
+// ── Step 4: Generate Template ─────────────────────────────
+
+async function renderObStep4(id, page) {
+  const proj = await api("GET", `/projects/${id}`).catch(() => ({}));
+  const tpls = proj.templates || {};
+  const existingTemplate = tpls.cover_letter?.template || '';
+  const existingDefs = tpls.cover_letter?.definitions || '';
+  const examples = await api("GET", `/projects/${id}/customize/cover_letter/examples`).catch(() => []);
+  const hasExamples = examples.length > 0;
+
+  if (existingTemplate) {
+    page.innerHTML = `
+      <div class="ob-card">
+        ${obHeader(4, 'Cover Letter Template', 'Your template is ready. Review and edit as needed.')}
+        <div class="ob-body">
+          <div class="ob-template-section">
+            <label class="ob-label">Template <span class="ob-label-hint">({{CUSTOM_1}}, {{CUSTOM_2}} will be written by AI per firm)</span></label>
+            <textarea id="obTplText" class="ob-textarea ob-textarea-tall" rows="10">${esc(existingTemplate)}</textarea>
+          </div>
+          <div class="ob-template-section">
+            <label class="ob-label">AI Instructions <span class="ob-label-hint">(defines what to write for each {{CUSTOM}} block)</span></label>
+            <textarea id="obTplDefs" class="ob-textarea" rows="5">${esc(existingDefs)}</textarea>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="obSaveTemplate('${id}')">Save Changes</button>
+        </div>
+        ${obNavButtons(id, { prevStep: 3, nextLabel: 'Continue', nextAction: `obGoStep('${id}', 5)` })}
+      </div>`;
+  } else {
+    page.innerHTML = `
+      <div class="ob-card">
+        ${obHeader(4, 'Generate Cover Letter Template', hasExamples
+          ? 'AI will analyze your example and create a personalized template.'
+          : 'No examples uploaded — use the pre-built template or go back to upload examples.')}
+        <div class="ob-body">
+          ${hasExamples ? `
+            <div class="ob-generate-area">
+              <button class="btn btn-primary" id="obGenerateBtn" onclick="obGenerateTemplate('${id}')">
+                ✨ Generate Template from Examples
+              </button>
+              <p class="ob-generate-hint">Uses AI credits · takes ~15 seconds</p>
+            </div>` : `
+            <div class="ob-sample-banner">
+              <span class="ob-sample-icon">📋</span>
+              <div>
+                <strong>Use Pre-built Template</strong>
+                <p>A professional cover letter template ready to customize.</p>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="obUsePrebuiltTemplate('${id}', this)">Use Template</button>
+            </div>`}
+          <div id="obTemplateResult" style="display:none">
+            <div class="ob-template-section" style="margin-top:16px">
+              <label class="ob-label">Template</label>
+              <textarea id="obTplText" class="ob-textarea ob-textarea-tall" rows="10"></textarea>
+            </div>
+            <div class="ob-template-section">
+              <label class="ob-label">AI Instructions</label>
+              <textarea id="obTplDefs" class="ob-textarea" rows="5"></textarea>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="obSaveTemplate('${id}')">Save Changes</button>
+          </div>
+        </div>
+        ${obNavButtons(id, { prevStep: 3, nextLabel: 'Continue', nextAction: `obGoStep('${id}', 5)` })}
+      </div>`;
+  }
+}
+
+async function obGenerateTemplate(id) {
+  const btn = document.getElementById('obGenerateBtn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generating...'; }
+  try {
+    const result = await api("POST", `/projects/${id}/customize/cover_letter/generate-template`);
+    toast('Template generated!');
+    const resultDiv = document.getElementById('obTemplateResult');
+    if (resultDiv) {
+      resultDiv.style.display = '';
+      const tplEl = document.getElementById('obTplText');
+      const defsEl = document.getElementById('obTplDefs');
+      if (tplEl) tplEl.value = result.template || '';
+      if (defsEl) defsEl.value = result.definitions || '';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '✓ Generated — review below'; }
+  } catch (e) {
+    toast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Generate Template from Examples'; }
+  }
+}
+
+async function obUsePrebuiltTemplate(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    await api("POST", `/projects/${id}/templates/cover_letter/save`, {
+      template_content: OB_SAMPLE_CL_TEMPLATE,
+      definitions_content: OB_SAMPLE_CL_DEFINITIONS,
+    });
+    toast('Template saved');
+    await obGoStep(id, 5);
+  } catch (e) {
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Use Template';
+  }
+}
+
+async function obSaveTemplate(id) {
+  try {
+    await api("POST", `/projects/${id}/templates/cover_letter/save`, {
+      template_content: document.getElementById('obTplText')?.value || '',
+      definitions_content: document.getElementById('obTplDefs')?.value || '',
+    });
+    toast('Template saved');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Step 5: Email Template ─────────────────────────────────
+
+async function renderObStep5(id, page) {
+  const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
+  const subject = emailTpl.subject_template || OB_SAMPLE_EMAIL_SUBJECT;
+  const body = emailTpl.example || OB_SAMPLE_EMAIL_BODY;
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(5, 'Write Your Email', 'Set up the email template for your applications.')}
+      <div class="ob-body">
+        <div class="ob-field">
+          <div class="ob-field-header">
+            <label>Subject Line</label>
+          </div>
+          <input type="text" id="obEmailSubject" value="${esc(subject)}"
+            placeholder="Application for {{POSITION}} – {{NAME}}">
+          <div class="ob-field-hint">Use {{POSITION}}, {{NAME}}, {{FIRM_NAME}} as placeholders</div>
+        </div>
+        <div class="ob-field">
+          <div class="ob-field-header">
+            <label>Email Body</label>
+            <button class="btn btn-ghost btn-sm" onclick="obUseSampleEmail()">Use Sample</button>
+          </div>
+          <textarea id="obEmailBody" rows="8">${esc(body)}</textarea>
+        </div>
+      </div>
+      ${obNavButtons(id, {
+        prevStep: 4,
+        nextLabel: 'Save & Continue',
+        nextAction: `obSaveEmail('${id}')`,
+        skipLabel: 'Skip',
+        skipAction: `obGoStep('${id}', 6)`,
+      })}
+    </div>`;
+}
+
+function obUseSampleEmail() {
+  const s = document.getElementById('obEmailSubject');
+  const b = document.getElementById('obEmailBody');
+  if (s) s.value = OB_SAMPLE_EMAIL_SUBJECT;
+  if (b) b.value = OB_SAMPLE_EMAIL_BODY;
+  toast('Sample email loaded');
+}
+
+async function obSaveEmail(id) {
+  const body = document.getElementById('obEmailBody')?.value.trim() || '';
+  const subject = document.getElementById('obEmailSubject')?.value.trim() || '';
+  if (!body) { await obGoStep(id, 6); return; }
+  try {
+    await api("POST", `/projects/${id}/email-template/save-example`, {
+      text: body, subject_template: subject, smart_subject: false,
+    });
+    toast('Email template saved');
+    await obGoStep(id, 6);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Step 6: Connect Email ──────────────────────────────────
+
+async function renderObStep6(id, page) {
+  const gmailConnected = globalConfig.gmail_connected;
+  const outlookConnected = globalConfig.outlook_connected;
+  const isConnected = gmailConnected || outlookConnected;
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(6, 'Connect Your Email', 'Connect Gmail or Outlook to automatically save applications as draft emails.')}
+      <div class="ob-body">
+        <div class="ob-email-options">
+          <div class="ob-email-option ${gmailConnected ? 'ob-email-connected' : ''}">
+            <div class="ob-email-option-left">
+              <div class="ob-email-icon">✉️</div>
+              <div>
+                <strong>Gmail</strong>
+                ${gmailConnected
+                  ? `<div class="ob-connected-label">Connected: ${esc(globalConfig.gmail_email || '')}</div>`
+                  : '<div class="ob-connect-desc">Save drafts directly to Gmail</div>'}
+              </div>
+            </div>
+            ${gmailConnected
+              ? `<button class="btn btn-secondary btn-sm" onclick="disconnectGmail()">Disconnect</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail</button>`}
+          </div>
+          <div class="ob-email-option ${outlookConnected ? 'ob-email-connected' : ''}">
+            <div class="ob-email-option-left">
+              <div class="ob-email-icon">📧</div>
+              <div>
+                <strong>Outlook</strong>
+                ${outlookConnected
+                  ? `<div class="ob-connected-label">Connected: ${esc(globalConfig.outlook_email || '')}</div>`
+                  : '<div class="ob-connect-desc">Save drafts directly to Outlook</div>'}
+              </div>
+            </div>
+            ${outlookConnected
+              ? `<button class="btn btn-secondary btn-sm" onclick="disconnectOutlook()">Disconnect</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="connectOutlook()">Connect Outlook</button>`}
+          </div>
+        </div>
+        ${isConnected ? '<div class="ob-success-note">✓ Email connected — applications will be saved as drafts for your review.</div>' : ''}
+      </div>
+      ${obNavButtons(id, {
+        prevStep: 5,
+        nextLabel: isConnected ? 'Continue' : 'Skip for Now',
+        nextAction: `obGoStep('${id}', 7)`,
+      })}
+    </div>`;
+}
+
+// ── Step 7: Search Positions ───────────────────────────────
+
+async function renderObStep7(id, page) {
+  const proj = await api("GET", `/projects/${id}`).catch(() => ({ config: {} }));
+  const savedReq = proj.config?.job_requirements || '';
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(7, 'Search for Positions', "Describe the jobs you're looking for. We'll find 3 matching positions.")}
+      <div class="ob-body">
+        <div class="ob-field">
+          <div class="ob-field-header">
+            <label>Job Requirements</label>
+            <button class="btn btn-ghost btn-sm" onclick="obUseSampleReq()">Use Sample</button>
+          </div>
+          <textarea id="obJobReq" rows="4"
+            placeholder="e.g. Junior Architect positions in New York, 0-1 years experience, prefer cultural or museum projects"
+          >${esc(savedReq)}</textarea>
+        </div>
+        <div id="obSearchMsg"></div>
+      </div>
+      <div class="ob-nav">
+        <button class="btn btn-secondary" onclick="obGoStep('${id}', 6)">← Back</button>
+        <div class="ob-nav-right">
+          <button class="btn btn-ghost" onclick="obGoStep('${id}', 8)">Skip Search</button>
+          <button class="btn btn-primary" id="obSearchBtn" onclick="obRunSearch('${id}')">▶ Search (3 positions)</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function obUseSampleReq() {
+  const el = document.getElementById('obJobReq');
+  if (el) el.value = OB_SAMPLE_JOB_REQ;
+}
+
+async function obRunSearch(id) {
+  const btn = document.getElementById('obSearchBtn');
+  const msgDiv = document.getElementById('obSearchMsg');
+  const jobReq = document.getElementById('obJobReq')?.value.trim() || '';
+  if (!jobReq) { toast('Please enter job requirements', 'error'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Searching...';
+  if (msgDiv) msgDiv.innerHTML = '';
+  showProgress("Searching for Positions", "Preparing search...", true);
+  try {
+    await api("PUT", `/projects/${id}/config`, { job_requirements: jobReq });
+    animateSearchProgress();
+    const result = await api("POST", `/projects/${id}/search`, { count: 3 });
+    finishAllProgressSteps();
+    updateProgress(100, 'Search complete!');
+    await new Promise(r => setTimeout(r, 600));
+    hideProgress();
+    if (result.credit_usage?.balance != null) updateCreditsDisplay(result.credit_usage.balance);
+    onboardingSearchResults = result.targets || [];
+    if (onboardingSearchResults.length === 0) {
+      if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--text2);font-size:13px;padding:12px 0">No positions found. Try adjusting your requirements.</div>`;
+    } else {
+      await obGoStep(id, 8);
+    }
+  } catch (e) {
+    hideProgress();
+    toast(e.message, 'error');
+    if (msgDiv) msgDiv.innerHTML = `<div style="color:var(--red);font-size:13px">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '▶ Search (3 positions)';
+  }
+}
+
+// ── Step 8: Review & Generate ─────────────────────────────
+
+async function renderObStep8(id, page) {
+  const targets = onboardingSearchResults;
+  if (targets.length === 0) {
+    page.innerHTML = `
+      <div class="ob-card">
+        ${obHeader(8, 'Review Results', 'No search results to review.')}
+        <div class="ob-body"><p class="ob-desc">Go back to search, or skip to finish setup.</p></div>
+        ${obNavButtons(id, { prevStep: 7, nextLabel: 'Finish Setup', nextAction: `obGoStep('${id}', 9)` })}
+      </div>`;
+    return;
+  }
+  const resultsHtml = targets.map((t, i) => {
+    const sourceLink = (t.source && t.source.startsWith('http'))
+      ? `<a href="${esc(t.source)}" target="_blank" rel="noopener" class="source-link" title="View posting">🔗</a>` : '';
+    return `<div class="search-result-row" id="obResultRow_${i}">
+      <div class="search-result-info">
+        <span class="firm-name">${esc(t.firm)}${sourceLink}</span>
+        <span class="search-detail">${esc(t.position || '')} | ${esc(t.location || '')} | ${esc(t.email || '')}</span>
+      </div>
+      <button class="btn-remove-target" onclick="obRemoveResult(${i})" title="Remove">×</button>
+    </div>`;
+  }).join('');
+  page.innerHTML = `
+    <div class="ob-card">
+      ${obHeader(8, 'Review & Generate', 'Review the positions found. Deselect any you don\'t want, then generate.')}
+      <div class="ob-body">
+        <div class="search-results-panel ob-results-panel">
+          <div class="search-results-title">Found ${targets.length} position(s)</div>
+          <div id="obResultsList">${resultsHtml}</div>
+          <div id="obResultsCount" class="ob-results-count">${targets.length} position(s) ready</div>
+        </div>
+      </div>
+      <div class="ob-nav">
+        <button class="btn btn-secondary" onclick="obGoStep('${id}', 7)">← Back</button>
+        <div class="ob-nav-right">
+          <button class="btn btn-ghost" onclick="obGoStep('${id}', 9)">Skip Generation</button>
+          <button class="btn btn-primary" id="obGenerateAppBtn" onclick="obGenerateApplications('${id}')">▶ Generate & Save to Drafts</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function obRemoveResult(index) {
+  onboardingSearchResults.splice(index, 1);
+  const row = document.getElementById(`obResultRow_${index}`);
+  if (row) row.remove();
+  const countEl = document.getElementById('obResultsCount');
+  if (countEl) countEl.textContent = `${onboardingSearchResults.length} position(s) ready`;
+  if (onboardingSearchResults.length === 0) {
+    const list = document.getElementById('obResultsList');
+    if (list) list.innerHTML = '<div class="ob-empty-hint">All positions removed. Go back to search again.</div>';
+    const genBtn = document.getElementById('obGenerateAppBtn');
+    if (genBtn) genBtn.disabled = true;
+  }
+}
+
+async function obGenerateApplications(id) {
+  const targets = onboardingSearchResults;
+  if (targets.length === 0) { toast('No positions to generate', 'error'); return; }
+  const btn = document.getElementById('obGenerateAppBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Generating...';
+  const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
+  const subjectTemplate = emailTpl.subject_template || OB_SAMPLE_EMAIL_SUBJECT;
+  showProgress("Generating Applications", `0 / ${targets.length} positions`, false);
+  updateProgress(0);
+  try {
+    const streamHeaders = { "Content-Type": "application/json" };
+    if (accessToken) streamHeaders["Authorization"] = `Bearer ${accessToken}`;
+    const response = await fetch(`/api/projects/${id}/generate-stream`, {
+      method: "POST",
+      headers: streamHeaders,
+      body: JSON.stringify({ targets, subject_template: subjectTemplate, smart_subject: false }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(err.detail || "Generate failed");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "", finalResult = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        try {
+          const evt = JSON.parse(line.slice(6));
+          if (evt.type === "progress") {
+            if (evt.pct !== undefined) updateProgress(evt.pct);
+            if (evt.status) updateProgress(null, evt.status);
+            if (evt.step) addProgressStep(evt.step);
+          } else if (evt.type === "target_done") {
+            addProgressStep(`${evt.firm} - Done`);
+          } else if (evt.type === "complete") { finalResult = evt; }
+        } catch (_) {}
+      }
+    }
+    finishAllProgressSteps();
+    updateProgress(100, 'All done!');
+    await new Promise(r => setTimeout(r, 800));
+    hideProgress();
+    if (finalResult?.credit_usage?.balance != null) updateCreditsDisplay(finalResult.credit_usage.balance);
+    if (finalResult?.credit_usage) showCreditUsage(finalResult.credit_usage);
+    window._obFinalResult = finalResult;
+    onboardingSearchResults = [];
+    const proj = projects.find(p => p.id === id);
+    if (proj) proj.tracker_count = (proj.tracker_count || 0) + (finalResult?.generated?.length || 0);
+    await obGoStep(id, 9);
+  } catch (e) {
+    hideProgress();
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '▶ Generate & Save to Drafts';
+  }
+}
+
+// ── Step 9: Complete ───────────────────────────────────────
+
+async function renderObStep9(id, page) {
+  const finalResult = window._obFinalResult;
+  const generated = finalResult?.generated || [];
+  const genHtml = generated.length > 0 ? `
+    <div class="ob-gen-results">
+      ${generated.map(r => `
+        <div class="ob-gen-item">
+          <span>${r.pdf && r.draft ? '✅' : '⚠️'}</span>
+          <span>${esc(r.firm)}</span>
+          ${r.pdf ? '<span class="badge badge-ok">PDF</span>' : ''}
+          ${r.draft ? '<span class="badge badge-ok">Draft</span>' : ''}
+        </div>`).join('')}
+    </div>` : '';
+  page.innerHTML = `
+    <div class="ob-card ob-card-complete">
+      ${obProgressBar(OB_TOTAL_STEPS)}
+      <div class="ob-complete-icon">
+        <svg viewBox="0 0 52 52" width="64" height="64">
+          <circle cx="26" cy="26" r="25" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M14 27l8 8 16-16"/>
+        </svg>
+      </div>
+      <h2 class="ob-complete-title">Setup Complete!</h2>
+      <p class="ob-complete-msg">${generated.length > 0
+        ? `${generated.length} application${generated.length !== 1 ? 's' : ''} generated and saved to your email drafts.`
+        : 'Your project is ready. Search for positions and generate applications anytime.'}</p>
+      ${genHtml}
+      <button class="btn btn-primary ob-complete-btn" onclick="obFinish('${id}')">
+        View My Project →
+      </button>
+    </div>`;
+}
+
+async function obFinish(id) {
+  try {
+    await api("PUT", `/projects/${id}/config`, { onboarding_complete: true });
+    const proj = projects.find(p => p.id === id);
+    if (proj) proj.onboarding_complete = true;
+  } catch (e) { console.warn('Failed to save onboarding_complete:', e); }
+  window._obFinalResult = null;
+  activeProjectId = id;
+  showView('viewProjectHome');
+  updateTopBarSelect();
+  await renderProjectHome(id);
 }
 
 // ── Utility ───────────────────────────────────────────────

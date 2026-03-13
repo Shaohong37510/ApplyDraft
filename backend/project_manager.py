@@ -56,6 +56,7 @@ def list_projects(user_id: str) -> list[dict]:
                 "name": config.get("project_name", p.name),
                 "tracker_count": tracker_count,
                 "job_requirements": job_req_short,
+                "onboarding_complete": config.get("onboarding_complete", False),
             })
     return results
 
