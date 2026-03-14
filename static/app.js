@@ -628,7 +628,7 @@ async function renderProjectHomeMain(id, page) {
         <div class="home-nav-item" onclick="openTableModal()">
           <span class="home-nav-icon">📋</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">投递记录表格</div>
+            <div class="home-nav-title">Application Table</div>
             <div class="home-nav-sub">${total} records</div>
           </div>
           <span class="home-nav-arrow">›</span>
@@ -675,7 +675,7 @@ async function renderProjectHomeStats(id, page) {
   page.innerHTML = `
     <div class="project-home-content">
       <div class="sub-view-header">
-        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← Back</button>
         <h2 class="sub-view-title">Statistics</h2>
       </div>
 
@@ -734,7 +734,7 @@ async function renderProjectHomeEmail(id, page) {
   page.innerHTML = `
     <div class="project-home-content">
       <div class="sub-view-header">
-        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← Back</button>
         <h2 class="sub-view-title">Email Preview</h2>
       </div>
 
@@ -763,7 +763,7 @@ async function renderProjectHomeEmail(id, page) {
 
       <div style="margin-top:14px">
         <button class="btn btn-secondary" onclick="navigateToEdit('${id}', 'email')">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>编辑邮件模板
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Edit Email Template
         </button>
       </div>
     </div>
@@ -850,7 +850,7 @@ async function renderProjectHomeCustomize(id, page) {
   page.innerHTML = `
     <div class="project-home-content">
       <div class="sub-view-header">
-        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← Back</button>
         <h2 class="sub-view-title">Customize Files</h2>
       </div>
       <div class="customize-section">
