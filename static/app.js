@@ -1134,78 +1134,13 @@ async function renderStartApply(id) {
   page.innerHTML = '<div class="view-loading">Loading...</div>';
 
   try {
-    const [proj, emailTpl] = await Promise.all([
-      api("GET", `/projects/${id}`),
-      api("GET", `/projects/${id}/email-template`).catch(() => ({}))
-    ]);
-
-    currentEmailTpl = emailTpl;
+    const proj = await api("GET", `/projects/${id}`);
     const cfg = proj.config || {};
-    const connectedEmail = globalConfig.gmail_email || globalConfig.outlook_email || '';
-
-    // Build attachment list for preview
-    const customizeFiles = cfg.customize_files || [];
-    const attachableFiles = customizeFiles.filter(cf => cf.id !== 'email_body' && cf.is_attachment !== false);
-    const materials = proj.materials || [];
-
-    const attachmentChips = [
-      ...materials.map(f => `<span class="attachment-chip">📎 ${esc(f)}</span>`),
-      ...attachableFiles.map(f => `<span class="attachment-chip generated-chip">📄 ${esc(f.label)} (generated)</span>`)
-    ].join('') || `<span class="text-muted">No attachments configured</span>`;
-
-    const bodyPreview = (() => {
-      // Show user's pasted example; fall back to raw template
-      if (emailTpl.example) return emailTpl.example.trim();
-      if (!emailTpl.template) return '(No email template yet — go to Edit Settings → Email Template to set one)';
-      // Strip HTML if template is HTML
-      let src = emailTpl.template;
-      src = src.replace(/<style[\s\S]*?<\/style>/gi, '');
-      src = src.replace(/<head[\s\S]*?<\/head>/gi, '');
-      return src.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    })();
-
-    const subjectPreview = emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}';
 
     page.innerHTML = `
       <div class="start-apply-content">
 
-        <!-- ─ Part A: Email Preview ─ -->
-        <div class="apply-section">
-          <h3 class="apply-section-title">Email Preview</h3>
-          <div class="email-preview-card">
-
-            <div class="email-field-row">
-              <span class="email-field-label">Subject</span>
-              <span class="email-field-value">${esc(subjectPreview)}</span>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-            </div>
-
-            <div class="email-field-row">
-              <span class="email-field-label">From</span>
-              <span class="email-field-value">${connectedEmail ? esc(connectedEmail) : '<em style="color:var(--orange)">Not connected</em>'}</span>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'global')" title="Edit email account"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-            </div>
-
-            <div class="email-field-row email-field-body">
-              <span class="email-field-label">Body</span>
-              <textarea class="email-field-value email-body-preview" readonly rows="5" style="resize:vertical;line-height:1.6;word-break:break-word;background:transparent;border:none;width:100%;outline:none;cursor:default;color:inherit;font:inherit;padding:0">${esc(bodyPreview)}</textarea>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body template"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-            </div>
-
-            <div class="email-field-row">
-              <span class="email-field-label">Attachments</span>
-              <div class="email-attachments-list">${attachmentChips}</div>
-              <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'project')" title="Edit attachments"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
-            </div>
-
-          </div>
-
-          <button class="btn btn-secondary" onclick="navigateToEdit('${id}')" style="margin-top:14px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Edit Application Files
-          </button>
-        </div>
-
-        <!-- ─ Part B: Job Requirements & Search ─ -->
+        <!-- ─ Job Requirements & Search ─ -->
         <div class="apply-section">
           <h3 class="apply-section-title">Job Requirements & Search</h3>
 
