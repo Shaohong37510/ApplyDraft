@@ -434,7 +434,7 @@ function updateTopBarSelect() {
 
   let html;
   if (currentView === 'viewProjectHome') {
-    const subLabels = { stats: ' — 投递统计', email: ' — 邮件预览', customize: ' — 个性化文件' };
+    const subLabels = { stats: ' — Statistics', email: ' — Email Preview', customize: ' — Customize Files' };
     const subLabel = _projectHomeSubView ? (subLabels[_projectHomeSubView] || '') : '';
     html = homeBtn + sep + `<span class="breadcrumb-current">${esc(name)}${subLabel}</span>`;
   } else if (currentView === 'viewStartApply') {
@@ -601,8 +601,8 @@ async function renderProjectHomeMain(id, page) {
         <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'stats')">
           <span class="home-nav-icon">📊</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">投递统计</div>
-            <div class="home-nav-sub">${total} 份投递 · 本周 ${thisWeek} 份 · 已生成 ${generated} 份</div>
+            <div class="home-nav-title">Statistics</div>
+            <div class="home-nav-sub">${total} total · ${thisWeek} this week · ${generated} generated</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -610,8 +610,8 @@ async function renderProjectHomeMain(id, page) {
         <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'email')">
           <span class="home-nav-icon">✉️</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">邮件预览</div>
-            <div class="home-nav-sub">查看邮件主题、正文和附件</div>
+            <div class="home-nav-title">Email Preview</div>
+            <div class="home-nav-sub">View subject, body and attachments</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -619,8 +619,8 @@ async function renderProjectHomeMain(id, page) {
         <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'customize')">
           <span class="home-nav-icon">📝</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">个性化文件</div>
-            <div class="home-nav-sub">Cover Letter 模板与自定义内容</div>
+            <div class="home-nav-title">Customize Files</div>
+            <div class="home-nav-sub">Cover letter templates and custom content</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -629,7 +629,7 @@ async function renderProjectHomeMain(id, page) {
           <span class="home-nav-icon">📋</span>
           <div class="home-nav-info">
             <div class="home-nav-title">投递记录表格</div>
-            <div class="home-nav-sub">${total} 条记录</div>
+            <div class="home-nav-sub">${total} records</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -637,8 +637,8 @@ async function renderProjectHomeMain(id, page) {
         <div class="home-nav-item" onclick="openFilesModal('${id}')">
           <span class="home-nav-icon">📁</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">已生成的文件</div>
-            <div class="home-nav-sub">Cover Letters、Email 草稿</div>
+            <div class="home-nav-title">Generated Files</div>
+            <div class="home-nav-sub">Cover letters &amp; email drafts</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -647,7 +647,7 @@ async function renderProjectHomeMain(id, page) {
 
       <div class="home-action-row">
         <button class="btn-start-apply btn-start-apply-compact" onclick="navigateToStartApply('${id}')">
-          ▶ &nbsp;开始搜索并添加岗位
+          ▶ &nbsp;Start Search &amp; Add Jobs
         </button>
       </div>
 
@@ -658,7 +658,7 @@ async function renderProjectHomeMain(id, page) {
 // ── Project Home: Stats sub-view ──────────────────────────
 
 async function renderProjectHomeStats(id, page) {
-  const [proj, trackerData] = await Promise.all([
+  const [, trackerData] = await Promise.all([
     _homeProj || api("GET", `/projects/${id}`),
     _homeTrackerData.length ? Promise.resolve(_homeTrackerData) : api("GET", `/projects/${id}/tracker`).catch(() => [])
   ]);
@@ -676,7 +676,7 @@ async function renderProjectHomeStats(id, page) {
     <div class="project-home-content">
       <div class="sub-view-header">
         <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
-        <h2 class="sub-view-title">投递统计</h2>
+        <h2 class="sub-view-title">Statistics</h2>
       </div>
 
       <div class="stats-row">
@@ -735,7 +735,7 @@ async function renderProjectHomeEmail(id, page) {
     <div class="project-home-content">
       <div class="sub-view-header">
         <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
-        <h2 class="sub-view-title">邮件预览</h2>
+        <h2 class="sub-view-title">Email Preview</h2>
       </div>
 
       <div class="email-preview-card">
@@ -851,7 +851,7 @@ async function renderProjectHomeCustomize(id, page) {
     <div class="project-home-content">
       <div class="sub-view-header">
         <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← 返回</button>
-        <h2 class="sub-view-title">个性化文件</h2>
+        <h2 class="sub-view-title">Customize Files</h2>
       </div>
       <div class="customize-section">
         ${customizeHtml || '<div class="empty-state"><p>No file types configured.</p></div>'}
@@ -1792,7 +1792,7 @@ async function generateEmailTemplate(id) {
       text, subject_template: subjectTemplate, smart_subject: smartSubject
     });
     toast("Generating email template...", "success");
-    const result = await api("POST", `/projects/${id}/email-template/generate`);
+    await api("POST", `/projects/${id}/email-template/generate`);
     toast("Email template generated!");
     renderEditView(id);
   } catch (e) {
@@ -1805,7 +1805,7 @@ async function generateEmailTemplate(id) {
 async function previewTypeTemplate(id, typeId) {
   try {
     toast("Generating preview PDF...", "success");
-    const result = await api("POST", `/projects/${id}/customize/${typeId}/preview`);
+    await api("POST", `/projects/${id}/customize/${typeId}/preview`);
     const pathEl = document.getElementById(`previewPath_${typeId}`);
     if (pathEl) {
       pathEl.innerHTML = `<a href="#" class="preview-link" onclick="apiOpenPdf('/projects/${id}/customize/${typeId}/preview-pdf');return false;">&#128065; Open Preview PDF</a>`;
@@ -1840,7 +1840,7 @@ async function generateProjectMd(id) {
   try {
     await saveProjectConfig(id);
     toast("Generating AI instructions...", "success");
-    const result = await api("POST", `/projects/${id}/generate-project-md`);
+    await api("POST", `/projects/${id}/generate-project-md`);
     toast("project.md generated!");
   } catch (e) {
     toast(e.message, "error");
