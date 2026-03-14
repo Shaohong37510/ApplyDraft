@@ -2561,6 +2561,19 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--text2);
 }
 
+.btn-ob-skip {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.btn-ob-skip:hover { color: var(--text2); }
+
 /* Title Area */
 .ob-title-area { display: flex; flex-direction: column; gap: 4px; }
 .ob-title { font-size: 20px; font-weight: 600; color: var(--text); }

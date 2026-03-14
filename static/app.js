@@ -2526,10 +2526,22 @@ async function renderOnboarding(id) {
       case 9: await renderObStep9(id, page); break;
       default: await renderObStep1(id, page);
     }
+    // Inject skip link into progress bar row (not on final step)
+    if (currentOnboardingStep < 9) {
+      const progress = page.querySelector('.ob-progress');
+      if (progress) {
+        progress.insertAdjacentHTML('beforeend',
+          `<button class="btn-ob-skip" onclick="obSkip('${id}')">Skip setup</button>`);
+      }
+    }
   } catch (e) {
     page.innerHTML = `<div class="view-error">Failed to load step: ${esc(e.message)}</div>`;
   }
   window.scrollTo(0, 0);
+}
+
+async function obSkip(id) {
+  await obFinish(id);
 }
 
 async function obGoStep(id, step) {
