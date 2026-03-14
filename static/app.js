@@ -392,6 +392,29 @@ async function init() {
   }
 }
 
+// ── OAuth popup message handler ───────────────────────────
+// Replaces the old location.reload() approach so onboarding state
+// (currentOnboardingStep, activeProjectId, currentView) is preserved.
+window.addEventListener('message', async (event) => {
+  let data;
+  try { data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data; } catch { return; }
+  if (!data || data.type !== 'oauth_complete') return;
+
+  // Refresh global config so connected email shows up immediately
+  globalConfig = await api("GET", "/global-config").catch(() => globalConfig);
+
+  // Re-render current view in place — no page reload
+  if (currentView === 'viewOnboarding' && activeProjectId) {
+    await renderOnboarding(activeProjectId);
+  } else if (currentView === 'viewEdit' && activeProjectId) {
+    await renderEditView(activeProjectId);
+  } else if (currentView === 'viewProjectHome' && activeProjectId) {
+    await renderProjectHome(activeProjectId);
+  }
+
+  toast('Email account connected!');
+});
+
 async function loadApp() {
   try {
     await updateUserInfo();

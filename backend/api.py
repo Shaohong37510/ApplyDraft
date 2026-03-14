@@ -363,8 +363,8 @@ def outlook_callback(request: Request, code: str = "", error: str = "", state: s
         <p>Logged in as: {user_email if email_ok else '(unknown)'}</p>
         <p>You can close this window.</p>
         <script>
-            if (window.opener) {{ window.opener.location.reload(); }}
-            setTimeout(()=>window.close(), 2000);
+            if (window.opener) {{ window.opener.postMessage({{type:'oauth_complete',provider:'outlook'}}, '*'); }}
+            setTimeout(()=>window.close(), 1500);
         </script>
     </body></html>""")
 
@@ -445,8 +445,8 @@ def gmail_callback(request: Request, code: str = "", error: str = "", state: str
         <p>Logged in as: {user_email if email_ok else '(unknown)'}</p>
         <p>You can close this window.</p>
         <script>
-            if (window.opener) {{ window.opener.location.reload(); }}
-            setTimeout(()=>window.close(), 2000);
+            if (window.opener) {{ window.opener.postMessage({{type:'oauth_complete',provider:'gmail'}}, '*'); }}
+            setTimeout(()=>window.close(), 1500);
         </script>
     </body></html>""")
 
