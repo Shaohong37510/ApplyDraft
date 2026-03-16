@@ -962,28 +962,33 @@ async function renderProjectHomeEmailEdit(id, page) {
         <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', 'email')">← Back</button>
         <h2 class="sub-view-title">Edit Email Template</h2>
       </div>
-      <div class="customize-section">
+      <div class="section-body" style="padding:0">
         <label>Email Subject Template</label>
         <div class="subject-template-row">
-          <input type="text" id="homeEmailSubject" value="${esc(emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}')}">
+          <input type="text" id="homeEmailSubject" value="${esc(emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}')}"
+            placeholder="Application for {{POSITION}} - {{NAME}}">
+          <label class="smart-subject-toggle">
+            <input type="checkbox" id="homeSmartSubject" ${emailTpl.smart_subject ? 'checked' : ''}>
+            <span>Smart Subject</span>
+          </label>
         </div>
-        <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}</div>
+        <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}. When Smart Subject is enabled, each firm's career page will be searched during batch generation for required subject format.</div>
 
-        <label style="margin-top:14px;display:block">Email Body Example</label>
-        <textarea id="homeEmailExample" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...">${esc(emailTpl.example || '')}</textarea>
+        <label>Paste an example email (full text)</label>
+        <textarea id="homeEmailExample" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...&#10;&#10;Best regards,&#10;Your Name">${esc(emailTpl.example || '')}</textarea>
 
         <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
           <button class="btn btn-secondary btn-sm" onclick="homeEmailSaveExample('${id}')">Save</button>
-          <button class="btn btn-primary btn-sm" onclick="homeEmailGenerate('${id}')">✎ Generate Template</button>
+          <button class="btn btn-primary btn-sm" onclick="homeEmailGenerate('${id}')">&#9998; Generate Template</button>
         </div>
 
-        <label style="margin-top:16px;display:block">Template <span style="font-weight:400;opacity:.6;font-size:.85em">({{CUSTOM_1}}, {{CUSTOM_2}} written by AI per firm)</span></label>
-        <textarea class="tpl-textarea" id="tpl-email_body" rows="8">${esc(tplText)}</textarea>
+        <label>Template</label>
+        <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(tplText)}</textarea>
 
-        <label style="margin-top:12px;display:block">AI Instructions</label>
-        <textarea class="tpl-textarea" id="def-email_body" rows="5">${esc(defsText)}</textarea>
+        <label>Custom Definitions</label>
+        <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(defsText)}</textarea>
 
-        <div style="margin-top:10px; display:flex; gap:8px;">
+        <div style="margin-top:8px">
           <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
         </div>
       </div>
@@ -994,9 +999,10 @@ async function renderProjectHomeEmailEdit(id, page) {
 async function homeEmailSaveExample(id) {
   const text = document.getElementById('homeEmailExample')?.value.trim() || '';
   const subject = document.getElementById('homeEmailSubject')?.value.trim() || '';
+  const smartSubject = document.getElementById('homeSmartSubject')?.checked || false;
   if (!text) { toast('Paste an email first', 'error'); return; }
   try {
-    await api("POST", `/projects/${id}/email-template/save-example`, { text, subject_template: subject, smart_subject: false });
+    await api("POST", `/projects/${id}/email-template/save-example`, { text, subject_template: subject, smart_subject: smartSubject });
     toast('Saved');
   } catch (e) { toast(e.message, 'error'); }
 }
