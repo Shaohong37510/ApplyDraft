@@ -12,6 +12,9 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- ═══ SEO: Title & Meta ══════════════════════════════════ -->
   <title>ApplyDraft – AI Job Application Tool | Auto Apply with Personalized Cover Letters</title>
@@ -151,7 +154,7 @@
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
   <link rel="apple-touch-icon" href="/static/favicon-192.png">
-  <link rel="stylesheet" href="/static/style.css?v=34">
+  <link rel="stylesheet" href="/static/style.css?v=35">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -159,16 +162,27 @@
 <!-- ═══ Loading Indicator (shown until init completes) ════ -->
 <div id="loadingScreen" style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b90a5;font-size:16px;">Loading...</div>
 
+<!-- ═══ Sticky Nav ═══════════════════════════════════════════ -->
+<nav class="landing-nav" id="landingNav">
+  <span class="landing-nav-logo">ApplyDraft</span>
+  <div class="landing-nav-links">
+    <a href="#" onclick="showAboutPage('pricing');return false;">Pricing</a>
+    <a href="#" onclick="showAboutPage('faq');return false;">FAQ</a>
+  </div>
+  <button class="landing-nav-cta" onclick="showLoginFromLanding()">Get Started Free</button>
+</nav>
+
 <!-- ═══ Landing Page ════════════════════════════════════════ -->
 <div id="landingPage" style="display:none">
 
   <!-- Hero -->
   <div class="landing-hero">
+    <div class="hero-glow" aria-hidden="true"></div>
     <div class="landing-container">
-      <div class="landing-brand-badge">ApplyDraft</div>
+      <div class="hero-announce-pill">✦ Gmail &amp; Outlook integration — save drafts, you send</div>
       <h1 class="landing-title">
-        Apply to 50 Jobs Today —<br>
-        <span class="gradient-text">AI Writes a Personalized Cover Letter and Email for Each One</span>
+        Apply to More Jobs Today —<br>
+        <span class="gradient-text">AI Writes Every Cover Letter</span>
       </h1>
       <p class="landing-subtitle">
         ApplyDraft reads every job description and auto-generates a tailored cover letter PDF and application email — <strong style="text-decoration:underline">saved directly to your Gmail or Outlook drafts. You review. You send. No bots, no spam, no mistakes.</strong>
@@ -181,6 +195,33 @@
         <span class="trust-pill">✓ No subscription — pay per use</span>
         <span class="trust-pill">✓ Gmail &amp; Outlook</span>
         <span class="trust-pill">✓ You review before sending</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics Bar -->
+  <div class="landing-metrics">
+    <div class="landing-container">
+      <div class="metrics-row">
+        <div class="metric-item">
+          <span class="metric-num">&lt;2 min</span>
+          <span class="metric-label">per tailored application</span>
+        </div>
+        <div class="metric-sep" aria-hidden="true"></div>
+        <div class="metric-item">
+          <span class="metric-num">100%</span>
+          <span class="metric-label">personalized per job posting</span>
+        </div>
+        <div class="metric-sep" aria-hidden="true"></div>
+        <div class="metric-item">
+          <span class="metric-num">2-in-1</span>
+          <span class="metric-label">cover letter PDF + email draft</span>
+        </div>
+        <div class="metric-sep" aria-hidden="true"></div>
+        <div class="metric-item">
+          <span class="metric-num">$0</span>
+          <span class="metric-label">to start, no subscription</span>
+        </div>
       </div>
     </div>
   </div>
@@ -720,5 +761,42 @@
 </div>
 
 <script src="/static/app.js?v=25"></script>
+<script>
+// Sticky nav on scroll
+(function() {
+  var nav = document.getElementById('landingNav');
+  if (!nav) return;
+  window.addEventListener('scroll', function() {
+    nav.classList.toggle('visible', window.scrollY > 80);
+  }, { passive: true });
+})();
+
+// FAQ accordion toggle
+document.addEventListener('click', function(e) {
+  var q = e.target.closest('.landing-faq .faq-q');
+  if (!q) return;
+  var item = q.closest('.faq-item');
+  if (!item) return;
+  var isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.landing-faq .faq-item.open').forEach(function(el) {
+    el.classList.remove('open');
+    var a = el.querySelector('.faq-a');
+    if (a) a.style.display = 'none';
+  });
+  // Open clicked if it was closed
+  if (!isOpen) {
+    item.classList.add('open');
+    var a = item.querySelector('.faq-a');
+    if (a) a.style.display = 'block';
+  }
+});
+// Hide all faq-a in landing-faq initially
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.landing-faq .faq-a').forEach(function(a) {
+    a.style.display = 'none';
+  });
+});
+</script>
 </body>
 </html>
