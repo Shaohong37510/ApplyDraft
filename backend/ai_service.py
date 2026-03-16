@@ -220,14 +220,39 @@ Return JSON with "template" (complete HTML document) and "definitions" keys."""
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             parsed = json.loads(json_match.group())
-            return {
-                "template": parsed.get("template", ""),
-                "definitions": parsed.get("definitions", ""),
-            }, usage
+            template = parsed.get("template", "")
+            definitions = parsed.get("definitions", "")
+            if not isinstance(template, str):
+                template = str(template)
+            if not isinstance(definitions, str):
+                definitions = _dict_definitions_to_text(definitions)
+            return {"template": template, "definitions": definitions}, usage
     except json.JSONDecodeError:
         pass
 
     return {"template": result, "definitions": "Could not parse definitions. Please edit manually."}, usage
+
+
+def _dict_definitions_to_text(defs: dict) -> str:
+    """Convert a dict-format definitions response to the expected plain-text format."""
+    lines = []
+    for key, val in defs.items():
+        label = key.upper().replace(" ", "_")
+        if isinstance(val, dict):
+            desc = val.get("description", val.get("desc", ""))
+            prompt = val.get("PROMPT", val.get("prompt", ""))
+            examples = val.get("EXAMPLES", val.get("examples", ""))
+            constraints = val.get("CONSTRAINTS", val.get("constraints", ""))
+            key_info = val.get("KEY INFORMATIONS", val.get("key_informations", val.get("key_information", "")))
+            lines.append(f"[{label}]: {desc}")
+            if prompt:      lines.append(f"PROMPT: {prompt}")
+            if examples:    lines.append(f"EXAMPLES: {examples}")
+            if constraints: lines.append(f"CONSTRAINTS: {constraints}")
+            if key_info:    lines.append(f"KEY INFORMATIONS: {key_info}")
+        else:
+            lines.append(f"[{label}]: {val}")
+        lines.append("")
+    return "\n".join(lines).strip()
 
 
 # ── Generate email template from example ───────────────────────
@@ -270,11 +295,11 @@ Return JSON with "template" and "definitions" keys."""
             parsed = json.loads(json_match.group())
             template = parsed.get("template", "")
             definitions = parsed.get("definitions", "")
-            # Claude sometimes returns definitions as a dict — convert to string
+            # Claude sometimes returns definitions as a dict — convert to plain text
             if not isinstance(template, str):
                 template = str(template)
             if not isinstance(definitions, str):
-                definitions = json.dumps(definitions, ensure_ascii=False, indent=2)
+                definitions = _dict_definitions_to_text(definitions)
             return {"template": template, "definitions": definitions}, usage
     except json.JSONDecodeError:
         pass
