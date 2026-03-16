@@ -57,18 +57,28 @@ async function initSupabase() {
 // ── Template display helper ───────────────────────────────
 
 function extractEditableContent(html) {
-  if (!html || !html.toLowerCase().includes('<html')) return html;
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  if (!bodyMatch) return html;
-  let body = bodyMatch[1];
-  body = body.replace(/<br\s*\/?>/gi, '\n');
-  body = body.replace(/<\/(p|div|h[1-6]|li)>/gi, '\n');
-  body = body.replace(/<(p|div|h[1-6]|li)[^>]*>/gi, '');
-  body = body.replace(/<[^>]+>/g, '');
-  body = body.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-  body = body.split('\n').map(l => l.trim()).join('\n');
-  body = body.replace(/\n{3,}/g, '\n\n');
-  return body.trim();
+  if (!html) return html;
+  if (!html.toLowerCase().includes('<html') && !html.toLowerCase().includes('<!doctype')) return html;
+  // Strip head/style/script sections first
+  let content = html;
+  content = content.replace(/<head[\s\S]*?<\/head>/gi, '');
+  content = content.replace(/<style[\s\S]*?<\/style>/gi, '');
+  content = content.replace(/<script[\s\S]*?<\/script>/gi, '');
+  // Extract body content if available
+  const bodyMatch = content.match(/<body[^>]*>([\s\S]*)/i);
+  if (bodyMatch) content = bodyMatch[1].replace(/<\/body>[\s\S]*/i, '');
+  // Convert block elements to newlines
+  content = content.replace(/<br\s*\/?>/gi, '\n');
+  content = content.replace(/<\/(p|div|h[1-6]|li|tr|td)>/gi, '\n');
+  content = content.replace(/<(p|div|h[1-6]|li|tr|td)[^>]*>/gi, '');
+  // Strip remaining tags
+  content = content.replace(/<[^>]+>/g, '');
+  // Decode HTML entities
+  content = content.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+  // Clean up whitespace
+  content = content.split('\n').map(l => l.trim()).join('\n');
+  content = content.replace(/\n{3,}/g, '\n\n');
+  return content.trim();
 }
 
 async function apiOpenPdf(path) {
