@@ -578,10 +578,12 @@ async function renderProjectHome(id) {
   page.innerHTML = '<div class="view-loading">Loading...</div>';
   try {
     switch (_projectHomeSubView) {
-      case 'stats':    await renderProjectHomeStats(id, page); break;
-      case 'email':    await renderProjectHomeEmail(id, page); break;
-      case 'customize': await renderProjectHomeCustomize(id, page); break;
-      default:         await renderProjectHomeMain(id, page);
+      case 'stats':      await renderProjectHomeStats(id, page); break;
+      case 'email':      await renderProjectHomeEmail(id, page); break;
+      case 'email-edit': await renderProjectHomeEmailEdit(id, page); break;
+      case 'customize':  await renderProjectHomeCustomize(id, page); break;
+      case 'profile':    await renderProjectHomeProfile(id, page); break;
+      default:           await renderProjectHomeMain(id, page);
     }
   } catch (e) {
     page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
@@ -620,6 +622,15 @@ async function renderProjectHomeMain(id, page) {
       </div>
 
       <div class="home-nav-list">
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'profile')">
+          <span class="home-nav-icon">👤</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">Personal Info</div>
+            <div class="home-nav-sub">${cfg.name ? esc(cfg.name) : 'Name, phone, email, address'}</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
 
         <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'stats')">
           <span class="home-nav-icon">📊</span>
@@ -765,7 +776,7 @@ async function renderProjectHomeEmail(id, page) {
         <div class="email-field-row">
           <span class="email-field-label">Subject</span>
           <span class="email-field-value">${esc(subjectPreview)}</span>
-          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit subject"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+          <button class="btn-edit-field" onclick="navigateToHomeSubView('${id}', 'email-edit')" title="Edit subject"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
         </div>
         <div class="email-field-row">
           <span class="email-field-label">From</span>
@@ -775,7 +786,7 @@ async function renderProjectHomeEmail(id, page) {
         <div class="email-field-row email-field-body">
           <span class="email-field-label">Body</span>
           <textarea class="email-field-value email-body-preview" readonly rows="5" style="resize:vertical;line-height:1.6;word-break:break-word;background:transparent;border:none;width:100%;outline:none;cursor:default;color:inherit;font:inherit;padding:0">${esc(bodyPreview)}</textarea>
-          <button class="btn-edit-field" onclick="navigateToEdit('${id}', 'email')" title="Edit body"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+          <button class="btn-edit-field" onclick="navigateToHomeSubView('${id}', 'email-edit')" title="Edit body"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
         </div>
         <div class="email-field-row">
           <span class="email-field-label">Attachments</span>
@@ -785,7 +796,7 @@ async function renderProjectHomeEmail(id, page) {
       </div>
 
       <div style="margin-top:14px">
-        <button class="btn btn-secondary" onclick="navigateToEdit('${id}', 'email')">
+        <button class="btn btn-secondary" onclick="navigateToHomeSubView('${id}', 'email-edit')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>Edit Email Template
         </button>
       </div>
@@ -882,6 +893,125 @@ async function renderProjectHomeCustomize(id, page) {
       </div>
     </div>
   `;
+}
+
+// ── Project Home: Profile sub-view ────────────────────────
+
+async function renderProjectHomeProfile(id, page) {
+  const proj = await api("GET", `/projects/${id}`).catch(() => ({ config: {} }));
+  const cfg = proj.config || {};
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', null)">← Back</button>
+        <h2 class="sub-view-title">Personal Info</h2>
+      </div>
+      <div class="customize-section">
+        <div class="ob-form-grid" style="margin-top:8px">
+          <div class="ob-field">
+            <label>Full Name</label>
+            <input type="text" id="profName" value="${esc(cfg.name || '')}" placeholder="e.g. Jane Smith">
+          </div>
+          <div class="ob-field">
+            <label>Phone</label>
+            <input type="tel" id="profPhone" value="${esc(cfg.phone || '')}" placeholder="e.g. 215-555-1234">
+          </div>
+          <div class="ob-field">
+            <label>Personal Email</label>
+            <input type="email" id="profEmail" value="${esc(cfg.personal_email || '')}" placeholder="e.g. jane@email.com">
+          </div>
+          <div class="ob-field">
+            <label>Address</label>
+            <input type="text" id="profAddress" value="${esc(cfg.address || '')}" placeholder="e.g. Philadelphia, PA">
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary btn-sm" onclick="saveProfileInfo('${id}')">Save</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveProfileInfo(id) {
+  try {
+    await api("PUT", `/projects/${id}/config`, {
+      name: document.getElementById('profName')?.value || '',
+      phone: document.getElementById('profPhone')?.value || '',
+      personal_email: document.getElementById('profEmail')?.value || '',
+      address: document.getElementById('profAddress')?.value || '',
+    });
+    toast('Saved');
+    await navigateToHomeSubView(id, null);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ── Project Home: Email Edit sub-view ─────────────────────
+
+async function renderProjectHomeEmailEdit(id, page) {
+  const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
+  const tplText = extractEditableContent(emailTpl.template || '');
+  const defsText = (emailTpl.definitions || '')
+    .replace(/^Prompt:/gm, 'PROMPT:')
+    .replace(/^Examples:/gm, 'EXAMPLES:')
+    .replace(/^Constrains:/gm, 'CONSTRAINTS:');
+
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', 'email')">← Back</button>
+        <h2 class="sub-view-title">Edit Email Template</h2>
+      </div>
+      <div class="customize-section">
+        <label>Email Subject Template</label>
+        <div class="subject-template-row">
+          <input type="text" id="homeEmailSubject" value="${esc(emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}')}">
+        </div>
+        <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}</div>
+
+        <label style="margin-top:14px;display:block">Email Body Example</label>
+        <textarea id="homeEmailExample" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...">${esc(emailTpl.example || '')}</textarea>
+
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="homeEmailSaveExample('${id}')">Save</button>
+          <button class="btn btn-primary btn-sm" onclick="homeEmailGenerate('${id}')">✎ Generate Template</button>
+        </div>
+
+        <label style="margin-top:16px;display:block">Template <span style="font-weight:400;opacity:.6;font-size:.85em">({{CUSTOM_1}}, {{CUSTOM_2}} written by AI per firm)</span></label>
+        <textarea class="tpl-textarea" id="tpl-email_body" rows="8">${esc(tplText)}</textarea>
+
+        <label style="margin-top:12px;display:block">AI Instructions</label>
+        <textarea class="tpl-textarea" id="def-email_body" rows="5">${esc(defsText)}</textarea>
+
+        <div style="margin-top:10px; display:flex; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function homeEmailSaveExample(id) {
+  const text = document.getElementById('homeEmailExample')?.value.trim() || '';
+  const subject = document.getElementById('homeEmailSubject')?.value.trim() || '';
+  if (!text) { toast('Paste an email first', 'error'); return; }
+  try {
+    await api("POST", `/projects/${id}/email-template/save-example`, { text, subject_template: subject, smart_subject: false });
+    toast('Saved');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function homeEmailGenerate(id) {
+  const text = document.getElementById('homeEmailExample')?.value.trim() || '';
+  const subject = document.getElementById('homeEmailSubject')?.value.trim() || '';
+  if (!text) { toast('Paste an email example first', 'error'); return; }
+  try {
+    await api("POST", `/projects/${id}/email-template/save-example`, { text, subject_template: subject, smart_subject: false });
+    toast('Generating email template...', 'success');
+    await api("POST", `/projects/${id}/email-template/generate`);
+    toast('Email template generated!');
+    await renderProjectHomeEmailEdit(id, document.getElementById('projectHomePage'));
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 function startRenameProject(btn) {
@@ -2726,7 +2856,7 @@ async function renderObStep4(id, page) {
         <div class="ob-body">
           <div class="ob-template-section">
             <label class="ob-label">Template <span class="ob-label-hint">({{CUSTOM_1}}, {{CUSTOM_2}} will be written by AI per firm)</span></label>
-            <textarea id="obTplText" class="ob-textarea ob-textarea-tall" rows="10">${esc(existingTemplate)}</textarea>
+            <textarea id="obTplText" class="ob-textarea ob-textarea-tall" rows="10">${esc(extractEditableContent(existingTemplate))}</textarea>
           </div>
           <div class="ob-template-section">
             <label class="ob-label">AI Instructions <span class="ob-label-hint">(defines what to write for each {{CUSTOM}} block)</span></label>
@@ -2829,6 +2959,11 @@ async function renderObStep5(id, page) {
   const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
   const subject = emailTpl.subject_template || OB_SAMPLE_EMAIL_SUBJECT;
   const body = emailTpl.example || OB_SAMPLE_EMAIL_BODY;
+  const tplText = extractEditableContent(emailTpl.template || '');
+  const defsText = (emailTpl.definitions || '')
+    .replace(/^Prompt:/gm, 'PROMPT:')
+    .replace(/^Examples:/gm, 'EXAMPLES:')
+    .replace(/^Constrains:/gm, 'CONSTRAINTS:');
   page.innerHTML = `
     <div class="ob-card">
       ${obHeader(5, 'Write Your Email', 'Set up the email template for your applications.')}
@@ -2843,16 +2978,31 @@ async function renderObStep5(id, page) {
         </div>
         <div class="ob-field">
           <div class="ob-field-header">
-            <label>Email Body</label>
+            <label>Email Body Example</label>
             <button class="btn btn-ghost btn-sm" onclick="obUseSampleEmail()">Use Sample</button>
           </div>
-          <textarea id="obEmailBody" rows="8">${esc(body)}</textarea>
+          <textarea id="obEmailBody" rows="6">${esc(body)}</textarea>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="obSaveEmailExample('${id}')">Save</button>
+          <button class="btn btn-primary btn-sm" onclick="obGenerateEmailTemplate('${id}')">✎ Generate Template</button>
+        </div>
+        <div class="ob-template-section" style="margin-top:16px">
+          <label class="ob-label">Template <span class="ob-label-hint">({{CUSTOM_1}}, {{CUSTOM_2}} will be written by AI per firm)</span></label>
+          <textarea class="ob-textarea ob-textarea-tall" id="tpl-email_body" rows="8">${esc(tplText)}</textarea>
+        </div>
+        <div class="ob-template-section">
+          <label class="ob-label">AI Instructions <span class="ob-label-hint">(defines what to write for each {{CUSTOM}} block)</span></label>
+          <textarea class="ob-textarea" id="def-email_body" rows="5">${esc(defsText)}</textarea>
+        </div>
+        <div style="margin-top:8px">
+          <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
         </div>
       </div>
       ${obNavButtons(id, {
         prevStep: 4,
-        nextLabel: 'Save & Continue',
-        nextAction: `obSaveEmail('${id}')`,
+        nextLabel: 'Continue',
+        nextAction: `obGoStep('${id}', 6)`,
         skipLabel: 'Skip',
         skipAction: `obGoStep('${id}', 6)`,
       })}
@@ -2877,6 +3027,33 @@ async function obSaveEmail(id) {
     });
     toast('Email template saved');
     await obGoStep(id, 6);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function obSaveEmailExample(id) {
+  const body = document.getElementById('obEmailBody')?.value.trim() || '';
+  const subject = document.getElementById('obEmailSubject')?.value.trim() || '';
+  if (!body) { toast('Paste an email first', 'error'); return; }
+  try {
+    await api("POST", `/projects/${id}/email-template/save-example`, {
+      text: body, subject_template: subject, smart_subject: false,
+    });
+    toast('Saved');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function obGenerateEmailTemplate(id) {
+  const body = document.getElementById('obEmailBody')?.value.trim() || '';
+  const subject = document.getElementById('obEmailSubject')?.value.trim() || '';
+  if (!body) { toast('Paste an email example first', 'error'); return; }
+  try {
+    await api("POST", `/projects/${id}/email-template/save-example`, {
+      text: body, subject_template: subject, smart_subject: false,
+    });
+    toast('Generating email template...', 'success');
+    await api("POST", `/projects/${id}/email-template/generate`);
+    toast('Email template generated!');
+    await renderObStep5(id, document.getElementById('onboardingPage'));
   } catch (e) { toast(e.message, 'error'); }
 }
 
