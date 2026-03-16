@@ -830,21 +830,21 @@ textarea { resize: vertical; min-height: 80px; }
   position: absolute;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 900px;
-  height: 900px;
+  width: 1100px;
+  height: 1100px;
   background: radial-gradient(circle,
-    rgba(108,140,255,0.22) 0%,
-    rgba(167,139,250,0.14) 30%,
-    rgba(108,140,255,0.05) 60%,
-    transparent 72%);
+    rgba(251,146,60,0.35) 0%,
+    rgba(249,115,22,0.22) 25%,
+    rgba(234,88,12,0.10) 50%,
+    transparent 68%);
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
   animation: heroGlowPulse 6s ease-in-out infinite;
 }
 @keyframes heroGlowPulse {
-  0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
-  50%       { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+  0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+  50%       { opacity: 1;  transform: translate(-50%, -50%) scale(1.07); }
 }
 .landing-container {
   max-width: 1200px;
