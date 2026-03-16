@@ -946,6 +946,120 @@ textarea { resize: vertical; min-height: 80px; }
   margin-bottom: 40px;
 }
 
+/* ── Landing Brand Badge ──────────────────────────────────── */
+.landing-brand-badge {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(108, 140, 255, 0.12);
+  border: 1px solid rgba(108, 140, 255, 0.25);
+  border-radius: 20px;
+  padding: 4px 14px;
+  margin-bottom: 20px;
+}
+
+/* ── Landing Trust Pills ──────────────────────────────────── */
+.landing-trust-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+}
+.trust-pill {
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+/* ── Section Subtitle ─────────────────────────────────────── */
+.section-subtitle {
+  text-align: center;
+  color: var(--text2);
+  font-size: 16px;
+  margin-top: -12px;
+  margin-bottom: 36px;
+}
+
+/* ── Use Cases Section ────────────────────────────────────── */
+.landing-usecases {
+  padding: 80px 20px;
+  background: var(--bg);
+}
+.usecase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+}
+.usecase-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+}
+.usecase-icon { font-size: 28px; margin-bottom: 12px; }
+.usecase-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.usecase-card p { font-size: 14px; color: var(--text2); line-height: 1.6; margin: 0; }
+
+/* ── Comparison Table Section ─────────────────────────────── */
+.landing-compare {
+  padding: 80px 20px;
+  background: var(--bg2);
+}
+.compare-table-wrap {
+  overflow-x: auto;
+  margin-top: 36px;
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.compare-table th,
+.compare-table td {
+  padding: 13px 18px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  white-space: nowrap;
+}
+.compare-table th:first-child,
+.compare-table td:first-child {
+  text-align: left;
+  color: var(--text);
+  font-weight: 500;
+}
+.compare-table thead th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg3);
+}
+.compare-table .compare-highlight {
+  background: rgba(108, 140, 255, 0.06);
+  color: var(--text) !important;
+  font-weight: 600;
+}
+.compare-table thead .compare-highlight {
+  color: var(--accent) !important;
+}
+.compare-table tbody tr:hover td { background: var(--bg3); }
+
+/* ── CTA Note ─────────────────────────────────────────────── */
+.cta-note {
+  font-size: 13px !important;
+  color: var(--text3) !important;
+  margin-top: 14px !important;
+  margin-bottom: 0 !important;
+}
+
 /* ── Landing Page Responsive ───────────────────────────────── */
 @media (max-width: 768px) {
   .landing-title {
@@ -961,6 +1075,14 @@ textarea { resize: vertical; min-height: 80px; }
   .features-grid {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .usecase-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .landing-trust-pills {
+    flex-direction: column;
+    align-items: center;
   }
   .section-title {
     font-size: 32px;

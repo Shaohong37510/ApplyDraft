@@ -12,11 +12,146 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ApplyDraft - Job Application Kit</title>
+
+  <!-- ═══ SEO: Title & Meta ══════════════════════════════════ -->
+  <title>ApplyDraft – AI Job Application Tool | Auto Apply with Personalized Cover Letters</title>
+  <meta name="description" content="AI reads each job posting and generates a personalized cover letter PDF + application email saved to your Gmail or Outlook drafts. Apply to 50+ jobs in hours. Free to start.">
+  <meta name="keywords" content="ai apply, auto apply jobs, ai job application, job application automation, personalized cover letter generator, bulk job applications, automated job application tool, cover letter ai, job apply ai, auto apply, apply jobs automatically">
+  <link rel="canonical" href="https://app.applydraft.top/">
+
+  <!-- ═══ Open Graph ══════════════════════════════════════════ -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://app.applydraft.top/">
+  <meta property="og:title" content="ApplyDraft – Apply to 50 Jobs Today with AI-Personalized Cover Letters">
+  <meta property="og:description" content="AI reads each job posting and auto-generates a tailored cover letter PDF and application email — saved to Gmail or Outlook drafts. You review, you send.">
+  <meta property="og:site_name" content="ApplyDraft">
+
+  <!-- ═══ Twitter Card ════════════════════════════════════════ -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ApplyDraft – AI Job Application Automation">
+  <meta name="twitter:description" content="AI reads each job description and generates a personalized cover letter + email for every application. Auto apply with full control. Free to start.">
+
+  <!-- ═══ Schema.org: SoftwareApplication ═══════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ApplyDraft",
+    "url": "https://app.applydraft.top",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "AI-powered job application automation tool that reads each job description and generates a personalized cover letter PDF and application email, saved directly to Gmail or Outlook drafts.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free to start. Credit-based pricing — pay per application, no subscription required."
+    },
+    "featureList": [
+      "AI reads job description to personalize each application",
+      "Automated cover letter PDF generation",
+      "Application email saved to Gmail or Outlook drafts",
+      "Bulk job application — apply to 50+ positions",
+      "Job application tracker",
+      "No auto-send — you review before sending"
+    ]
+  }
+  </script>
+
+  <!-- ═══ Schema.org: FAQPage ═════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does ApplyDraft send applications automatically without my review?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. ApplyDraft only creates drafts in your Gmail or Outlook inbox. You review every email and cover letter before deciding to send — you stay in full control. No bot sends anything on your behalf."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will my cover letters actually sound personalized, or will they be generic AI filler?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ApplyDraft analyzes the full job description — required skills, seniority level, company background — before writing. Each cover letter is generated from scratch for that specific job. It is not a template with a swapped company name."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Which email providers does ApplyDraft support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ApplyDraft connects to Gmail (via Google OAuth) and Outlook (via Microsoft OAuth). After connecting, generated application emails are saved directly as drafts in your inbox."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How many jobs can I apply to with ApplyDraft?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There is no hard limit. Each application costs approximately 1 credit. With 100 credits ($69), you can generate 100 personalized applications. Many users apply to 50–100+ positions in a single session."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Will employers know I used AI to write my application?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ApplyDraft generates applications based on your own resume, experience, and writing style examples you provide. The output is tailored to each job and grounded in your real background — not generic boilerplate. You can also edit every draft before sending."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need a subscription?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No subscription required. ApplyDraft uses a credit system — you buy credits once and they never expire. Starter pack is $9 for 10 credits. No recurring charges."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What file format is the cover letter?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cover letters are generated as PDF files. They are attached automatically to the application email draft saved in your Gmail or Outlook inbox."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does ApplyDraft work for any industry?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. ApplyDraft works for any email-based job application — architecture, design, tech, finance, marketing, and more. You upload your own resume and set the job criteria; the AI adapts to your field."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is ApplyDraft different from LazyApply or Simplify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LazyApply auto-fills application forms in bulk but does not generate personalized cover letters and has a history of errors. Simplify autofills forms faster but does not write cover letters. ApplyDraft focuses on email-based applications and generates a truly personalized cover letter PDF and email body for each job — and only saves drafts, never sends without your review."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use my own Claude API key?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. You can connect your own Anthropic Claude API key in Settings. This gives you full control over AI usage and costs without consuming ApplyDraft credits."
+        }
+      }
+    ]
+  }
+  </script>
+
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
   <link rel="apple-touch-icon" href="/static/favicon-192.png">
-  <link rel="stylesheet" href="/static/style.css?v=33">
+  <link rel="stylesheet" href="/static/style.css?v=34">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" async id="supabaseScript"></script>
 </head>
 <body>
@@ -26,93 +161,200 @@
 
 <!-- ═══ Landing Page ════════════════════════════════════════ -->
 <div id="landingPage" style="display:none">
+
+  <!-- Hero -->
   <div class="landing-hero">
     <div class="landing-container">
+      <div class="landing-brand-badge">ApplyDraft</div>
       <h1 class="landing-title">
-        <span class="gradient-text">ApplyDraft</span>
-        <br>Your Job Application Assistant
+        Apply to 50 Jobs Today —<br>
+        <span class="gradient-text">AI Writes a Personalized Cover Letter and Email for Each One</span>
       </h1>
       <p class="landing-subtitle">
-        Stop spending hours on each application. Let AI find jobs, write personalized cover letters, and send applications for you.
+        ApplyDraft reads every job description and auto-generates a tailored cover letter PDF and application email — saved directly to your Gmail or Outlook drafts. You review. You send. No bots, no spam, no mistakes.
       </p>
       <button class="btn-landing-cta" onclick="showLoginFromLanding()">
-        Get Started Free
+        Start Applying Free
         <span class="arrow">→</span>
       </button>
+      <div class="landing-trust-pills">
+        <span class="trust-pill">✓ No subscription — pay per use</span>
+        <span class="trust-pill">✓ Gmail &amp; Outlook</span>
+        <span class="trust-pill">✓ You review before sending</span>
+      </div>
     </div>
   </div>
 
+  <!-- Features -->
   <div class="landing-features">
     <div class="landing-container">
+      <h2 class="section-title">Everything you need to auto apply — without sacrificing quality</h2>
       <div class="features-grid">
+
         <div class="feature-card">
-          <div class="feature-icon">🔍</div>
-          <h3>Find Jobs Automatically</h3>
-          <p>Tell us what you're looking for, and we'll search across multiple job boards to find the perfect opportunities for you.</p>
+          <div class="feature-icon">🧠</div>
+          <h3>AI That Actually Reads the Job Description</h3>
+          <p>Most "personalized" tools just swap the company name into a template. ApplyDraft analyzes the full job posting — required skills, seniority, company tone — and writes a cover letter that speaks directly to what that employer is looking for. Every application is unique.</p>
         </div>
+
         <div class="feature-card">
-          <div class="feature-icon">✍️</div>
-          <h3>Personalized Templates</h3>
-          <p>Each email and cover letter is customized for the specific position and company, with personalized templates generated automatically.</p>
+          <div class="feature-icon">📄</div>
+          <h3>Cover Letter PDF + Application Email in Seconds</h3>
+          <p>For each job, ApplyDraft generates two things: a professionally formatted cover letter PDF ready to attach, and a personalized application email saved directly to your Gmail or Outlook drafts. Review it, edit a line if you want, and send when you're ready.</p>
         </div>
+
         <div class="feature-card">
-          <div class="feature-icon">📧</div>
-          <h3>Auto-Save to Drafts</h3>
-          <p>Emails with attachments are automatically saved to your Gmail or Outlook drafts. You maintain full control and transparency—review everything before sending.</p>
+          <div class="feature-icon">⚡</div>
+          <h3>Apply to 50+ Jobs Without Sounding Like a Bot</h3>
+          <p>A tailored job application used to take 45–90 minutes. ApplyDraft brings that down to under 2 minutes per job. Set up your profile once, select the positions you want, and let AI do the writing — at volume, without the generic output that hiring managers can spot immediately.</p>
         </div>
+
         <div class="feature-card">
           <div class="feature-icon">📊</div>
-          <h3>Track Everything</h3>
-          <p>Keep track of all your applications in one place. Know exactly where you've applied and when.</p>
+          <h3>Track Every Application — From Draft to Offer</h3>
+          <p>When you're applying to dozens of jobs, spreadsheets fall apart fast. ApplyDraft's built-in tracker shows every application you've generated, which companies you've contacted, when you applied, and the current status. Nothing falls through the cracks.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Use Cases -->
+  <div class="landing-usecases">
+    <div class="landing-container">
+      <h2 class="section-title">Built for job seekers who need to apply at scale</h2>
+      <div class="usecase-grid">
+        <div class="usecase-card">
+          <div class="usecase-icon">🎓</div>
+          <h3>New Graduates</h3>
+          <p>Applying to 30–50 firms is standard for entry-level roles. ApplyDraft helps you send a professional, tailored application to every target without spending your entire week writing cover letters.</p>
+        </div>
+        <div class="usecase-card">
+          <div class="usecase-icon">🔄</div>
+          <h3>Career Changers</h3>
+          <p>When you're pivoting industries, you need to cast a wide net. ApplyDraft crafts cover letters that frame your transferable skills for each specific role — automatically.</p>
+        </div>
+        <div class="usecase-card">
+          <div class="usecase-icon">📬</div>
+          <h3>Cold Outreach</h3>
+          <p>Applying to companies not actively posting? ApplyDraft generates professional cold application emails tailored to each firm's work and culture — so your outreach actually gets read.</p>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- How It Works -->
   <div class="landing-how">
     <div class="landing-container">
-      <h2 class="section-title">How It Works</h2>
+      <h2 class="section-title">How AI job application automation works</h2>
       <div class="how-steps">
         <div class="how-step">
           <div class="step-number">1</div>
           <div class="step-content">
-            <h3>Create Your Project</h3>
-            <p>Set up your profile, upload your resume and portfolio, and tell us what kind of jobs you want.</p>
+            <h3>Set Up Your Profile Once</h3>
+            <p>Upload your resume, portfolio, and a few example cover letters. Tell ApplyDraft what kind of jobs you're targeting — role, location, seniority. You do this once.</p>
           </div>
         </div>
         <div class="how-step">
           <div class="step-number">2</div>
           <div class="step-content">
-            <h3>We Find Opportunities</h3>
-            <p>Our AI searches job boards and company websites to find positions that match your criteria.</p>
+            <h3>AI Finds and Analyzes Each Job Posting</h3>
+            <p>Search for jobs directly in ApplyDraft. The AI reads each job description — required skills, company background, tone — and prepares a unique application strategy for each one.</p>
           </div>
         </div>
         <div class="how-step">
           <div class="step-number">3</div>
           <div class="step-content">
-            <h3>Review & Generate</h3>
-            <p>Review the job listings we found, select the ones you like, and we'll generate personalized applications.</p>
+            <h3>Generate Personalized Applications in Bulk</h3>
+            <p>Select the jobs you want to apply to. ApplyDraft generates a tailored cover letter PDF and personalized email body for each one — in one batch, in minutes, not hours.</p>
           </div>
         </div>
         <div class="how-step">
           <div class="step-number">4</div>
           <div class="step-content">
-            <h3>Send & Track</h3>
-            <p>Send applications with one click. We'll track everything so you can follow up easily.</p>
+            <h3>Review Drafts in Gmail or Outlook — Then Send</h3>
+            <p>Every application lands in your email drafts folder. You stay in full control: read, edit, approve. ApplyDraft never sends anything automatically. No surprises, no mistakes.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Comparison -->
+  <div class="landing-compare">
+    <div class="landing-container">
+      <h2 class="section-title">How ApplyDraft compares</h2>
+      <p class="section-subtitle">Other tools force you to choose between speed and quality. ApplyDraft gives you both.</p>
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="compare-highlight">ApplyDraft</th>
+              <th>LazyApply</th>
+              <th>ChatGPT</th>
+              <th>Simplify</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bulk applications</td>
+              <td class="compare-highlight">✅</td>
+              <td>✅</td>
+              <td>❌</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td>AI personalizes per job description</td>
+              <td class="compare-highlight">✅</td>
+              <td>❌</td>
+              <td>✅ (manual)</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Cover letter PDF generated</td>
+              <td class="compare-highlight">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Saves to Gmail / Outlook drafts</td>
+              <td class="compare-highlight">✅</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>You review before sending</td>
+              <td class="compare-highlight">✅ Always</td>
+              <td>❌ Auto-submits</td>
+              <td>✅</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td>No subscription required</td>
+              <td class="compare-highlight">✅ Pay per use</td>
+              <td>❌ $99–$999/yr</td>
+              <td>✅</td>
+              <td>✅ Free tier</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom CTA -->
   <div class="landing-cta">
     <div class="landing-container">
-      <h2>Ready to Land Your Dream Job?</h2>
-      <p>Stop spending hours on each application — let AI handle the research and writing.</p>
+      <h2>Stop spending hours on cover letters.<br>Start applying smarter.</h2>
+      <p>Join job seekers who use ApplyDraft to auto apply to more positions — with personalized cover letters and emails that don't sound like everyone else's.</p>
       <button class="btn-landing-cta" onclick="showLoginFromLanding()">
-        Start Applying Today
+        Start Applying Free
         <span class="arrow">→</span>
       </button>
+      <p class="cta-note">No subscription. Credits never expire. Free to start.</p>
     </div>
   </div>
 
@@ -141,23 +383,23 @@
 
     <section class="about-section" id="about-about">
       <h2>About ApplyDraft</h2>
-      <p>ApplyDraft is an AI-powered job application tool that helps you find opportunities, write personalized cover letters, and save email drafts — all in one place. Built for job seekers who want to apply smarter, not harder.</p>
-      <p>Upload your resume and portfolio once. Tell us what you're looking for. We'll handle the research and writing, so you can focus on the interviews.</p>
+      <p>ApplyDraft is an AI-powered job application automation tool that reads each job description and generates a personalized cover letter PDF and application email — saved directly to your Gmail or Outlook drafts. Built for job seekers who need to apply at scale without sacrificing quality.</p>
+      <p>Upload your resume and portfolio once. Set your job criteria. ApplyDraft handles the research and writing so you can focus on interviews, not cover letters.</p>
     </section>
 
     <section class="about-section" id="about-howitworks">
       <h2>How It Works</h2>
       <div class="about-steps">
-        <div class="about-step"><span class="about-step-num">1</span><div><strong>Create a Project</strong><p>Set up your profile, upload your resume and portfolio, and describe the jobs you want.</p></div></div>
-        <div class="about-step"><span class="about-step-num">2</span><div><strong>AI Finds Jobs</strong><p>Our AI searches job boards and company websites to find positions matching your criteria, complete with contact emails.</p></div></div>
-        <div class="about-step"><span class="about-step-num">3</span><div><strong>Review &amp; Generate</strong><p>Review the results, select positions you like, and generate personalized cover letters for each one.</p></div></div>
-        <div class="about-step"><span class="about-step-num">4</span><div><strong>Send &amp; Track</strong><p>Applications are saved as drafts in your Gmail or Outlook. Review each one, then send when ready.</p></div></div>
+        <div class="about-step"><span class="about-step-num">1</span><div><strong>Create a Project</strong><p>Set up your profile, upload your resume and portfolio, and describe the jobs you want to target.</p></div></div>
+        <div class="about-step"><span class="about-step-num">2</span><div><strong>AI Finds &amp; Analyzes Jobs</strong><p>Search for positions directly in ApplyDraft. The AI reads each job posting — skills required, company background, tone — and tailors the application strategy accordingly.</p></div></div>
+        <div class="about-step"><span class="about-step-num">3</span><div><strong>Generate Personalized Applications</strong><p>Select the jobs you want. ApplyDraft generates a unique cover letter PDF and personalized email body for each position — in batch, in minutes.</p></div></div>
+        <div class="about-step"><span class="about-step-num">4</span><div><strong>Review Drafts &amp; Send</strong><p>Every application is saved as a draft in your Gmail or Outlook inbox. Review each one, make any edits, and send when you're ready. You stay in full control.</p></div></div>
       </div>
     </section>
 
     <section class="about-section" id="about-pricing">
       <h2>Pricing</h2>
-      <p>ApplyDraft uses a credit system — pay only for what you use. Credits never expire.</p>
+      <p>ApplyDraft uses a credit system — pay only for what you use. Credits never expire. No subscription, no recurring charges.</p>
       <div class="about-pricing-grid">
         <div class="about-pricing-card">
           <div class="pricing-name">Starter</div>
@@ -179,37 +421,69 @@
           <div class="pricing-rate">$0.55 / credit</div>
         </div>
       </div>
-      <p class="about-pricing-note">Each application (search + cover letter + draft) costs approximately 1 credit.</p>
-      <button class="btn-landing-cta" onclick="hideAboutPage();showLoginFromLanding();" style="margin-top:16px;font-size:15px;padding:12px 28px">Get Started Free →</button>
+      <p class="about-pricing-note">Each application (job search + cover letter generation + email draft) costs approximately 1 credit.</p>
+      <button class="btn-landing-cta" onclick="hideAboutPage();showLoginFromLanding();" style="margin-top:16px;font-size:15px;padding:12px 28px">Start Applying Free →</button>
     </section>
 
     <section class="about-section" id="about-faq">
       <h2>FAQ</h2>
       <div class="faq-list">
+
         <div class="faq-item">
-          <div class="faq-q">Does ApplyDraft send emails automatically?</div>
-          <div class="faq-a">No. We only create drafts in your Gmail or Outlook inbox. You review each email before deciding to send — you stay in full control.</div>
+          <div class="faq-q">Does ApplyDraft send applications automatically without my review?</div>
+          <div class="faq-a">No. ApplyDraft only creates drafts in your Gmail or Outlook inbox. You review every email and cover letter before deciding to send — you are always in full control. No bot sends anything on your behalf.</div>
         </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Will my cover letters actually sound personalized, or will they be generic AI filler?</div>
+          <div class="faq-a">ApplyDraft analyzes the full job description — required skills, seniority, company background — before writing. Each cover letter is generated from scratch for that specific job and grounded in your actual resume and experience. It is not a template with a swapped company name.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Which email providers does ApplyDraft support?</div>
+          <div class="faq-a">ApplyDraft connects to Gmail (via Google OAuth) and Outlook (via Microsoft OAuth). After connecting, generated application emails are saved directly as drafts in your inbox — ready for your review.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How many jobs can I apply to with ApplyDraft?</div>
+          <div class="faq-a">There is no hard limit. Each application costs approximately 1 credit. With the Standard pack (100 credits, $69), you can generate 100 fully personalized applications. Many users apply to 50–100+ positions in a single session.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Will employers know I used AI to write my application?</div>
+          <div class="faq-a">ApplyDraft generates applications based on your own resume, writing style, and the examples you provide. The output is tailored to each job and reflects your real background — not generic boilerplate. You can also review and edit every draft before sending.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Do I need a subscription?</div>
+          <div class="faq-a">No subscription required. ApplyDraft uses a pay-per-use credit system. Buy credits once — they never expire. No recurring charges.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What file format is the cover letter?</div>
+          <div class="faq-a">Cover letters are generated as PDF files, automatically attached to the application email draft saved in your Gmail or Outlook inbox.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Does ApplyDraft work for any industry?</div>
+          <div class="faq-a">Yes. ApplyDraft works for any email-based job application — architecture, design, tech, finance, marketing, and more. You upload your own resume and set the job criteria; the AI adapts to your specific field and role type.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How is ApplyDraft different from LazyApply or Simplify?</div>
+          <div class="faq-a">LazyApply auto-fills application forms in bulk but does not generate personalized cover letters and has a known history of form-fill errors. Simplify autofills forms faster but does not write cover letters or application emails. ApplyDraft focuses on email-based applications and generates a truly personalized cover letter PDF and email body for each job — and only saves drafts, never sends without your review.</div>
+        </div>
+
         <div class="faq-item">
           <div class="faq-q">Can I use my own Claude API key?</div>
-          <div class="faq-a">Yes. You can connect your own Anthropic API key in Settings. This gives you more control over AI usage and costs.</div>
+          <div class="faq-a">Yes. You can connect your own Anthropic Claude API key in Settings. This gives you full control over AI usage and costs without consuming ApplyDraft credits.</div>
         </div>
-        <div class="faq-item">
-          <div class="faq-q">What file types can I upload?</div>
-          <div class="faq-a">You can upload PDF, DOCX, and TXT files as attachments (resume, portfolio, etc.). Example files for AI analysis should be .txt or .pdf.</div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-q">How personalized are the cover letters?</div>
-          <div class="faq-a">The AI researches each firm — their projects, design philosophy, and job requirements — before writing. Each cover letter is unique to that firm and position.</div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-q">Do credits expire?</div>
-          <div class="faq-a">No, credits never expire. Buy once, use whenever you need.</div>
-        </div>
+
         <div class="faq-item">
           <div class="faq-q">Can I get a refund?</div>
-          <div class="faq-a">Unused credits are non-refundable once purchased. If you have an issue, please contact us at support@applydraft.top.</div>
+          <div class="faq-a">Unused credits are non-refundable once purchased. If you have an issue, please contact us at support@applydraft.top and we'll do our best to help.</div>
         </div>
+
       </div>
     </section>
 
