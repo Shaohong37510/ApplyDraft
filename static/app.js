@@ -949,12 +949,25 @@ async function saveProfileInfo(id) {
 // ── Project Home: Email Edit sub-view ─────────────────────
 
 async function renderProjectHomeEmailEdit(id, page) {
-  const emailTpl = await api("GET", `/projects/${id}/email-template`).catch(() => ({}));
+  const [emailTpl, proj] = await Promise.all([
+    api("GET", `/projects/${id}/email-template`).catch(() => ({})),
+    api("GET", `/projects/${id}`).catch(() => ({})),
+  ]);
   const tplText = extractEditableContent(emailTpl.template || '');
   const defsText = (emailTpl.definitions || '')
     .replace(/^Prompt:/gm, 'PROMPT:')
     .replace(/^Examples:/gm, 'EXAMPLES:')
     .replace(/^Constrains:/gm, 'CONSTRAINTS:');
+  const cfg = proj.config || {};
+  const materials = proj.materials || [];
+  const attachableFiles = (cfg.customize_files || []).filter(cf => cf.id !== 'email_body' && cf.is_attachment !== false);
+  const attachmentCheckboxes = attachableFiles.map(cf => {
+    const checked = cf.is_attachment !== false ? 'checked' : '';
+    return `<label class="attach-check">
+      <input type="checkbox" ${checked} onchange="toggleAttachment('${id}','${esc(cf.id)}',this.checked)">
+      <span>${esc(cf.label)}</span>
+    </label>`;
+  }).join('');
 
   page.innerHTML = `
     <div class="project-home-content">
@@ -992,6 +1005,25 @@ async function renderProjectHomeEmailEdit(id, page) {
           <div style="margin-top:8px">
             <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
           </div>
+
+          <label>Attachments (uploaded files)</label>
+          <div class="file-list" id="homeEmailMaterialList">
+            ${materials.map(f => `
+              <span class="file-chip">
+                &#128206; ${esc(f)}
+                <span class="remove" onclick="deleteMaterial('${id}','${esc(f)}')">&times;</span>
+              </span>
+            `).join('')}
+          </div>
+          <div class="upload-area" onclick="document.getElementById('homeEmailMaterialInput').click()">
+            <input type="file" id="homeEmailMaterialInput" multiple accept=".pdf,.doc,.docx" onchange="uploadMaterials('${id}', this.files)">
+            <p>+ Upload CV / Portfolio / Recommendation Letter</p>
+          </div>
+
+          ${attachableFiles.length > 0 ? `
+          <label>Generated File Attachments</label>
+          <div class="attach-list">${attachmentCheckboxes}</div>
+          ` : ''}
         </div>
       </div>
     </div>
