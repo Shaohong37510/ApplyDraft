@@ -1842,25 +1842,28 @@ textarea { resize: vertical; min-height: 80px; }
 .modal-box {
   background: var(--bg2);
   border: 1px solid var(--border-light);
-  border-radius: 18px;
-  padding: 36px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  width: 90%;
-  max-width: 580px;
+  border-radius: 20px;
+  padding: 32px 32px 28px;
+  box-shadow: 0 24px 72px rgba(0,0,0,.6);
+  width: 92%;
+  max-width: 660px;
   position: relative;
   animation: modalIn .2s ease;
 }
+/* wider variant for credit modal */
+.credit-modal-box { max-width: 680px; }
 @keyframes modalIn {
   from { opacity:0; transform: translateY(16px) scale(.96); }
   to   { opacity:1; transform: translateY(0) scale(1); }
 }
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 16px;
+  gap: 16px;
 }
-.modal-header h2 { font-size: 19px; font-weight: 650; }
+.modal-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
 .modal-close {
   background: none;
   border: none;
@@ -1870,74 +1873,91 @@ textarea { resize: vertical; min-height: 80px; }
   padding: 2px 8px;
   border-radius: var(--radius);
   line-height: 1;
+  flex-shrink: 0;
 }
 .modal-close:hover { background: var(--bg3); color: var(--text); }
 .modal-subtitle {
   color: var(--text2);
   font-size: 13px;
-  margin-bottom: 24px;
+  margin: 0;
+}
+.credit-modal-promo {
+  background: linear-gradient(135deg, rgba(108,140,255,.15), rgba(168,85,247,.15));
+  border: 1px solid rgba(108,140,255,.3);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 18px;
 }
 .credit-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: stretch;
 }
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .credit-cards { grid-template-columns: 1fr; }
 }
 .credit-card {
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 24px 16px 20px;
+  padding: 22px 14px 18px;
   text-align: center;
   cursor: pointer;
   position: relative;
-  transition: border-color .15s, transform .15s;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+  display: flex;
+  flex-direction: column;
 }
 .credit-card:hover {
   border-color: var(--accent);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(108,140,255,.15);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(108,140,255,.18);
 }
 .credit-card-featured {
   border-color: var(--accent);
-  background: rgba(108,140,255,.07);
-  box-shadow: 0 4px 20px rgba(108,140,255,.1);
+  background: linear-gradient(160deg, rgba(108,140,255,.1), rgba(168,85,247,.06));
+  box-shadow: 0 4px 20px rgba(108,140,255,.15);
 }
 .credit-card-badge {
   position: absolute;
-  top: -11px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(135deg, var(--accent), var(--purple));
   color: #fff;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .04em;
-  padding: 3px 12px;
+  letter-spacing: .05em;
+  padding: 4px 14px;
   border-radius: 20px;
   white-space: nowrap;
 }
 .credit-card-name {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .07em;
+  letter-spacing: .1em;
   color: var(--text2);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .credit-card-amount {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   line-height: 1;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  letter-spacing: -.02em;
 }
 .credit-card-amount span {
   font-size: 13px;
   font-weight: 400;
   color: var(--text2);
+  letter-spacing: 0;
 }
 .credit-card-price {
   font-size: 22px;
@@ -1949,15 +1969,17 @@ textarea { resize: vertical; min-height: 80px; }
   font-size: 11px;
   color: var(--text2);
   margin-bottom: 16px;
+  flex: 1;
 }
 .btn-block { width: 100%; }
 .btn-outline {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 7px 14px;
+  padding: 8px 14px;
   border-radius: var(--radius);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: border-color .15s, background .15s;
 }

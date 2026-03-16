@@ -720,15 +720,16 @@
 
 <!-- ═══ Credit Purchase Modal ══════════════════════════════ -->
 <div id="creditModal" class="modal-overlay" style="display:none" onclick="closeCreditModal(event)">
-  <div class="modal-box">
+  <div class="modal-box credit-modal-box">
     <div class="modal-header">
-      <h2>Buy Credits</h2>
+      <div>
+        <h2>Buy Credits</h2>
+        <p class="modal-subtitle">Credits never expire. No subscription, no recurring charges.</p>
+      </div>
       <button class="modal-close" onclick="document.getElementById('creditModal').style.display='none'">×</button>
     </div>
-    <p class="modal-subtitle">Credits never expire. Power your AI job searches and applications.</p>
+    <div class="credit-modal-promo">🎉 Launch Special — 50% Off All Plans</div>
     <div class="credit-cards">
-
-      <div class="credit-modal-promo">🎉 Launch Special — 50% Off</div>
 
       <div class="credit-card" onclick="purchaseCredits(10)">
         <div class="credit-card-name">Starter</div>
