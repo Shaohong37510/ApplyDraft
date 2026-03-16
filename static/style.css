@@ -1052,6 +1052,37 @@ textarea { resize: vertical; min-height: 80px; }
 }
 .compare-table tbody tr:hover td { background: var(--bg3); }
 
+/* ── Pricing Promo ────────────────────────────────────────── */
+.pricing-original {
+  font-size: 0.65em;
+  color: var(--text3);
+  text-decoration: line-through;
+  margin-left: 4px;
+  font-weight: 400;
+}
+.pricing-promo-banner {
+  text-align: center;
+  background: linear-gradient(90deg, rgba(108,140,255,0.15), rgba(108,140,255,0.08));
+  border: 1px solid rgba(108,140,255,0.3);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 20px;
+}
+.credit-modal-promo {
+  text-align: center;
+  background: linear-gradient(90deg, rgba(108,140,255,0.15), rgba(108,140,255,0.08));
+  border: 1px solid rgba(108,140,255,0.3);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
 /* ── Landing FAQ Section ──────────────────────────────────── */
 .landing-faq {
   padding: 80px 20px;

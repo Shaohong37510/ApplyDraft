@@ -72,11 +72,11 @@ def handle_webhook(payload: bytes, sig_header: str) -> dict:
     return {"ok": True, "event": event["type"]}
 
 
-# Fixed credit packages: credits → price in cents
+# Fixed credit packages: credits → price in cents (50% launch discount)
 CREDIT_PACKAGES = {
-    10: 900,    # $9
-    100: 6900,  # $69
-    300: 16500, # $165
+    10: 450,    # $4.50 (was $9)
+    100: 3450,  # $34.50 (was $69)
+    300: 8250,  # $82.50 (was $165)
 }
 
 
