@@ -305,8 +305,10 @@ function showApp() {
   const landingPage = document.getElementById("landingPage");
   const loginPage = document.getElementById("loginPage");
   const appContainer = document.getElementById("appContainer");
+  const landingNav = document.getElementById("landingNav");
   if (landingPage) landingPage.style.display = "none";
   if (loginPage) loginPage.style.display = "none";
+  if (landingNav) landingNav.style.display = "none";
   if (appContainer) appContainer.style.display = "";
 }
 
