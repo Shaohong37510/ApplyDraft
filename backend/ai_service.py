@@ -268,10 +268,14 @@ Return JSON with "template" and "definitions" keys."""
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             parsed = json.loads(json_match.group())
-            return {
-                "template": parsed.get("template", ""),
-                "definitions": parsed.get("definitions", ""),
-            }, usage
+            template = parsed.get("template", "")
+            definitions = parsed.get("definitions", "")
+            # Claude sometimes returns definitions as a dict — convert to string
+            if not isinstance(template, str):
+                template = str(template)
+            if not isinstance(definitions, str):
+                definitions = json.dumps(definitions, ensure_ascii=False, indent=2)
+            return {"template": template, "definitions": definitions}, usage
     except json.JSONDecodeError:
         pass
     return {"template": result, "definitions": ""}, usage
