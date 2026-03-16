@@ -962,34 +962,36 @@ async function renderProjectHomeEmailEdit(id, page) {
         <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', 'email')">← Back</button>
         <h2 class="sub-view-title">Edit Email Template</h2>
       </div>
-      <div class="section-body" style="padding:0">
-        <label>Email Subject Template</label>
-        <div class="subject-template-row">
-          <input type="text" id="homeEmailSubject" value="${esc(emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}')}"
-            placeholder="Application for {{POSITION}} - {{NAME}}">
-          <label class="smart-subject-toggle">
-            <input type="checkbox" id="homeSmartSubject" ${emailTpl.smart_subject ? 'checked' : ''}>
-            <span>Smart Subject</span>
-          </label>
-        </div>
-        <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}. When Smart Subject is enabled, each firm's career page will be searched during batch generation for required subject format.</div>
+      <div class="section">
+        <div class="section-body">
+          <label>Email Subject Template</label>
+          <div class="subject-template-row">
+            <input type="text" id="homeEmailSubject" value="${esc(emailTpl.subject_template || 'Application for {{POSITION}} - {{NAME}}')}"
+              placeholder="Application for {{POSITION}} - {{NAME}}">
+            <label class="smart-subject-toggle">
+              <input type="checkbox" id="homeSmartSubject" ${emailTpl.smart_subject ? 'checked' : ''}>
+              <span>Smart Subject</span>
+            </label>
+          </div>
+          <div class="format-hint">Available: {{NAME}}, {{FIRM_NAME}}, {{POSITION}}, {{EMAIL}}. When Smart Subject is enabled, each firm's career page will be searched during batch generation for required subject format.</div>
 
-        <label>Paste an example email (full text)</label>
-        <textarea id="homeEmailExample" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...&#10;&#10;Best regards,&#10;Your Name">${esc(emailTpl.example || '')}</textarea>
+          <label>Paste an example email (full text)</label>
+          <textarea id="homeEmailExample" rows="6" placeholder="Dear Hiring Manager,&#10;&#10;I am writing to apply for...&#10;&#10;Best regards,&#10;Your Name">${esc(emailTpl.example || '')}</textarea>
 
-        <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-          <button class="btn btn-secondary btn-sm" onclick="homeEmailSaveExample('${id}')">Save</button>
-          <button class="btn btn-primary btn-sm" onclick="homeEmailGenerate('${id}')">&#9998; Generate Template</button>
-        </div>
+          <div style="margin-top:8px; display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-sm" onclick="homeEmailSaveExample('${id}')">Save</button>
+            <button class="btn btn-primary btn-sm" onclick="homeEmailGenerate('${id}')">&#9998; Generate Template</button>
+          </div>
 
-        <label>Template</label>
-        <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(tplText)}</textarea>
+          <label>Template</label>
+          <textarea class="tpl-textarea" id="tpl-email_body" rows="10">${esc(tplText)}</textarea>
 
-        <label>Custom Definitions</label>
-        <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(defsText)}</textarea>
+          <label>Custom Definitions</label>
+          <textarea class="tpl-textarea" id="def-email_body" rows="6">${esc(defsText)}</textarea>
 
-        <div style="margin-top:8px">
-          <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
+          <div style="margin-top:8px">
+            <button class="btn btn-secondary btn-sm" onclick="saveTemplate('${id}','email_body')">Save Template</button>
+          </div>
         </div>
       </div>
     </div>
