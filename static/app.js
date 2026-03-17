@@ -633,6 +633,8 @@ async function renderProjectHomeMain(id, page) {
         ${jobReq ? `<div class="project-home-desc">${esc(jobReq)}</div>` : ''}
       </div>
 
+      <div class="home-nav-section-label">Application Setup</div>
+
       <div class="home-nav-list">
 
         <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'profile')">
