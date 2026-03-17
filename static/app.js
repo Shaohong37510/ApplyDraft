@@ -644,11 +644,11 @@ async function renderProjectHomeMain(id, page) {
           <span class="home-nav-arrow">›</span>
         </div>
 
-        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'stats')">
-          <span class="home-nav-icon">📊</span>
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'customize')">
+          <span class="home-nav-icon">📝</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">Statistics</div>
-            <div class="home-nav-sub">${total} total · ${thisWeek} this week · ${generated} generated</div>
+            <div class="home-nav-title">Customize Files</div>
+            <div class="home-nav-sub">Cover letter templates and custom content</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -662,20 +662,17 @@ async function renderProjectHomeMain(id, page) {
           <span class="home-nav-arrow">›</span>
         </div>
 
-        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'customize')">
-          <span class="home-nav-icon">📝</span>
-          <div class="home-nav-info">
-            <div class="home-nav-title">Customize Files</div>
-            <div class="home-nav-sub">Cover letter templates and custom content</div>
-          </div>
-          <span class="home-nav-arrow">›</span>
-        </div>
+      </div>
 
-        <div class="home-nav-item" onclick="openTableModal()">
-          <span class="home-nav-icon">📋</span>
+      <div class="home-nav-section-label">Analytics &amp; Records</div>
+
+      <div class="home-nav-list">
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'stats')">
+          <span class="home-nav-icon">📊</span>
           <div class="home-nav-info">
-            <div class="home-nav-title">Application Table</div>
-            <div class="home-nav-sub">${total} records</div>
+            <div class="home-nav-title">Statistics</div>
+            <div class="home-nav-sub">${total} total · ${thisWeek} this week · ${generated} generated</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -685,6 +682,15 @@ async function renderProjectHomeMain(id, page) {
           <div class="home-nav-info">
             <div class="home-nav-title">Generated Files</div>
             <div class="home-nav-sub">Cover letters &amp; email drafts</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="openTableModal()">
+          <span class="home-nav-icon">📋</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">Application Table</div>
+            <div class="home-nav-sub">${total} records</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
