@@ -1364,18 +1364,21 @@ async function renderStartApply(id) {
 
           <!-- Manual Entry -->
           <div class="manual-entry-section">
-            <div class="manual-entry-toggle" onclick="toggleManualEntry()">
+            <div class="manual-entry-toggle expanded" onclick="toggleManualEntry()">
               <span class="arrow-icon">&#9654;</span>
               <span>&#43; Add Position Manually</span>
             </div>
-            <div class="manual-entry-form" id="manualEntryForm">
-              <div class="row">
+            <div class="manual-entry-form visible" id="manualEntryForm">
+              <p class="manual-entry-hint">Paste a job URL — AI will auto-fill and customize your application</p>
+              <label>Job URL</label>
+              <input type="text" id="manualWebsite" placeholder="https://www.firm.com/careers/...">
+              <div class="row" style="margin-top:8px">
                 <div>
-                  <label>Company Name *</label>
+                  <label>Company Name</label>
                   <input type="text" id="manualFirm" placeholder="e.g. Foster + Partners">
                 </div>
                 <div>
-                  <label>Email *</label>
+                  <label>Email</label>
                   <input type="email" id="manualEmail" placeholder="careers@firm.com">
                 </div>
               </div>
@@ -1389,8 +1392,6 @@ async function renderStartApply(id) {
                   <input type="text" id="manualLocation" placeholder="e.g. New York, NY">
                 </div>
               </div>
-              <label>Website</label>
-              <input type="text" id="manualWebsite" placeholder="https://www.firm.com">
               <div class="manual-entry-actions">
                 <button class="btn btn-primary btn-sm" onclick="addManualEntry()">&#43; Add to Queue</button>
                 <span style="font-size:12px;color:var(--text2)">Manual entries are prioritized during generation</span>
@@ -2505,8 +2506,7 @@ function addManualEntry() {
   const location = document.getElementById("manualLocation").value.trim();
   const website = document.getElementById("manualWebsite").value.trim();
 
-  if (!firm) { toast("Company name is required", "error"); return; }
-  if (!email) { toast("Email is required", "error"); return; }
+  if (!firm && !website) { toast("Please enter at least a job URL or company name", "error"); return; }
 
   const entry = {
     firm,

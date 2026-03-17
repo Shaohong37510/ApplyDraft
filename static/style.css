@@ -1769,6 +1769,11 @@ textarea { resize: vertical; min-height: 80px; }
 .manual-entry-form label:first-child {
   margin-top: 0;
 }
+.manual-entry-hint {
+  font-size: 12px;
+  color: var(--accent);
+  margin: 0 0 10px;
+}
 .manual-entry-actions {
   display: flex;
   gap: 8px;
