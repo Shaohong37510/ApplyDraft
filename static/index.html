@@ -199,6 +199,16 @@
     </div>
   </div>
 
+  <!-- Data Privacy Banner -->
+  <div class="privacy-banner">
+    <div class="landing-container">
+      <div class="privacy-banner-inner">
+        <span class="privacy-banner-icon">🔒</span>
+        <span><strong>Your data stays private.</strong> ApplyDraft only creates drafts in your Gmail or Outlook — we never read your inbox, never send on your behalf, and never store your email content. <a href="/privacy.html" target="_blank">Privacy Policy →</a></span>
+      </div>
+    </div>
+  </div>
+
   <!-- Metrics Bar -->
   <div class="landing-metrics">
     <div class="landing-container">
@@ -430,6 +440,15 @@
         <div class="faq-item">
           <div class="faq-q">Can I use my own Claude API key?</div>
           <div class="faq-a">Yes. You can connect your own Anthropic Claude API key in Settings. This gives you full control over AI usage and costs without consuming ApplyDraft credits.</div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What Gmail or Outlook permissions does ApplyDraft request, and why?</div>
+          <div class="faq-a">
+            <strong>Gmail:</strong> ApplyDraft requests only the <code>gmail.compose</code> scope — permission to create email drafts. We use this solely to save your generated application emails as drafts in your inbox. We never read your existing emails, never access your inbox content, and never send any email on your behalf.<br><br>
+            <strong>Outlook:</strong> ApplyDraft requests <code>Mail.ReadWrite</code> to create drafts in your Outlook inbox. We only write new draft messages and never read your existing mail.<br><br>
+            Your email credentials are never stored on our servers. OAuth tokens are kept securely and used only to create drafts when you explicitly trigger a generation.
+          </div>
         </div>
 
       </div>
