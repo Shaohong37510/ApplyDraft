@@ -384,43 +384,103 @@ Find real firms with open positions and generate {count} target entries. Return 
     return {"targets": [], "skipped": [], "error": f"Could not parse AI response: {snippet}..."}, usage
 
 
+# ── Job requirements parser: hard vs soft conditions ───────────
+
+def _parse_job_requirements(job_requirements: str) -> dict:
+    """Split job requirements into hard conditions (for search query) and soft preferences (for Claude context).
+
+    Hard: position title, city/location, industry, experience level
+    Soft: H1B/visa sponsor, salary, remote/hybrid, benefits, company size, etc.
+    Returns {"hard": str, "soft": str, "adzuna_what": str, "adzuna_where": str}
+    """
+    SOFT_PATTERNS = [
+        r'\bh[- ]?1\s*b\b', r'\bspons\w*\b', r'\bvisa\b', r'\bwork\s*authoriz\w*\b',
+        r'\bsalar\w*\b', r'\bpay\b', r'\bcompensati\w*\b', r'\b\$[\d,k]+\b',
+        r'\bremote\b', r'\bhybrid\b', r'\bon[- ]?site\b',
+        r'\bhealth\s*insur\w*\b', r'\b401k\b', r'\bbenefits?\b',
+        r'\bstartup\b', r'\bsmall\s*firm\b', r'\bbig\s*firm\b', r'\bcompany\s*size\b',
+        r'\bculture\b', r'\bdiversity\b', r'\bwork[- ]life\b',
+        r'\bpart[- ]?time\b', r'\bfull[- ]?time\b', r'\bcontract\b', r'\bfreelance\b',
+    ]
+    EXPERIENCE_PATTERNS = [
+        r'\b0[-–]1\s*year', r'\bentry[- ]?level\b', r'\bjunior\b', r'\bnew\s*grad\b',
+        r'\bfresh\w*\b', r'\b1[-–]3\s*year', r'\brecent\s*grad\w*\b',
+    ]
+    CITY_LIST = [
+        "new york", "nyc", "los angeles", "la", "chicago", "san francisco", "sf",
+        "boston", "seattle", "austin", "miami", "houston", "denver", "atlanta",
+        "philadelphia", "washington dc", "dc", "portland", "minneapolis",
+        "dallas", "phoenix", "san diego", "detroit", "pittsburgh",
+    ]
+
+    import re as _re
+    lines = [l.strip() for l in job_requirements.split('\n') if l.strip()]
+
+    hard_lines, soft_lines = [], []
+    for line in lines:
+        ll = line.lower()
+        is_soft = any(_re.search(p, ll) for p in SOFT_PATTERNS)
+        if is_soft:
+            soft_lines.append(line)
+        else:
+            hard_lines.append(line)
+
+    hard_text = "\n".join(hard_lines) if hard_lines else job_requirements
+    soft_text = "\n".join(soft_lines)
+
+    # Build Adzuna query from hard conditions
+    # Extract position (first hard line), location
+    adzuna_what = hard_lines[0][:100] if hard_lines else lines[0][:100]
+
+    adzuna_where = ""
+    full_lower = job_requirements.lower()
+    for city in CITY_LIST:
+        if city in full_lower:
+            adzuna_where = city
+            break
+
+    # Add experience level to what query if found
+    exp_match = None
+    for p in EXPERIENCE_PATTERNS:
+        m = _re.search(p, full_lower)
+        if m:
+            exp_match = m.group()
+            break
+    if exp_match and exp_match.lower() not in adzuna_what.lower():
+        adzuna_what = f"{adzuna_what} {exp_match}"
+
+    return {
+        "hard": hard_text,
+        "soft": soft_text,
+        "adzuna_what": adzuna_what,
+        "adzuna_where": adzuna_where,
+    }
+
+
 # ── Phase 1a: Adzuna job search (with DDG fallback) ────────────
 
-def _adzuna_search_jobs(job_requirements: str, count: int) -> str:
-    """Search Adzuna API for real job listings. Returns formatted summary for Claude."""
+def _adzuna_search_jobs(job_requirements: str, count: int) -> tuple[str, str]:
+    """Search Adzuna API using hard conditions only. Returns (adzuna_context, soft_prefs)."""
     import os, urllib.request, urllib.parse
     app_id = os.environ.get("ADZUNA_APP_ID", "")
     app_key = os.environ.get("ADZUNA_APP_KEY", "")
+
+    parsed = _parse_job_requirements(job_requirements)
+    soft_prefs = parsed["soft"]
+
     if not app_id or not app_key:
-        return _ddg_search_jobs(job_requirements, count)
+        return _ddg_search_jobs(parsed["hard"], count), soft_prefs
 
     try:
-        # Extract keywords and location from job_requirements
-        lines = [l.strip() for l in job_requirements.split('\n') if l.strip()]
-        first_line = lines[0][:120] if lines else job_requirements[:120]
-
-        # Try to find location hint
-        location = "us"
-        where = ""
-        for line in lines:
-            ll = line.lower()
-            for city in ["new york", "los angeles", "chicago", "san francisco", "boston",
-                         "seattle", "austin", "miami", "houston", "denver", "atlanta"]:
-                if city in ll:
-                    where = city
-                    break
-            if where:
-                break
-
         params = {
             "app_id": app_id,
             "app_key": app_key,
             "results_per_page": min(count * 3, 20),
-            "what": first_line,
+            "what": parsed["adzuna_what"],
             "content-type": "application/json",
         }
-        if where:
-            params["where"] = where
+        if parsed["adzuna_where"]:
+            params["where"] = parsed["adzuna_where"]
 
         url = f"https://api.adzuna.com/v1/api/jobs/us/search/1?{urllib.parse.urlencode(params)}"
         req = urllib.request.Request(url, headers={"User-Agent": "ApplyDraft/1.0"})
@@ -429,7 +489,7 @@ def _adzuna_search_jobs(job_requirements: str, count: int) -> str:
 
         jobs = data.get("results", [])
         if not jobs:
-            return _ddg_search_jobs(job_requirements, count)
+            return _ddg_search_jobs(parsed["hard"], count), soft_prefs
 
         lines_out = []
         for j in jobs:
@@ -445,15 +505,15 @@ def _adzuna_search_jobs(job_requirements: str, count: int) -> str:
                 f"  Desc: {desc}"
             )
 
-        return "Real job listings from Adzuna (use these firms and URLs as starting points):\n" + "\n".join(lines_out)
+        context = "Real job listings from Adzuna (use these firms and URLs as starting points):\n" + "\n".join(lines_out)
+        return context, soft_prefs
 
-    except Exception as e:
-        # Fall back to DDG on any error
-        return _ddg_search_jobs(job_requirements, count)
+    except Exception:
+        return _ddg_search_jobs(parsed["hard"], count), soft_prefs
 
 
 def _ddg_search_jobs(job_requirements: str, count: int) -> str:
-    """Fallback: pre-search with DuckDuckGo for job context."""
+    """Fallback: pre-search with DuckDuckGo for job context. Returns context string."""
     try:
         from duckduckgo_search import DDGS
         first_line = job_requirements.split('\n')[0].strip()[:120]
@@ -493,7 +553,11 @@ def search_firms(
     Returns (candidates, skipped, usage).
     candidates = [{firm, email, position, location, website, source, openDate, subject, salutation, firm_research}]
     """
-    ddg_context = _adzuna_search_jobs(job_requirements, count)
+    job_context, soft_prefs = _adzuna_search_jobs(job_requirements, count)
+    parsed_req = _parse_job_requirements(job_requirements)
+    hard_req = parsed_req["hard"]
+
+    soft_section = f"\nCANDIDATE PREFERENCES (do NOT use these as search filters — use for firm_research notes only):\n{soft_prefs}" if soft_prefs.strip() else ""
 
     system = f"""You are a job application assistant. Use web search to find real, current job openings and gather key information about each firm.
 
@@ -515,15 +579,17 @@ RULES:
 
     user_msg = f"""Find {count} job openings matching these requirements:
 
-{job_requirements}
+{hard_req}
+{soft_section}
 
-{ddg_context}
+{job_context}
 
 INSTRUCTIONS:
 1. Use the real job listings above as your primary source — visit each job URL to find the application email
 2. For any firm missing an email, search their careers page directly (e.g. "site:firmname.com careers email apply")
 3. For each firm: find application email, note required subject line format if any, briefly research their notable work
-4. Return JSON with candidates array."""
+4. The candidate preferences (visa/salary/remote etc.) are for reference only — do NOT narrow the search based on them
+5. Return JSON with candidates array."""
 
     max_searches = count * 2 + 3
     max_output = min(count * 700 + 1500, 10000)
