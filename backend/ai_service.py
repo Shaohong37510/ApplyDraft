@@ -384,10 +384,76 @@ Find real firms with open positions and generate {count} target entries. Return 
     return {"targets": [], "skipped": [], "error": f"Could not parse AI response: {snippet}..."}, usage
 
 
-# ── Phase 1a: DuckDuckGo pre-search ───────────────────────────
+# ── Phase 1a: Adzuna job search (with DDG fallback) ────────────
+
+def _adzuna_search_jobs(job_requirements: str, count: int) -> str:
+    """Search Adzuna API for real job listings. Returns formatted summary for Claude."""
+    import os, urllib.request, urllib.parse
+    app_id = os.environ.get("ADZUNA_APP_ID", "")
+    app_key = os.environ.get("ADZUNA_APP_KEY", "")
+    if not app_id or not app_key:
+        return _ddg_search_jobs(job_requirements, count)
+
+    try:
+        # Extract keywords and location from job_requirements
+        lines = [l.strip() for l in job_requirements.split('\n') if l.strip()]
+        first_line = lines[0][:120] if lines else job_requirements[:120]
+
+        # Try to find location hint
+        location = "us"
+        where = ""
+        for line in lines:
+            ll = line.lower()
+            for city in ["new york", "los angeles", "chicago", "san francisco", "boston",
+                         "seattle", "austin", "miami", "houston", "denver", "atlanta"]:
+                if city in ll:
+                    where = city
+                    break
+            if where:
+                break
+
+        params = {
+            "app_id": app_id,
+            "app_key": app_key,
+            "results_per_page": min(count * 3, 20),
+            "what": first_line,
+            "content-type": "application/json",
+        }
+        if where:
+            params["where"] = where
+
+        url = f"https://api.adzuna.com/v1/api/jobs/us/search/1?{urllib.parse.urlencode(params)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "ApplyDraft/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+
+        jobs = data.get("results", [])
+        if not jobs:
+            return _ddg_search_jobs(job_requirements, count)
+
+        lines_out = []
+        for j in jobs:
+            title = j.get("title", "")
+            company = j.get("company", {}).get("display_name", "")
+            loc = j.get("location", {}).get("display_name", "")
+            redirect = j.get("redirect_url", "")
+            desc = j.get("description", "")[:150].replace("\n", " ")
+            created = j.get("created", "")[:10]
+            lines_out.append(
+                f"- [{title}] {company} | {loc} | Posted: {created}\n"
+                f"  URL: {redirect}\n"
+                f"  Desc: {desc}"
+            )
+
+        return "Real job listings from Adzuna (use these firms and URLs as starting points):\n" + "\n".join(lines_out)
+
+    except Exception as e:
+        # Fall back to DDG on any error
+        return _ddg_search_jobs(job_requirements, count)
+
 
 def _ddg_search_jobs(job_requirements: str, count: int) -> str:
-    """Pre-search with DuckDuckGo for job context. Returns formatted summary string."""
+    """Fallback: pre-search with DuckDuckGo for job context."""
     try:
         from duckduckgo_search import DDGS
         first_line = job_requirements.split('\n')[0].strip()[:120]
@@ -427,7 +493,7 @@ def search_firms(
     Returns (candidates, skipped, usage).
     candidates = [{firm, email, position, location, website, source, openDate, subject, salutation, firm_research}]
     """
-    ddg_context = _ddg_search_jobs(job_requirements, count)
+    ddg_context = _adzuna_search_jobs(job_requirements, count)
 
     system = f"""You are a job application assistant. Use web search to find real, current job openings and gather key information about each firm.
 
@@ -447,13 +513,17 @@ RULES:
   {{"firm": "Firm Name", "email": "jobs@firm.com", "position": "Job Title", "location": "City, State", "website": "https://firm.com", "source": "https://... (MUST be a full https:// URL — use the job posting page if available, otherwise any URL showing this firm is hiring: job board listing, LinkedIn, Indeed, Glassdoor, firm careers page, etc.)", "openDate": "YYYY-MM", "subject": "Application for [Position] - [Name]", "salutation": "Hiring Manager", "firm_research": "Notable work: X, Y. Company culture/approach: ..."}}
 - Each skipped: {{"firm": "...", "reason": "portal only", "portal_url": "..."}}"""
 
-    user_msg = f"""Search for {count} job openings matching these requirements:
+    user_msg = f"""Find {count} job openings matching these requirements:
 
 {job_requirements}
 
 {ddg_context}
 
-For each firm: find their application email, note the required subject line format if any, and briefly research their notable work and company background. Return JSON with candidates array."""
+INSTRUCTIONS:
+1. Use the real job listings above as your primary source — visit each job URL to find the application email
+2. For any firm missing an email, search their careers page directly (e.g. "site:firmname.com careers email apply")
+3. For each firm: find application email, note required subject line format if any, briefly research their notable work
+4. Return JSON with candidates array."""
 
     max_searches = count * 2 + 3
     max_output = min(count * 700 + 1500, 10000)
