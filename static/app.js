@@ -2977,7 +2977,7 @@ async function obGenerateTemplate(id) {
       resultDiv.style.display = '';
       const tplEl = document.getElementById('obTplText');
       const defsEl = document.getElementById('obTplDefs');
-      if (tplEl) tplEl.value = result.template || '';
+      if (tplEl) tplEl.value = extractEditableContent(result.template || '');
       if (defsEl) defsEl.value = result.definitions || '';
     }
     if (btn) { btn.disabled = false; btn.textContent = '✓ Generated — review below'; }
