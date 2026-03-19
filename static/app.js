@@ -59,26 +59,39 @@ async function initSupabase() {
 function extractEditableContent(html) {
   if (!html) return html;
   if (!html.toLowerCase().includes('<html') && !html.toLowerCase().includes('<!doctype')) return html;
-  // Strip head/style/script sections first
+  // Use DOMParser for reliable HTML stripping (browser environment)
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const body = doc.body;
+    if (body) {
+      let text = '';
+      const walk = (node) => {
+        if (node.nodeType === 3) {
+          text += node.textContent;
+        } else if (node.nodeType === 1) {
+          const tag = node.tagName.toLowerCase();
+          if (tag === 'br') text += '\n';
+          for (const child of node.childNodes) walk(child);
+          if (['p','div','h1','h2','h3','h4','h5','h6','li','tr'].includes(tag)) text += '\n';
+        }
+      };
+      walk(body);
+      text = text.split('\n').map(l => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+      if (text) return text;
+    }
+  } catch(e) {}
+  // Fallback: regex approach
   let content = html;
-  content = content.replace(/<head[\s\S]*?<\/head>/gi, '');
   content = content.replace(/<style[\s\S]*?<\/style>/gi, '');
   content = content.replace(/<script[\s\S]*?<\/script>/gi, '');
-  // Extract body content if available
-  const bodyMatch = content.match(/<body[^>]*>([\s\S]*)/i);
-  if (bodyMatch) content = bodyMatch[1].replace(/<\/body>[\s\S]*/i, '');
-  // Convert block elements to newlines
+  const bodyMatch = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) content = bodyMatch[1];
   content = content.replace(/<br\s*\/?>/gi, '\n');
-  content = content.replace(/<\/(p|div|h[1-6]|li|tr|td)>/gi, '\n');
-  content = content.replace(/<(p|div|h[1-6]|li|tr|td)[^>]*>/gi, '');
-  // Strip remaining tags
+  content = content.replace(/<\/(p|div|h[1-6]|li)>/gi, '\n');
   content = content.replace(/<[^>]+>/g, '');
-  // Decode HTML entities
   content = content.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
-  // Clean up whitespace
-  content = content.split('\n').map(l => l.trim()).join('\n');
-  content = content.replace(/\n{3,}/g, '\n\n');
-  return content.trim();
+  return content.split('\n').map(l => l.trim()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 async function apiOpenPdf(path) {
