@@ -607,8 +607,9 @@ async function renderProjectHome(id) {
       case 'email':      await renderProjectHomeEmail(id, page); break;
       case 'email-edit': await renderProjectHomeEmailEdit(id, page); break;
       case 'customize':  await renderProjectHomeCustomize(id, page); break;
-      case 'profile':    await renderProjectHomeProfile(id, page); break;
-      default:           await renderProjectHomeMain(id, page);
+      case 'profile':        await renderProjectHomeProfile(id, page); break;
+      case 'connect-email':  await renderProjectHomeConnectEmail(id, page); break;
+      default:               await renderProjectHomeMain(id, page);
     }
   } catch (e) {
     page.innerHTML = `<div class="view-error">Failed to load: ${esc(e.message)}</div>`;
@@ -673,6 +674,15 @@ async function renderProjectHomeMain(id, page) {
           <div class="home-nav-info">
             <div class="home-nav-title">Email Preview</div>
             <div class="home-nav-sub">View subject, body and attachments</div>
+          </div>
+          <span class="home-nav-arrow">›</span>
+        </div>
+
+        <div class="home-nav-item" onclick="navigateToHomeSubView('${id}', 'connect-email')">
+          <span class="home-nav-icon">🔗</span>
+          <div class="home-nav-info">
+            <div class="home-nav-title">Connect Email</div>
+            <div class="home-nav-sub">${globalConfig.gmail_connected ? '✓ Gmail connected' : globalConfig.outlook_connected ? '✓ Outlook connected' : 'Connect Gmail or Outlook'}</div>
           </div>
           <span class="home-nav-arrow">›</span>
         </div>
@@ -929,6 +939,48 @@ async function renderProjectHomeCustomize(id, page) {
 }
 
 // ── Project Home: Profile sub-view ────────────────────────
+
+async function renderProjectHomeConnectEmail(id, page) {
+  page.innerHTML = `
+    <div class="project-home-content">
+      <div class="sub-view-header">
+        <button class="btn-back-sub" onclick="navigateToHomeSubView('${id}', 'main')">← Back</button>
+        <h2 class="sub-view-title">Connect Email</h2>
+      </div>
+      <div class="section">
+        <div class="section-body">
+
+          <div style="margin-bottom:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px">GMAIL</div>
+            ${globalConfig.gmail_connected
+              ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(30,60,40,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px">
+                  <span style="color:#4ade80;font-size:18px">&#10003;</span>
+                  <span>Connected: <strong>${esc(globalConfig.gmail_email || globalConfig.email || '')}</strong></span>
+                  <button class="btn btn-secondary btn-sm" onclick="disconnectGmail()" style="margin-left:auto">Disconnect</button>
+                </div>`
+              : `<button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail</button>
+                 <div style="margin-top:6px;font-size:12px;color:#f59e0b;">⚠️ A security warning may appear — click "Advanced" → "Go to ApplyDraft" to continue.</div>`
+            }
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px">OUTLOOK</div>
+            ${globalConfig.outlook_connected
+              ? `<div style="display:flex;align-items:center;gap:12px;padding:10px;background:rgba(30,60,40,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px">
+                  <span style="color:#4ade80;font-size:18px">&#10003;</span>
+                  <span>Connected: <strong>${esc(globalConfig.outlook_email || '')}</strong></span>
+                  <button class="btn btn-secondary btn-sm" onclick="disconnectOutlook()" style="margin-left:auto">Disconnect</button>
+                </div>`
+              : `<button class="btn btn-primary btn-sm" onclick="connectOutlook()">Connect Outlook</button>
+                 <div style="margin-top:6px;font-size:12px;color:#666">Supports school (.edu) and personal Outlook accounts</div>`
+            }
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 async function renderProjectHomeProfile(id, page) {
   const proj = await api("GET", `/projects/${id}`).catch(() => ({ config: {} }));
