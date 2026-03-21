@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Tracker — Track Every Application Automatically | ApplyDraft</title>
+  <meta name="description" content="Track every job application automatically. ApplyDraft logs each application — firm, position, date, status — and connects your tracker to your Gmail and Outlook drafts. Free to start.">
+  <meta name="keywords" content="job application tracker, track job applications, job search tracker, job application organizer, application status tracker, job hunt tracker">
+  <link rel="canonical" href="https://applydraft.com/job-application-tracker">
+  <meta property="og:title" content="Job Application Tracker — Automatic, Built Into Your Workflow | ApplyDraft">
+  <meta property="og:description" content="Stop managing spreadsheets. ApplyDraft tracks every job application automatically — firm, position, date, status — as you apply. Free to start.">
+  <meta property="og:url" content="https://applydraft.com/job-application-tracker">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .tracker-preview { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-top: 40px; }
+    .tracker-header { padding: 14px 20px; background: var(--bg3); border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text2); display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; gap: 12px; }
+    .tracker-row { padding: 14px 20px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; gap: 12px; font-size: 14px; align-items: center; }
+    .tracker-row:last-child { border-bottom: none; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+    .badge-sent { background: rgba(74,222,128,.12); color: var(--green); }
+    .badge-draft { background: rgba(108,140,255,.12); color: var(--accent); }
+    .badge-pending { background: rgba(251,146,60,.12); color: #fb923c; }
+    .faq { display: flex; flex-direction: column; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .cta-section { padding: 80px 0; text-align: center; }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+    @media (max-width: 600px) { .tracker-header, .tracker-row { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+  <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag">✦ Job Application Tracker</div>
+    <h1>Track Every Application<br><span class="gradient-text">Automatically — No Spreadsheet</span></h1>
+    <p class="hero-sub">ApplyDraft logs every job application as you generate it — firm, position, date, status. Know exactly where you've applied, what was sent, and what's pending. All in one place.</p>
+    <a href="https://applydraft.com" class="btn-cta">Start Tracking Free →</a>
+    <div class="trust">Free to start · Automatic logging · No manual entry</div>
+  </div>
+
+  <div class="section">
+    <h2>Your application tracker, always up to date</h2>
+    <p class="section-sub">Every time you generate an application with ApplyDraft, it's automatically logged. No copying and pasting into a spreadsheet.</p>
+
+    <div class="tracker-preview">
+      <div class="tracker-header">
+        <span>Firm</span>
+        <span>Position</span>
+        <span>Date</span>
+        <span>Status</span>
+      </div>
+      <div class="tracker-row">
+        <span>Snøhetta</span>
+        <span>Junior Architect</span>
+        <span>Mar 21</span>
+        <span><span class="badge badge-sent">Sent</span></span>
+      </div>
+      <div class="tracker-row">
+        <span>Perkins & Will</span>
+        <span>Designer I</span>
+        <span>Mar 21</span>
+        <span><span class="badge badge-sent">Sent</span></span>
+      </div>
+      <div class="tracker-row">
+        <span>Gensler</span>
+        <span>Entry-Level Designer</span>
+        <span>Mar 20</span>
+        <span><span class="badge badge-draft">Draft</span></span>
+      </div>
+      <div class="tracker-row">
+        <span>SOM</span>
+        <span>Architectural Staff</span>
+        <span>Mar 19</span>
+        <span><span class="badge badge-pending">Pending</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Why tracking matters when you apply at scale</h2>
+    <p class="section-sub">When you're applying to 50+ firms, it's easy to lose track. ApplyDraft prevents duplicate applications and keeps your job search organized.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">🚫</div>
+        <h3>No duplicate applications</h3>
+        <p>ApplyDraft automatically skips firms you've already applied to. You never accidentally apply to the same company twice.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📅</div>
+        <h3>Know when you applied</h3>
+        <p>Every application is timestamped. Know exactly when you reached out to each firm — useful for following up at the right time.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h3>See what was sent</h3>
+        <p>View the cover letter and email that went to each firm. Reference exactly what you wrote when a recruiter calls you for a screening.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔄</div>
+        <h3>Status tracking</h3>
+        <p>Update application statuses as you hear back — draft, sent, interviewing, offer, rejected. Your full job search pipeline in one view.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>More than just a tracker</h2>
+    <p class="section-sub">The tracker is built into ApplyDraft's full application workflow — not a standalone tool you have to update manually.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">✍️</div>
+        <h3>Generate applications</h3>
+        <p>AI reads each job description and writes a unique cover letter PDF and email for each firm. Saved to Gmail or Outlook drafts for your review.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h3>Automatic logging</h3>
+        <p>Every application you generate is automatically added to your tracker. No manual entry, no copy-pasting, no forgetting to update.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📬</div>
+        <h3>Email integration</h3>
+        <p>Your drafts live in Gmail or Outlook. The tracker knows what was generated, what's still in drafts, and what you've sent.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Do I have to manually update the tracker?</div>
+        <div class="faq-a">No. Every application you generate with ApplyDraft is automatically logged with the firm name, position, date, and initial status. You can manually update the status as you hear back from firms.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I export my application history?</div>
+        <div class="faq-a">Yes. Your application tracker can be exported as a CSV file for use in Excel, Google Sheets, or any other tool.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What happens if I apply to the same firm twice?</div>
+        <div class="faq-a">ApplyDraft automatically detects duplicate applications and skips firms you've already applied to. This prevents the embarrassing situation of reaching out to the same company twice.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I use the tracker without using the AI cover letter generator?</div>
+        <div class="faq-a">The tracker is built into the ApplyDraft application workflow. It works best when used alongside the AI generation features, as it auto-populates based on your generated applications.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="container">
+    <h2>Apply smarter.<br>Know exactly where you stand.</h2>
+    <p>Generate personalized applications and track every one — automatically, in one place.</p>
+    <a href="https://applydraft.com" class="btn-cta">Start Free — No Subscription →</a>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 ApplyDraft. All rights reserved.</span>
+  <div style="display:flex;gap:20px;">
+    <a href="https://applydraft.com">Home</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+  </div>
+</footer>
+
+</body>
+</html>

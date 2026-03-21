@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Cover Letter Generator — Tailored Per Job, Not Copy-Paste | ApplyDraft</title>
+  <meta name="description" content="Generate a personalized cover letter PDF for every job you apply to. ApplyDraft reads the job description and writes a unique cover letter from scratch — not a template. Free to start.">
+  <meta name="keywords" content="ai cover letter generator, personalized cover letter, cover letter ai, ai cover letter writer, tailored cover letter generator, cover letter for job application">
+  <link rel="canonical" href="https://applydraft.com/ai-cover-letter-generator">
+  <meta property="og:title" content="AI Cover Letter Generator — Tailored Per Job | ApplyDraft">
+  <meta property="og:description" content="Stop using the same cover letter for every job. ApplyDraft reads each job description and writes a unique, personalized cover letter PDF — automatically.">
+  <meta property="og:url" content="https://applydraft.com/ai-cover-letter-generator">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ApplyDraft AI Cover Letter Generator",
+    "url": "https://applydraft.com",
+    "description": "AI cover letter generator that reads each job description and writes a unique, personalized cover letter PDF for every application.",
+    "applicationCategory": "BusinessApplication",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .nav-cta:hover { opacity: 0.9; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+    .btn-cta:hover { opacity: 0.9; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .step-content h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--text2); }
+    .faq { display: flex; flex-direction: column; gap: 0; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .cta-section { padding: 80px 0; text-align: center; }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+  <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag">✦ AI Cover Letter Generator</div>
+    <h1>A Unique Cover Letter<br><span class="gradient-text">For Every Job You Apply To</span></h1>
+    <p class="hero-sub">Stop copying and pasting the same letter. ApplyDraft reads each job description and writes a tailored cover letter PDF from scratch — automatically, in seconds.</p>
+    <a href="https://applydraft.com" class="btn-cta">Generate Your First Cover Letter Free →</a>
+    <div class="trust">No subscription · Credits never expire · Free to start</div>
+  </div>
+
+  <div class="section">
+    <h2>Why generic cover letters get ignored</h2>
+    <p class="section-sub">81% of hiring managers say tailored cover letters significantly increase a candidate's chances. Recruiters can immediately spot a copy-pasted letter.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">🧠</div>
+        <h3>Reads the job description first</h3>
+        <p>ApplyDraft analyzes required skills, seniority level, and company tone before writing a single word. Every letter is built around that specific role.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h3>Outputs a formatted PDF</h3>
+        <p>Not just text — a properly formatted cover letter PDF ready to attach to your application email. Professional layout, every time.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Done in under 30 seconds</h3>
+        <p>What used to take 45–90 minutes per application now takes under 30 seconds. Apply to 10 firms in the time it used to take to write one letter.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">✏️</div>
+        <h3>You review before sending</h3>
+        <p>Every cover letter is saved to your Gmail or Outlook drafts. Read it, edit it, approve it — then send. You stay in full control.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>How it works</h2>
+    <p class="section-sub">Three steps from job posting to cover letter PDF in your inbox drafts.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Upload your resume once</h3>
+          <p>Set up your profile with your resume, experience, and the type of roles you're targeting. You do this once — ApplyDraft remembers your background for every application.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Add the jobs you want to apply to</h3>
+          <p>Paste job descriptions or let ApplyDraft search for open positions. The AI reads each posting in full — skills required, company culture, seniority level.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Get a tailored cover letter PDF + email draft</h3>
+          <p>ApplyDraft generates a unique cover letter PDF and a personalized application email for each job — saved directly to your Gmail or Outlook drafts for your review.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Is each cover letter actually unique, or is it a template?</div>
+        <div class="faq-a">Each cover letter is generated from scratch for that specific job posting. ApplyDraft analyzes the full job description — required skills, company background, seniority level — and writes the letter based on your actual resume and experience. It is not a fill-in-the-blank template.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What format is the cover letter?</div>
+        <div class="faq-a">Cover letters are generated as PDF files, properly formatted and ready to attach to your application email. The PDF is automatically included in the email draft saved to your Gmail or Outlook inbox.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I edit the cover letter before sending?</div>
+        <div class="faq-a">Yes. Every cover letter and email draft is saved to your inbox for your review. You can read, edit, and approve before sending. ApplyDraft never sends anything automatically.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How much does it cost?</div>
+        <div class="faq-a">ApplyDraft uses a pay-per-use credit system. Each application (cover letter + email draft) costs approximately 1 credit. You can start free and buy credits as needed — they never expire. No subscription required.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does it work for any industry?</div>
+        <div class="faq-a">Yes. ApplyDraft works for any email-based job application — architecture, design, tech, finance, marketing, and more. The AI adapts its writing to the tone and requirements of each specific role and company.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="container">
+    <h2>Stop writing the same cover letter.<br>Start applying smarter.</h2>
+    <p>Generate a unique, tailored cover letter for every job in seconds — not hours.</p>
+    <a href="https://applydraft.com" class="btn-cta">Start Free — No Subscription →</a>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 ApplyDraft. All rights reserved.</span>
+  <div style="display:flex;gap:20px;">
+    <a href="https://applydraft.com">Home</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+  </div>
+</footer>
+
+</body>
+</html>

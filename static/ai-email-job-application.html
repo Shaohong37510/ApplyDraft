@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Email Job Application Tool — Auto-Draft to Gmail & Outlook | ApplyDraft</title>
+  <meta name="description" content="Apply to jobs by email with AI. ApplyDraft generates a personalized application email and cover letter PDF for each job — saved directly to your Gmail or Outlook drafts. You review, you send.">
+  <meta name="keywords" content="ai email job application, job application email ai, auto apply email, email job application tool, gmail job application, outlook job application automation, apply jobs by email">
+  <link rel="canonical" href="https://applydraft.com/ai-email-job-application">
+  <meta property="og:title" content="AI Email Job Application — Auto-Draft to Gmail & Outlook | ApplyDraft">
+  <meta property="og:description" content="ApplyDraft generates a personalized job application email and cover letter PDF for each role, saved to your Gmail or Outlook drafts. Apply to 50+ jobs by email without writing a single word.">
+  <meta property="og:url" content="https://applydraft.com/ai-email-job-application">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; }
+    .btn-cta:hover { opacity: 0.9; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 36px; }
+    .pill { background: var(--bg2); border: 1px solid var(--border); padding: 8px 16px; border-radius: 100px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .highlight-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 24px 28px; margin: 32px 0; }
+    .highlight-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .highlight-box p { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .step-content h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--text2); }
+    .faq { display: flex; flex-direction: column; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .cta-section { padding: 80px 0; text-align: center; }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+  <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <div class="hero-tag">✦ AI Email Job Application</div>
+    <h1>Apply to Jobs by Email —<br><span class="gradient-text">AI Writes Every Message</span></h1>
+    <p class="hero-sub">ApplyDraft generates a personalized application email and cover letter PDF for each job, saved directly to your Gmail or Outlook drafts. You review, you send.</p>
+    <div class="pills">
+      <span class="pill">✓ Gmail & Outlook</span>
+      <span class="pill">✓ Cover letter PDF attached</span>
+      <span class="pill">✓ You review before sending</span>
+      <span class="pill">✓ No subscription</span>
+    </div>
+    <a href="https://applydraft.com" class="btn-cta">Start Applying Free →</a>
+    <div class="trust">Free to start · Credits never expire · No auto-send</div>
+  </div>
+
+  <div class="section">
+    <h2>Email applications done right</h2>
+    <p class="section-sub">Many firms — especially in architecture, design, and creative industries — still hire through direct email. ApplyDraft is built exactly for this.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">📧</div>
+        <h3>Saved to Gmail & Outlook drafts</h3>
+        <p>Every generated application email lands in your Gmail or Outlook drafts folder. Open, review, make any edits, and click send when you're ready.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h3>Cover letter PDF attached automatically</h3>
+        <p>ApplyDraft generates a formatted cover letter PDF and attaches it to the email draft. One click opens the draft with everything ready to go.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">✉️</div>
+        <h3>Correct subject line, every time</h3>
+        <p>Many firms specify exact email subject line formats. ApplyDraft checks and follows each firm's requirements — a detail most applicants miss.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎯</div>
+        <h3>Personalized email body per firm</h3>
+        <p>Not a copy-paste template. Each email body is written based on the specific job posting, firm background, and your experience — unique every time.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top:40px;">
+      <h3>🔒 Your privacy is protected</h3>
+      <p>ApplyDraft only creates drafts in your Gmail or Outlook — we never read your inbox, never send on your behalf, and never store your email content. We request only the minimum permissions needed to create drafts.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>How it works</h2>
+    <p class="section-sub">From job posting to email draft in your inbox — in under 30 seconds per application.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Connect Gmail or Outlook</h3>
+          <p>Sign in and connect your email account via OAuth. ApplyDraft only gets permission to create drafts — it cannot read your existing emails or send anything on your behalf.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Add jobs and your profile</h3>
+          <p>Upload your resume, portfolio, and set up your target firms. ApplyDraft reads each job posting and prepares a personalized application strategy for each one.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Generate in batch</h3>
+          <p>Select all the jobs you want to apply to. ApplyDraft generates personalized emails and cover letter PDFs for each one — all at once, in minutes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Review drafts and send</h3>
+          <p>Open your Gmail or Outlook drafts folder. Each application is waiting for your review. Read, edit if needed, and send when you're ready. You stay in full control.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Does ApplyDraft send emails automatically?</div>
+        <div class="faq-a">No. ApplyDraft only creates drafts in your Gmail or Outlook inbox. Nothing is sent until you open the draft and click send yourself. You review every email before it goes out.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What Gmail and Outlook permissions does ApplyDraft need?</div>
+        <div class="faq-a">For Gmail, ApplyDraft requests only the <code style="background:#1f2336;padding:2px 6px;border-radius:4px;font-size:13px;">gmail.compose</code> scope — permission to create drafts only. We cannot read your existing emails. For Outlook, we request <code style="background:#1f2336;padding:2px 6px;border-radius:4px;font-size:13px;">Mail.ReadWrite</code> to create drafts. We never store your email credentials.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I use it for cold email outreach to companies not actively hiring?</div>
+        <div class="faq-a">Yes. ApplyDraft works great for cold outreach — you can add any firm's email address and generate a tailored application even if they don't have an active posting. Many users apply to firms speculatively this way.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How is the email subject line handled?</div>
+        <div class="faq-a">ApplyDraft checks whether a firm specifies a required subject line format in their job posting and follows it exactly. If no format is specified, it generates a clean, professional subject line automatically.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="container">
+    <h2>Your next 50 email applications,<br>drafted in minutes.</h2>
+    <p>Connect Gmail or Outlook and let ApplyDraft handle the writing. You handle the sending.</p>
+    <a href="https://applydraft.com" class="btn-cta">Start Free — No Subscription →</a>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 ApplyDraft. All rights reserved.</span>
+  <div style="display:flex;gap:20px;">
+    <a href="https://applydraft.com">Home</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+  </div>
+</footer>
+
+</body>
+</html>
