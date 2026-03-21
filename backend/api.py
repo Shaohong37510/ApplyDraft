@@ -373,8 +373,8 @@ def outlook_callback(request: Request, code: str = "", error: str = "", state: s
 def outlook_disconnect(user_id: str = Depends(get_current_user)):
     """Remove Outlook OAuth tokens."""
     settings = db.get_user_settings(user_id)
-    settings.pop("outlook_tokens", None)
-    settings.pop("outlook_email", None)
+    settings["outlook_tokens"] = None
+    settings["outlook_email"] = ""
     if settings.get("email_provider") == "outlook":
         settings["email_provider"] = "none"
     db.save_user_settings(user_id, settings)
@@ -455,8 +455,8 @@ def gmail_callback(request: Request, code: str = "", error: str = "", state: str
 def gmail_disconnect(user_id: str = Depends(get_current_user)):
     """Remove Gmail OAuth tokens."""
     settings = db.get_user_settings(user_id)
-    settings.pop("gmail_tokens", None)
-    settings.pop("gmail_email", None)
+    settings["gmail_tokens"] = None
+    settings["gmail_email"] = ""
     if settings.get("email_provider") == "gmail":
         settings["email_provider"] = "none"
     db.save_user_settings(user_id, settings)
