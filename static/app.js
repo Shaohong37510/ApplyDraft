@@ -1843,7 +1843,9 @@ async function disconnectOutlook() {
   if (!confirm("Disconnect Outlook account?")) return;
   await api("POST", "/oauth/outlook/disconnect");
   globalConfig = await api("GET", "/global-config").catch(() => ({}));
-  if (_projectHomeSubView === 'connect-email' && activeProjectId) {
+  if (currentView === 'viewOnboarding' && activeProjectId) {
+    await renderOnboarding(activeProjectId);
+  } else if (_projectHomeSubView === 'connect-email' && activeProjectId) {
     renderProjectHome(activeProjectId);
   } else if (activeProjectId) {
     renderEditView(activeProjectId);
@@ -1863,7 +1865,9 @@ async function disconnectGmail() {
   if (!confirm("Disconnect Gmail account?")) return;
   await api("POST", "/oauth/gmail/disconnect");
   globalConfig = await api("GET", "/global-config").catch(() => ({}));
-  if (_projectHomeSubView === 'connect-email' && activeProjectId) {
+  if (currentView === 'viewOnboarding' && activeProjectId) {
+    await renderOnboarding(activeProjectId);
+  } else if (_projectHomeSubView === 'connect-email' && activeProjectId) {
     renderProjectHome(activeProjectId);
   } else if (activeProjectId) {
     renderEditView(activeProjectId);

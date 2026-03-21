@@ -1548,7 +1548,13 @@ Best regards,
             target["subject"] = target_subject
 
             # Step 3: Creating email draft
-            email_provider = gcfg.get("email_provider", "gmail")
+            email_provider = gcfg.get("email_provider", "none")
+            # Auto-detect provider if "none" but tokens exist
+            if email_provider == "none":
+                if (gcfg.get("gmail_tokens") or {}).get("refresh_token"):
+                    email_provider = "gmail"
+                elif (gcfg.get("outlook_tokens") or {}).get("refresh_token"):
+                    email_provider = "outlook"
             print(f"[DRAFT] firm={firm} provider={email_provider} to_email={target.get('email','(empty)')} gmail_connected={bool((gcfg.get('gmail_tokens') or {}).get('refresh_token'))}", flush=True)
             if email_provider != "none":
                 provider_label = "Outlook" if email_provider == "outlook" else "Gmail"
