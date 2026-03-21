@@ -43,6 +43,30 @@ def terms():
     return FileResponse(str(static_dir / "terms.html"))
 
 
+@app.get("/ai-cover-letter-generator")
+@app.get("/ai-cover-letter-generator.html")
+def ai_cover_letter_generator():
+    return FileResponse(str(static_dir / "ai-cover-letter-generator.html"))
+
+
+@app.get("/ai-email-job-application")
+@app.get("/ai-email-job-application.html")
+def ai_email_job_application():
+    return FileResponse(str(static_dir / "ai-email-job-application.html"))
+
+
+@app.get("/automate-job-applications")
+@app.get("/automate-job-applications.html")
+def automate_job_applications():
+    return FileResponse(str(static_dir / "automate-job-applications.html"))
+
+
+@app.get("/job-application-tracker")
+@app.get("/job-application-tracker.html")
+def job_application_tracker():
+    return FileResponse(str(static_dir / "job-application-tracker.html"))
+
+
 def open_browser(port):
     webbrowser.open(f"http://localhost:{port}")
 
