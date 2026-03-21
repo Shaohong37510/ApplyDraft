@@ -134,7 +134,7 @@ When skipping a firm, report it to the user with the reason and the portal URL s
 
 ## Overview
 SaaS version of the job application automation system.
-- Domain: https://app.applydraft.top
+- Domain: https://app.swifyapply.com
 - Server: DigitalOcean, IP 137.184.14.114, Ubuntu 24.04
 - Server path: /opt/ApplyDraft/
 - Service: systemd `applydraft.service` (FastAPI on port 8899, nginx reverse proxy)
