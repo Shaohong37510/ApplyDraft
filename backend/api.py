@@ -620,6 +620,22 @@ def list_examples(project_id: str, type_id: str, user_id: str = Depends(get_curr
     return pm.list_type_examples(user_id, project_id, type_id)
 
 
+@router.get("/projects/{project_id}/customize/{type_id}/examples/{filename}/content")
+def get_example_content(project_id: str, type_id: str, filename: str, user_id: str = Depends(get_current_user)):
+    path = pm.get_project_dir(user_id, project_id) / "templates" / type_id / "examples" / filename
+    if not path.exists():
+        raise HTTPException(404)
+    if path.suffix.lower() == ".txt":
+        return {"text": path.read_text(encoding="utf-8", errors="ignore")}
+    try:
+        import pymupdf
+        doc = pymupdf.open(str(path))
+        text = "\n".join(page.get_text() for page in doc)
+        return {"text": text}
+    except Exception:
+        return {"text": f"[Cannot preview {filename} — PDF text extraction unavailable]"}
+
+
 @router.delete("/projects/{project_id}/customize/{type_id}/examples/{filename}")
 def delete_example(project_id: str, type_id: str, filename: str, user_id: str = Depends(get_current_user)):
     path = pm.get_project_dir(user_id, project_id) / "templates" / type_id / "examples" / filename

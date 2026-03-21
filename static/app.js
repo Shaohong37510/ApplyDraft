@@ -2905,7 +2905,10 @@ async function renderObStep3(id, page) {
             <strong>Use Sample Cover Letter</strong>
             <p>Upload a professional sample so AI can generate a template for you.</p>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="obUseSampleCoverLetter('${id}', this)">Use Sample</button>
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            <button class="btn btn-secondary btn-sm" onclick="obPreviewSample(OB_SAMPLE_COVER_LETTER)">Preview</button>
+            <button class="btn btn-secondary btn-sm" onclick="obUseSampleCoverLetter('${id}', this)">Use Sample</button>
+          </div>
         </div>
         <div class="ob-divider"><span>or upload your own</span></div>
         <div class="ob-upload-zone"
@@ -2931,10 +2934,10 @@ async function renderObStep3(id, page) {
     </div>`;
 }
 
-function obRenderExampleChips(examples, id) {
+function obRenderExampleChips(examples, id, typeId = 'cover_letter') {
   if (!examples || examples.length === 0) return '<div class="ob-empty-hint">No examples uploaded yet</div>';
   return examples.map(f =>
-    `<div class="ob-file-chip">📄 ${esc(f)}<button class="ob-file-remove" onclick="obDeleteExample('${id}','cover_letter','${esc(f)}')" title="Remove">×</button></div>`
+    `<div class="ob-file-chip" style="cursor:pointer" onclick="obPreviewExample('${id}','${typeId}','${esc(f)}')" title="Click to preview">📄 ${esc(f)}<button class="ob-file-remove" onclick="event.stopPropagation();obDeleteExample('${id}','${typeId}','${esc(f)}')" title="Remove">×</button></div>`
   ).join('');
 }
 
@@ -2968,13 +2971,48 @@ async function obUseSampleCoverLetter(id, btn) {
     const blob = new Blob([OB_SAMPLE_COVER_LETTER], { type: 'text/plain' });
     const file = new File([blob], 'sample-cover-letter.txt', { type: 'text/plain' });
     await uploadFile(`/projects/${id}/customize/cover_letter/upload-example`, file);
-    toast('Sample uploaded — generating template next');
-    await obGoStep(id, 4);
+    toast('Sample uploaded');
+    const examples = await api("GET", `/projects/${id}/customize/cover_letter/examples`).catch(() => []);
+    const list = document.getElementById('obClFilesList');
+    if (list) list.innerHTML = obRenderExampleChips(examples, id);
+    const nextBtn = document.querySelector('.ob-next-btn');
+    if (nextBtn) nextBtn.textContent = 'Generate Template →';
+    btn.disabled = false;
+    btn.textContent = 'Use Sample';
   } catch (e) {
     toast(e.message, 'error');
     btn.disabled = false;
     btn.textContent = 'Use Sample';
   }
+}
+
+function obShowPreview(title, text) {
+  const existing = document.getElementById('obPreviewModal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'obPreviewModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#1a1d2e;border:1px solid #2a2f47;border-radius:12px;max-width:700px;width:100%;max-height:80vh;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2a2f47">
+        <span style="font-weight:600;font-size:15px">${esc(title)}</span>
+        <button onclick="document.getElementById('obPreviewModal').remove()" style="background:none;border:none;color:#7c839e;font-size:20px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;white-space:pre-wrap;font-size:13px;line-height:1.7;color:#c8cde0;font-family:inherit">${esc(text)}</div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function obPreviewExample(id, typeId, filename) {
+  try {
+    const res = await api("GET", `/projects/${id}/customize/${typeId}/examples/${encodeURIComponent(filename)}/content`);
+    obShowPreview(filename, res.text || '(empty)');
+  } catch (e) { toast('Could not load preview', 'error'); }
+}
+
+function obPreviewSample(text) {
+  obShowPreview('Sample Cover Letter', text);
 }
 
 // ── Step 4: Generate Template ─────────────────────────────
