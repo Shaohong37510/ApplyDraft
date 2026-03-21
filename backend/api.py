@@ -1212,6 +1212,8 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
                 for key in target:
                     if key.startswith("custom_"):
                         filled = filled.replace("{{" + key.upper() + "}}", (target[key] or "").strip())
+            # Remove any unreplaced {{CUSTOM_X}} placeholders
+            filled = re.sub(r'\{\{CUSTOM_\d+\}\}', '', filled)
 
             if cf_id == "email_body":
                 if "<html" in filled.lower() or "</p>" in filled.lower():
