@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   ApplyDraft - Frontend
+   SwifyApply - Frontend
    ═══════════════════════════════════════════════════════════ */
 
 let projects = [];
@@ -959,7 +959,7 @@ async function renderProjectHomeConnectEmail(id, page) {
                   <button class="btn btn-secondary btn-sm" onclick="disconnectGmail()" style="margin-left:auto">Disconnect</button>
                 </div>`
               : `<button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail</button>
-                 <div style="margin-top:6px;font-size:12px;color:#f59e0b;">⚠️ A security warning may appear — click "Advanced" → "Go to ApplyDraft" to continue.</div>`
+                 <div style="margin-top:6px;font-size:12px;color:#f59e0b;">⚠️ A security warning may appear — click "Advanced" → "Go to SwifyApply" to continue.</div>`
             }
           </div>
 
@@ -1614,7 +1614,7 @@ async function renderEditView(id) {
             </div>`
           : `<button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail Account</button>
              <div style="margin-top:6px;font-size:12px;color:#666">Connect your Gmail account via Google OAuth to create email drafts</div>
-             <div style="margin-top:6px;font-size:12px;color:#f59e0b;">⚠️ A Google security warning may appear during connection — this is expected. Click "Advanced" → "Go to ApplyDraft" to continue.</div>`
+             <div style="margin-top:6px;font-size:12px;color:#f59e0b;">⚠️ A Google security warning may appear during connection — this is expected. Click "Advanced" → "Go to SwifyApply" to continue.</div>`
         }
       </div>
 
@@ -3215,7 +3215,7 @@ async function renderObStep6(id, page) {
             ${gmailConnected
               ? `<button class="btn btn-secondary btn-sm" onclick="disconnectGmail()">Disconnect</button>`
               : `<div><button class="btn btn-primary btn-sm" onclick="connectGmail()">Connect Gmail</button>
-                 <div style="margin-top:6px;font-size:11px;color:#f59e0b;">⚠️ A security warning may appear — click "Advanced" → "Go to ApplyDraft" to continue.</div></div>`}
+                 <div style="margin-top:6px;font-size:11px;color:#f59e0b;">⚠️ A security warning may appear — click "Advanced" → "Go to SwifyApply" to continue.</div></div>`}
           </div>
           <div class="ob-email-option ${outlookConnected ? 'ob-email-connected' : ''}">
             <div class="ob-email-option-left">

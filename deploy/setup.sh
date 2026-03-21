@@ -10,7 +10,7 @@ set -e
 
 APP_DIR="/opt/applydraft"
 APP_USER="applydraft"
-DOMAIN="swifyapply.com"
+DOMAIN="applydraft.com"
 REPO_URL=""  # TODO: Fill with your git repo URL
 
 echo "══════════════════════════════════════"
