@@ -11,7 +11,7 @@ from anthropic import Anthropic, RateLimitError
 
 # Output token caps (per request)
 MAX_OUTPUT_TOKENS = 6000          # Template/content generation
-MAX_OUTPUT_TOKENS_GENERATE = 2400 # Per-target custom content generation
+MAX_OUTPUT_TOKENS_GENERATE = 4000 # Per-target custom content generation
 MAX_OUTPUT_TOKENS_SUBJECT = 200   # Subject line only
 
 # Search limits by count (matches billing table)
