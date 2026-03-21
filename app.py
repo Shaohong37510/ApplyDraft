@@ -67,6 +67,11 @@ def job_application_tracker():
     return FileResponse(str(static_dir / "job-application-tracker.html"))
 
 
+@app.get("/sitemap.xml")
+def sitemap():
+    return FileResponse(str(static_dir / "sitemap.xml"), media_type="application/xml")
+
+
 def open_browser(port):
     webbrowser.open(f"http://localhost:{port}")
 
