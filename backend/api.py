@@ -1183,6 +1183,25 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
     api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
     project_md_gen = pm.load_project_md(user_id, project_id)
 
+    # Read uploaded CV/resume text to ground AI generation in real background
+    resume_texts = []
+    for mat_path in materials:
+        try:
+            if mat_path.suffix.lower() == ".txt":
+                resume_texts.append(mat_path.read_text(encoding="utf-8", errors="ignore"))
+            elif mat_path.suffix.lower() == ".pdf":
+                try:
+                    import pymupdf
+                    doc = pymupdf.open(str(mat_path))
+                    t = "\n".join(page.get_text() for page in doc).strip()
+                    if t:
+                        resume_texts.append(t)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    resume_context = "\n\n---\n\n".join(resume_texts) if resume_texts else ""
+
     total_usage = {"input_tokens": 0, "output_tokens": 0, "api_calls": 0}
 
     for target in confirmed_targets:
@@ -1216,7 +1235,7 @@ def generate_from_targets(project_id: str, data: dict, user_id: str = Depends(ge
             # Generate custom content using this file's definitions only
             file_defs = file_definitions.get(cf_id, "")
             if api_key_gen and file_defs:
-                content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen)
+                content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen, resume_context)
                 total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
                 total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
                 total_usage["api_calls"] += gen_usage.get("api_calls", 0)
@@ -1421,6 +1440,25 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
     project_md_gen = pm.load_project_md(user_id, project_id)
     api_key_gen = os.environ.get("ANTHROPIC_API_KEY", "")
 
+    # Read uploaded CV/resume text to ground AI generation in real background
+    resume_texts = []
+    for mat_path in materials:
+        try:
+            if mat_path.suffix.lower() == ".txt":
+                resume_texts.append(mat_path.read_text(encoding="utf-8", errors="ignore"))
+            elif mat_path.suffix.lower() == ".pdf":
+                try:
+                    import pymupdf
+                    doc = pymupdf.open(str(mat_path))
+                    t = "\n".join(page.get_text() for page in doc).strip()
+                    if t:
+                        resume_texts.append(t)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+    resume_context = "\n\n---\n\n".join(resume_texts) if resume_texts else ""
+
     def event_stream():
         nonlocal gcfg
         total = len(confirmed_targets)
@@ -1459,7 +1497,7 @@ def generate_stream(project_id: str, data: dict, user_id: str = Depends(get_curr
                 if api_key_gen and file_defs:
                     yield f"data: {json.dumps({'type': 'progress', 'pct': pct, 'detail': f'Generating personalized content for {firm} ({cf_id})...', 'step': f'Writing content for {firm}'})}\n\n"
                     try:
-                        content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen)
+                        content, gen_usage = ai.generate_custom_content(api_key_gen, target, file_defs, project_md_gen, resume_context)
                         total_usage["input_tokens"] += gen_usage.get("input_tokens", 0)
                         total_usage["output_tokens"] += gen_usage.get("output_tokens", 0)
                         total_usage["api_calls"] += gen_usage.get("api_calls", 0)

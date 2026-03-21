@@ -672,7 +672,7 @@ Search their careers page and job posting. Decode any obfuscated email. Return J
 
 # ── Generate custom content for a single firm ──────────────────
 
-def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str) -> tuple[dict, dict]:
+def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: str, project_md: str, resume_context: str = "") -> tuple[dict, dict]:
     """Generate custom content for a firm. Returns (content_dict, token_usage)."""
     firm_research = firm_info.get('firm_research', '')
 
@@ -680,6 +680,9 @@ def generate_custom_content(api_key: str, firm_info: dict, custom_definitions: s
 
 PROJECT INSTRUCTIONS:
 {project_md if project_md else "(none)"}
+
+APPLICANT RESUME / CV (ground truth — use ONLY information from this):
+{resume_context if resume_context else "(none uploaded — rely on EXAMPLES in definitions)"}
 
 FIRM RESEARCH (use this to write firm-specific paragraphs):
 {firm_research if firm_research else "(none)"}
@@ -691,16 +694,17 @@ CRITICAL RULES:
 - Return ONLY a flat JSON object with keys "custom_1", "custom_2", etc. — one per [CUSTOM_N] above
 - Do NOT use nested keys or keys like "cover_letter" / "email_body"
 - Follow each [CUSTOM_N]'s PROMPT and CONSTRAINTS strictly
-- The EXAMPLES in each definition contain the applicant's REAL background — extract all proper nouns (employer names, school, degrees, project names, software) and USE THEM verbatim
+- NEVER invent, fabricate, or hallucinate ANY experience, employer, school, degree, project, software skill, or qualification that is NOT explicitly stated in the APPLICANT RESUME or EXAMPLES above
+- Only mention employers, schools, projects, and skills that appear verbatim in the resume or examples
 - Use FIRM RESEARCH to reference the firm's specific projects and design philosophy
-- If KEY INFORMATIONS is present, incorporate those keywords naturally"""
+- If KEY INFORMATIONS is present, incorporate those keywords naturally, but only if they are supported by the resume"""
 
     user_msg = f"""Write tailored cover letter paragraphs for:
 Firm: {firm_info.get('firm', '')}
 Position: {firm_info.get('position', '')}
 Location: {firm_info.get('location', '')}
 
-Use the firm research provided and the applicant's real background from EXAMPLES. Return JSON only with keys custom_1, custom_2, etc."""
+Use ONLY the applicant's real background from the RESUME and EXAMPLES — do not invent anything. Return JSON only with keys custom_1, custom_2, etc."""
 
     print(f"[PHASE2] firm={firm_info.get('firm','')} has_research={bool(firm_research)}", flush=True)
     result, usage = _call_claude(api_key, system, user_msg, max_tokens=MAX_OUTPUT_TOKENS_GENERATE)
