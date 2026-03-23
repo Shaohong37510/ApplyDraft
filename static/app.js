@@ -375,7 +375,7 @@ function _updateCreditModal(hasDiscount) {
   ];
 
   if (hasDiscount) {
-    promo.innerHTML = '🎉 <strong>7折优惠已激活</strong> — 所有套餐享受7折优惠！本次购买后优惠失效。';
+    promo.innerHTML = '🎉 <strong>30% Discount Activated</strong> — All plans at 70% price! Expires after this purchase.';
     promo.style.background = 'linear-gradient(135deg,rgba(108,140,255,0.2),rgba(167,139,250,0.2))';
     promo.style.border = '1px solid rgba(108,140,255,0.4)';
     promo.style.color = '#a78bfa';
@@ -390,7 +390,7 @@ function _updateCreditModal(hasDiscount) {
     const displayPrice = hasDiscount ? (p.price * 0.7).toFixed(2) : p.price.toFixed(2);
     const displayRate = hasDiscount ? (p.price * 0.7 / p.credits).toFixed(3) : (p.price / p.credits).toFixed(2);
     const originalStr = hasDiscount ? `<span class="pricing-original">$${p.price.toFixed(2)}</span>` : `<span class="pricing-original">$${p.original}</span>`;
-    const discountBadge = hasDiscount ? '<div style="position:absolute;top:-10px;right:12px;background:linear-gradient(135deg,#6c8cff,#a78bfa);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;">7折</div>' : '';
+    const discountBadge = hasDiscount ? '<div style="position:absolute;top:-10px;right:12px;background:linear-gradient(135deg,#6c8cff,#a78bfa);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;">30% OFF</div>' : '';
     return `
       <div class="credit-card ${p.featured ? 'credit-card-featured' : ''}" onclick="purchaseCredits(${p.credits})" style="position:relative;">
         ${p.featured ? '<div class="credit-card-badge">Most Popular</div>' : ''}
@@ -479,7 +479,7 @@ function _renderReferralModal(ref) {
       color:${claimedCoupon ? '#4a5068' : canClaimCoupon ? '#fff' : '#4a5068'};
       opacity:${count < 5 && !claimedCoupon ? '0.5' : '1'};"
       ${!canClaimCoupon ? 'disabled' : ''}>
-      ${claimedCoupon ? (ref.has_discount ? '🎉 7折 Active!' : '✅ 7折 Claimed') : count >= 5 ? '🎉 Claim 7折 Coupon' : `🎉 7折 Coupon (${count}/5)`}
+      ${claimedCoupon ? (ref.has_discount ? '🎉 30% Off Active!' : '✅ 30% Off Claimed') : count >= 5 ? '🎉 Claim 30% Off Coupon' : `🎉 30% Off Coupon (${count}/5)`}
     </button>`;
     claims.innerHTML = html;
   }
@@ -509,7 +509,7 @@ async function claimReferralCoupon() {
   if (!_referralData || _referralData.count < 5 || _referralData.coupon_claimed) return;
   try {
     await api("POST", "/referral/claim-coupon");
-    toast("🎉 7折优惠券已激活！下次购买自动享受7折。");
+    toast("🎉 30% discount activated! Your next purchase will be 30% off.");
     await loadReferralStatus();
     // Auto-open buy credits modal with discount
     document.getElementById("referralModal").style.display = "none";
