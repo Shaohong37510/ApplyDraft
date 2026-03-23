@@ -332,6 +332,8 @@ async function updateUserInfo() {
     const creditsVal = Number(me.credits || 0);
     document.getElementById("creditsDisplay").textContent = `${creditsVal.toFixed(1)} credits`;
     document.getElementById("userEmail").textContent = me.gmail_email || me.outlook_email || me.user_id.slice(0, 8);
+    const inviteBtn = document.getElementById("inviteBtn");
+    if (inviteBtn) inviteBtn.style.display = "";
   } catch (e) {
     console.warn("Failed to get user info:", e);
   }
