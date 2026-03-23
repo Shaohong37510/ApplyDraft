@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="340" height="80">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c026d3"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#6c8cff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Flower icon -->
+  <g transform="translate(40,40)" fill="url(#g)">
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(0)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(45)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(90)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(135)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(225)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(270)"/>
+    <ellipse cx="0" cy="-17" rx="9.5" ry="17" transform="rotate(315)"/>
+  </g>
+
+  <!-- Text: Applydraft -->
+  <text
+    x="76"
+    y="52"
+    font-family="'Nunito', 'Poppins', 'Inter', Arial Rounded MT Bold, sans-serif"
+    font-weight="700"
+    font-size="36"
+    fill="url(#g)"
+    letter-spacing="-0.5"
+  >Applydraft</text>
+</svg>

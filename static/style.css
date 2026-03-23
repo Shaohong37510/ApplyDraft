@@ -784,10 +784,8 @@ textarea { resize: vertical; min-height: 80px; }
   border-bottom-color: rgba(30, 36, 56, 0.8);
 }
 .landing-nav-logo {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
 }
 .landing-nav-links {
   display: flex;
