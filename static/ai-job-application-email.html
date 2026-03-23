@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Job Application Emails — Personalized, Not Generic | ApplyDraft</title>
+  <meta name="description" content="AI can write your job application emails — but only if it's done right. Learn how AI personalizes email applications, what to watch out for, and how ApplyDraft does it differently.">
+  <meta name="keywords" content="AI job application email, AI job application tool, ai write job application email">
+  <link rel="canonical" href="https://applydraft.com/ai-job-application-email">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .step-content h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--text2); }
+    .faq { display: flex; flex-direction: column; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .template-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+    .template-label { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .template-subject { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+    .template-subject strong { color: var(--text); }
+    .template-body { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
+    .highlight-box { background: rgba(108,140,255,0.08); border: 1px solid rgba(108,140,255,0.2); border-radius: 12px; padding: 24px 28px; margin: 32px 0; }
+    .highlight-box p { font-size: 15px; color: var(--text); line-height: 1.7; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; color: var(--text2); }
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+    .do-box { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; padding: 20px; }
+    .dont-box { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; padding: 20px; }
+    .do-box h4 { color: var(--green); margin-bottom: 12px; font-size: 14px; }
+    .dont-box h4 { color: #f87171; margin-bottom: 12px; font-size: 14px; }
+    .do-box li, .dont-box li { font-size: 13px; color: var(--text2); margin-bottom: 6px; margin-left: 16px; line-height: 1.5; }
+    .prose { font-size: 15px; color: var(--text2); line-height: 1.8; margin-bottom: 20px; }
+    .prose strong { color: var(--text); }
+    .cta-section { padding: 80px 0; text-align: center; border-top: 1px solid var(--border); }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+    @media (max-width: 600px) { .nav { padding: 16px 20px; } .do-dont { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+    <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════ -->
+  <div class="container">
+    <div class="hero">
+      <div class="hero-tag">AI-Powered Applications</div>
+      <h1>
+        AI Can Write Your Job Emails —
+        <br>
+        But <span class="gradient-text">Generic AI Creates</span>
+        <br>
+        <span class="gradient-text">Generic Rejection</span>
+      </h1>
+      <p class="hero-sub">
+        The problem is not that AI writes application emails. The problem is
+        that most AI tools write the same email for everyone. Personalization
+        is not a feature of good AI applications — it is the entire point.
+      </p>
+      <a href="https://applydraft.com" class="btn-cta">
+        See How ApplyDraft Is Different →
+      </a>
+      <p class="trust">Used by 2,400+ job seekers · Free to start</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       THE PROBLEM WITH GENERIC AI
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>The Problem With Generic AI-Generated Emails</h2>
+      <p class="section-sub">
+        Hiring managers now read hundreds of AI-written cover letters and emails
+        every week. They recognize them in the first sentence — and it does not
+        help your application.
+      </p>
+
+      <p class="prose">
+        When you open ChatGPT and type "write me a job application email for a
+        design position," what you get is statistically the same email that
+        thousands of other candidates are sending to the same firms on the same
+        day. The AI has no knowledge of your specific background. It does not know
+        which internships you completed, which firms shaped your professional
+        perspective, which specific project in the job description connects
+        directly to your real experience, or what makes your particular path
+        genuinely interesting to this particular employer. It fills every one of
+        those gaps with generic filler phrases.
+      </p>
+
+      <p class="prose">
+        The phrases that result are immediately recognizable to anyone who reads
+        applications professionally. Every senior hiring manager, every creative
+        director, every architecture principal reading applications in 2025 and 2026
+        has seen these sentences hundreds of times:
+      </p>
+
+      <p class="prose">
+        <strong>"I am writing to express my sincere interest in this exciting
+        opportunity."</strong> <strong>"I am a passionate and dedicated professional
+        who would be a great fit for your team."</strong> <strong>"I am eager to bring
+        my unique skill set to your organization."</strong> <strong>"I am excited to
+        contribute to your team's continued success."</strong> These sentences signal
+        one thing clearly and unambiguously: the writer did not spend time on this
+        specific application.
+      </p>
+
+      <p class="prose">
+        The irony is that using AI carelessly can actually make you look worse than
+        writing nothing at all. A hiring manager who reads a formulaic, generic
+        AI-generated email does not think "this person is efficient and modern."
+        They think "this person does not care enough about our firm to write
+        something real." That impression is a harder hole to climb out of than a
+        simple, brief, genuine email written in your own imperfect voice.
+      </p>
+
+      <p class="prose">
+        The solution is not to stop using AI. It is to use AI that is grounded
+        in your actual background, your verifiable experience, and the specific
+        details of the firm and role you are targeting. That is a fundamentally
+        different kind of tool — and it is exactly what separates applications
+        that earn interviews from applications that earn silence.
+      </p>
+
+      <div class="highlight-box">
+        <p>
+          <strong>The core problem with generic AI:</strong> It generates from
+          statistical averages. It knows what architecture cover letters "typically"
+          sound like and produces more of the same. Good AI application tools
+          generate from your specific data — your actual CV, your real internship
+          history, your genuine writing style — and apply that data to the specific
+          firm you are targeting. The output is different because the input is different.
+        </p>
+      </div>
+
+      <div class="tag-row">
+        <span class="tag">"I am writing to express my sincere interest..." — overused</span>
+        <span class="tag">"I would be a great fit..." — meaningless without specifics</span>
+        <span class="tag">"I am passionate about..." — signals nothing</span>
+        <span class="tag">"I am excited to contribute..." — generic filler</span>
+        <span class="tag">"My unique skill set..." — tells them nothing unique</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       WHAT GOOD AI LOOKS LIKE
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>What Good AI-Assisted Email Actually Looks Like</h2>
+      <p class="section-sub">
+        The difference between a generic AI email and a genuinely useful one is
+        entirely in the quality and specificity of what the AI is working from.
+        Here is the ApplyDraft approach, step by step.
+      </p>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Reads and Analyzes the Actual Job Description</h3>
+            <p>
+              ApplyDraft analyzes the specific posting you are targeting — not a
+              generic version of that job category. It identifies the specific
+              skills, project types, values, and language the firm uses in their
+              posting and maps those elements to your actual background. The result
+              is an email that speaks to what this specific firm cares about right
+              now, not what design firms generally care about in the abstract.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Uses Your Specific CV and Cover Letter as the Source Document</h3>
+            <p>
+              Your uploaded CV and example cover letters are the ground truth for
+              everything the AI generates. ApplyDraft draws from your actual
+              internships, your real academic background, your specific software
+              skills, and your verified project experience. It does not invent
+              credentials, inflate experience, or reach for descriptions that are
+              not supported by your own uploaded documents. Every claim in the
+              generated email should be traceable back to something you actually did.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Researches the Firm Before Generating the Email</h3>
+            <p>
+              Each email references something specific and verifiable about the
+              target firm — a recent completed project, a stated design philosophy,
+              a published interview, an award, a portfolio series. This firm-level
+              research is built into the generation process, not bolted on as an
+              afterthought. The hiring manager who reads the output sees an email
+              that proves you know who they are and what they actually do, not just
+              that a job was posted.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Generates Genuinely Unique Content for Each Application</h3>
+            <p>
+              The email generated for Firm A and the email generated for Firm B
+              are not the same email with the company name swapped. They are
+              genuinely different documents — different opening hooks based on
+              different firm research, different emphasis on different aspects of
+              your background that are most relevant to each firm's stated priorities,
+              different tonal registers based on the firm's visible culture and
+              communication style.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>Saves Directly to Your Gmail or Outlook Drafts Folder</h3>
+            <p>
+              The finished email does not go to a download folder or a clipboard.
+              It lands directly in your Gmail or Outlook drafts folder, ready to
+              review. You open it, read it, make any adjustments you want, attach
+              your portfolio PDF, and send from your own address. You are in full
+              control of every outgoing email — the AI drafts it, you send it.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       AI vs DIY vs TEMPLATE COMPARISON
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>AI vs. DIY vs. Template: A Realistic Comparison</h2>
+      <p class="section-sub">
+        There is no perfect approach for every situation — but the trade-offs
+        are clear once you see them honestly and side by side.
+      </p>
+
+      <div class="grid-3">
+
+        <div class="card">
+          <div class="card-icon">✍️</div>
+          <h3>Writing Every Email Yourself</h3>
+          <p>
+            The highest potential quality ceiling — when you genuinely do it well.
+            The problem is time and consistency at scale. A truly good, personalized
+            application email requires 30–45 minutes of work per firm: researching
+            their recent projects, identifying the right specific connection to your
+            experience, writing a draft, editing for tone and length.
+          </p>
+          <p style="margin-top:10px; font-size:13px; color:var(--text2); line-height:1.5;">
+            At 20, 30, or 50 applications, this becomes mathematically unsustainable.
+            Most candidates either burn out and send fewer applications, or they start
+            cutting corners — which produces generic emails anyway, just more slowly.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">📋</div>
+          <h3>Using Standard Templates</h3>
+          <p>
+            Fast, and useful for formatting guidance. The problem is response rates.
+            Any hiring manager who reads applications regularly will recognize a
+            template within the first two sentences. Templates tell the reader the
+            sender did not invest real effort.
+          </p>
+          <p style="margin-top:10px; font-size:13px; color:var(--text2); line-height:1.5;">
+            The real value of a template is structure and formatting guidance —
+            not content. And content is precisely what differentiates applications.
+            A template without heavy customization produces the same result as
+            generic AI: a signal that you did not care enough to write something real.
+          </p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">⚡</div>
+          <h3>ApplyDraft AI</h3>
+          <p>
+            Personalized per firm, grounded in your real background, and fast enough
+            to send applications to 10 firms in an afternoon. The honest trade-off
+            is that you still need to review and adjust each draft — the AI gets you
+            to roughly 80% of a great email, and your own judgment and knowledge
+            of the firm takes it to 100%.
+          </p>
+          <p style="margin-top:10px; font-size:13px; color:var(--text2); line-height:1.5;">
+            This is the right balance between quality and application volume for a
+            serious, organized job search — particularly for roles where written
+            communication matters and personal touch is expected.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       DO/DONT FOR AI
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>What AI Should and Shouldn't Do in Your Application</h2>
+      <p class="section-sub">
+        AI is a drafting tool. Like any tool, whether it helps or hurts you
+        depends entirely on how you use it — and what you give it to work from.
+      </p>
+
+      <div class="do-dont">
+        <div class="do-box">
+          <h4>AI Should</h4>
+          <ul>
+            <li>Draw exclusively from your actual uploaded CV and experience — nothing invented</li>
+            <li>Tailor each email to the specific firm and the specific job description</li>
+            <li>Mirror your natural tone and communication style from sample writing</li>
+            <li>Reference specific, verifiable facts about the target firm</li>
+            <li>Keep the email concise — under 200 words in the body</li>
+            <li>Generate a genuinely unique first draft for each firm, not a template swap</li>
+            <li>Save to your drafts for review before anything is sent</li>
+            <li>Flag when the job description is too vague to generate specific content</li>
+          </ul>
+        </div>
+        <div class="dont-box">
+          <h4>AI Should Not</h4>
+          <ul>
+            <li>Invent internships, projects, skills, or credentials you do not have</li>
+            <li>Use generic phrases that immediately signal AI authorship</li>
+            <li>Adopt an overly casual or overly formal tone without matching your style</li>
+            <li>Reference outdated or unverifiable information about the firm</li>
+            <li>Make performance promises you cannot keep</li>
+            <li>Send anything without your explicit review and approval</li>
+            <li>Replace the personal judgment and knowledge only you can bring</li>
+            <li>Produce identical emails for every firm with only the name changed</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       HOW APPLYDRAFT WORKS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>How ApplyDraft's AI Works: Four Steps</h2>
+      <p class="section-sub">
+        From uploading your background to having a personalized draft waiting
+        in your inbox — here is the complete workflow.
+      </p>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Upload Your CV and Sample Cover Letter Writing</h3>
+            <p>
+              Start by giving ApplyDraft the raw material it needs. Upload your
+              current CV and one or two examples of application emails or cover
+              letters you have written before — ideally ones that you felt
+              represented you well. These documents serve two functions: they
+              establish your verifiable background (which the AI will draw from
+              exclusively), and they calibrate the AI to your authentic voice and
+              communication style so the output sounds like you, not like AI.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>AI Analyzes Your Background, Style, and Key Strengths</h3>
+            <p>
+              ApplyDraft processes your uploaded documents to extract the key
+              professional signals: your academic credentials and institution, your
+              internship and professional experience with specific firms and roles,
+              the software tools and methodologies you have used, the types of
+              projects you have contributed to, and the career stage your background
+              represents. It also identifies your natural writing register — whether
+              you tend toward formal or conversational, technical or narrative
+              — so the AI output matches how you actually communicate professionally.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Add Your Target Firms and Job Descriptions</h3>
+            <p>
+              Enter the firms and roles you want to apply to, along with the job
+              description text or posting URLs. For each target, ApplyDraft
+              researches the firm's recent completed work, published projects, stated
+              design philosophy, and team composition, then maps the specific job
+              requirements to the most directly relevant aspects of your background.
+              The more specific and detailed the job description is, the more
+              targeted and tailored the generated output will be.
+            </p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Receive a Personalized Email and Cover Letter Draft for Each Firm</h3>
+            <p>
+              For each target firm, ApplyDraft generates a full application email
+              and a formatted cover letter — both specific to that firm's work and
+              your relevant background. The drafts are saved directly to your
+              connected Gmail or Outlook account. Open each one, review it carefully,
+              make any refinements that would improve it, attach your portfolio PDF,
+              and send. You remain in full control at every step of the outbound
+              communication.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       EMAIL + COVER LETTER COMBINATION
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>The Email and Cover Letter Combination</h2>
+      <p class="section-sub">
+        Sending both a well-crafted email and a professionally formatted cover
+        letter PDF significantly increases your chances — but only if you use
+        each format correctly and for its intended purpose.
+      </p>
+
+      <p class="prose">
+        The email and the cover letter serve fundamentally different purposes and
+        should not overlap significantly in content. <strong>The email is your first
+        contact</strong> — it is brief, personal, and specifically designed to make
+        the hiring manager want to open the attachment. Think of it as the pitch:
+        its entire job is to earn the click. It should be under 200 words,
+        reference something specific and verifiable about the firm, and end
+        with a clear, low-pressure ask.
+      </p>
+
+      <p class="prose">
+        The cover letter, attached as a PDF, is your professional case statement.
+        It provides the fuller picture of your background, expands on one or two
+        experiences that are most directly relevant to this specific role, and
+        demonstrates that you can write clearly, think carefully, and present
+        yourself professionally in a formal document format. A well-designed,
+        well-formatted cover letter PDF also signals attention to visual
+        presentation — which is particularly important in architecture, design,
+        and creative fields where how you present information is itself a signal
+        of professional competence.
+      </p>
+
+      <p class="prose">
+        <strong>The most common mistake</strong> candidates make is copying their
+        entire cover letter into the email body. This produces an email that is
+        far too long, feels impersonal and templated, and wastes the opportunity
+        that the email format uniquely provides. Equally, sending a cover letter
+        PDF with a single-sentence email ("Please find my application attached")
+        throws away the chance to create a personal connection before the
+        attachment is ever opened — and a one-line email often does not earn
+        the click to open anything at all.
+      </p>
+
+      <div class="highlight-box">
+        <p>
+          <strong>The right format:</strong> A brief, personalized email body of
+          150–200 words that hooks the reader, establishes a specific connection to
+          their work, and creates genuine context for your attached materials.
+          Then a professionally formatted, one-page PDF cover letter that makes the
+          full professional case. Both generated per-firm, both grounded in your
+          actual background, both reviewed and sent by you.
+        </p>
+      </div>
+
+      <div class="tag-row">
+        <span class="tag">Email body: 150–200 words, personal, specific to this firm</span>
+        <span class="tag">Cover letter: PDF, one page, professional format</span>
+        <span class="tag">Never copy cover letter into email body</span>
+        <span class="tag">Email earns the click; cover letter makes the case</span>
+        <span class="tag">Both should reference the specific firm by name</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       BEFORE AND AFTER
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>Before and After: Generic AI vs. ApplyDraft</h2>
+      <p class="section-sub">
+        The difference is visible — and unmistakable — within the first two
+        sentences of each email.
+      </p>
+
+      <!-- Generic AI example -->
+      <div class="template-box">
+        <div class="template-label">Generic ChatGPT Output — What Not to Send</div>
+        <div class="template-subject">
+          Subject: <strong>Application for Architecture Position</strong>
+        </div>
+        <div class="template-body">Dear Hiring Manager,
+
+I am writing to express my sincere interest in the architecture position
+at your firm. I am a passionate and dedicated architect with a strong
+background in design and a deep commitment to creating innovative spaces
+that serve communities.
+
+With my Master of Architecture degree and experience in various architectural
+firms, I believe I would be an excellent fit for your team. I am proficient
+in Revit, AutoCAD, Rhino, and other industry-standard software, and I am
+eager to bring my unique skill set and creative vision to your organization.
+
+I am excited about the opportunity to contribute to your team's success and
+would welcome the chance to discuss how my skills and experience align with
+your needs. Please find my resume and portfolio attached.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Sincerely,
+[Your Name]</div>
+      </div>
+
+      <!-- ApplyDraft example -->
+      <div class="template-box">
+        <div class="template-label">ApplyDraft-Generated Output — Grounded in Real Background</div>
+        <div class="template-subject">
+          Subject: <strong>Junior Architect Application — Shaohong Tian | M.Arch UPenn 2025</strong>
+        </div>
+        <div class="template-body">Hi Marcus,
+
+I've been following SHoP Architects' work on the American Copper Buildings —
+particularly the sky bridge as a structurally expressive connector rather than
+a purely symbolic gesture. That kind of thinking about building as urban
+infrastructure connects directly to my thesis project at Penn, which explored
+adaptive reuse as a density strategy in post-industrial Philadelphia waterfront
+corridors.
+
+I'm a recent M.Arch graduate from Penn (2025) with internship experience at
+Snøhetta and Perkins & Will. At Snøhetta, I worked on the parametric facade
+geometry for the Oslo harbor expansion using Rhino, Grasshopper, and custom
+Python components — I understand SHoP's reputation for digital fabrication
+integration and would bring that technical foundation directly.
+
+Portfolio and resume are attached (13 pages of selected work, 2022–2025).
+I'd welcome the chance to talk about the junior architect role.
+
+Best,
+Shaohong Tian
++1 (215) 555-0147 | shaohong.design</div>
+      </div>
+
+      <p class="prose">
+        The generic email could have been written by any architecture graduate
+        anywhere in the world applying to any firm. It tells the hiring manager
+        nothing specific about the candidate or the firm. The ApplyDraft email
+        is specific to this firm's published work, grounded in this candidate's
+        verifiable experience, references a precise technical tool connection,
+        and demonstrates prior engagement with the firm's approach — all in
+        under 160 words.
+      </p>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       FAQ
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <p class="section-sub">
+        The questions people actually ask before trusting an AI tool with
+        their professional job applications — answered honestly.
+      </p>
+
+      <div class="faq">
+
+        <div class="faq-item">
+          <div class="faq-q">Will hiring managers know the email was written by AI?</div>
+          <div class="faq-a">
+            Not if the AI is working from the right inputs. The red flag hiring
+            managers are trained to notice is not "AI-assisted" — it is "generic."
+            An email that references the firm's specific recent projects by name,
+            draws from a candidate's verifiable real experience, and is written in a
+            consistent natural voice will read as genuine regardless of whether AI
+            was used to draft it. The standard is whether the email accurately
+            represents you and your interest in this specific firm — not whether
+            you wrote every word from a blank page.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Does AI ever make up experience I don't actually have?</div>
+          <div class="faq-a">
+            Generic AI tools like ChatGPT can and do embellish or invent experience
+            when they lack sufficient real information to work from — they fill the
+            gap with plausible-sounding claims that are not verifiable. This is one
+            of the core reasons ApplyDraft requires your actual CV and cover letter
+            samples as source inputs. Every claim in an ApplyDraft draft should be
+            directly traceable to something in your uploaded documents. If you notice
+            anything in a draft that overstates your background, edit it before
+            sending — that review step is a built-in part of the workflow for
+            exactly this reason.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Can I edit the AI draft before I send it?</div>
+          <div class="faq-a">
+            Yes — and you always should. ApplyDraft saves drafts to your Gmail or
+            Outlook drafts folder, never to your sent mail. Reviewing, adjusting,
+            and personalizing the draft before sending is an expected and
+            encouraged part of the workflow. You might want to adjust a phrase that
+            does not quite capture your voice, add a specific detail from the job
+            posting the AI did not emphasize, or tighten the closing line.
+            The AI provides a strong, personalized first draft; your judgment
+            and knowledge of the situation bring it to final quality.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">Does ApplyDraft work for all industries?</div>
+          <div class="faq-a">
+            ApplyDraft works best for knowledge-work roles where written
+            communication and professional presentation are part of the
+            expected application process — architecture, design, engineering,
+            consulting, creative fields, academic and research roles, journalism,
+            and adjacent areas. It is less suited to positions where the application
+            process is entirely resume-driven with no email component, or for
+            highly standardized technical roles at large corporations where the
+            hiring process is fully controlled by HR portals with no direct contact
+            pathway.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">How is ApplyDraft different from just using ChatGPT?</div>
+          <div class="faq-a">
+            The key differences are inputs, context, and integration. ChatGPT starts
+            from a blank slate every session — you have to paste your background,
+            the job description, instructions about tone, and guidance about the firm
+            every single time, and carefully evaluate the output for accuracy and
+            appropriateness. ApplyDraft is pre-loaded with your CV and sample writing,
+            maintains that context across all applications, and is specifically
+            structured for the job application use case with firm research built in.
+            It also integrates directly with Gmail and Outlook so the draft lands in
+            your inbox without any copy-paste workflow.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-q">What if the job description is vague or minimal?</div>
+          <div class="faq-a">
+            Vague job descriptions are common — especially at smaller firms that
+            post a brief one-paragraph listing without detailed requirements.
+            When the posting provides limited specific information to work from,
+            ApplyDraft shifts weight to firm-level research: recent completed
+            projects, stated design philosophy, published interviews, team
+            composition, and observable culture signals from the firm's own website
+            and portfolio. You can also add your own contextual notes about the role
+            or firm before generating, which significantly improves the specificity
+            of the output when the official posting is thin.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       CTA
+  ════════════════════════════════════════════ -->
+  <div class="cta-section">
+    <div class="container">
+      <h2>Stop Writing Application Emails From Scratch</h2>
+      <p>
+        Upload your CV once. Add your target firms and job descriptions.
+        ApplyDraft writes a personalized application email and cover letter for
+        each one — grounded in your real background and saved straight to your
+        Gmail or Outlook as a ready-to-review draft.
+      </p>
+      <a href="https://applydraft.com" class="btn-cta">Try ApplyDraft Free →</a>
+      <p class="trust" style="margin-top:16px;">
+        No credit card required · Gmail &amp; Outlook integration
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <span>© 2026 ApplyDraft</span>
+    <span>
+      <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+    </span>
+  </footer>
+
+</body>
+</html>

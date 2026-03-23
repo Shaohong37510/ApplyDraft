@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How to Cold Email for a Job Application (And Actually Hear Back) | ApplyDraft</title>
+  <meta name="description" content="Cold emailing gets you in front of hiring managers before a position opens. Learn the strategy, structure, and scripts that make cold job application emails work.">
+  <link rel="canonical" href="https://applydraft.com/cold-email-job-application">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .step-content h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--text2); }
+    .faq { display: flex; flex-direction: column; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .template-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+    .template-label { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .template-subject { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+    .template-subject strong { color: var(--text); }
+    .template-body { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
+    .highlight-box { background: rgba(108,140,255,0.08); border: 1px solid rgba(108,140,255,0.2); border-radius: 12px; padding: 24px 28px; margin: 32px 0; }
+    .highlight-box p { font-size: 15px; color: var(--text); line-height: 1.7; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; color: var(--text2); }
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+    .do-box { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; padding: 20px; }
+    .dont-box { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; padding: 20px; }
+    .do-box h4 { color: var(--green); margin-bottom: 12px; font-size: 14px; }
+    .dont-box h4 { color: #f87171; margin-bottom: 12px; font-size: 14px; }
+    .do-box li, .dont-box li { font-size: 13px; color: var(--text2); margin-bottom: 6px; margin-left: 16px; line-height: 1.5; }
+    .prose { font-size: 15px; color: var(--text2); line-height: 1.8; margin-bottom: 20px; }
+    .prose strong { color: var(--text); }
+    .cta-section { padding: 80px 0; text-align: center; border-top: 1px solid var(--border); }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+    @media (max-width: 600px) { .nav { padding: 16px 20px; } .do-dont { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+  <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <span class="hero-tag">Cold Email Strategy</span>
+    <h1>Cold Emailing Gets You Jobs That <span class="gradient-text">Aren't Posted Yet</span></h1>
+    <p class="hero-sub">Research consistently shows that 70–80% of jobs are never publicly posted. Cold emailing lets you reach the people making hiring decisions before a position is ever advertised — and before you have any competition.</p>
+    <a href="https://applydraft.com" class="btn-cta">Generate a Cold Email with ApplyDraft →</a>
+    <p class="trust">Free to start · No credit card required</p>
+  </div>
+
+  <div class="highlight-box">
+    <p>Cold emailing isn't spam, and it isn't aggressive — it's a professional practice that happens in every industry. The difference between a cold email that works and one that doesn't isn't boldness. It's <strong>specificity, brevity, and respect for the reader's time</strong>. A cold email that demonstrates genuine knowledge of a firm's work and makes a clear, low-pressure ask will be welcomed by most professionals.</p>
+  </div>
+
+  <!-- Section 1: Cold vs Regular -->
+  <div class="section">
+    <h2>Cold Email vs. Regular Job Application</h2>
+    <p class="section-sub">The two approaches aren't competing — they're complementary. But they work through completely different mechanisms.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-icon">📬</div>
+        <h3>Standard Job Application</h3>
+        <p>You apply to a posted opening. Your materials enter an ATS (Applicant Tracking System), where they're parsed, filtered by keyword, and ranked before a human ever sees them. You're competing against every other applicant who saw the same listing. Timing is set by the firm. You have no direct contact with the hiring manager. Response rates are typically low — often under 10% for competitive roles.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🎯</div>
+        <h3>Cold Email Application</h3>
+        <p>You contact a specific person — the hiring manager, studio director, or department head — directly, before a posting exists. There's no ATS filter. Your email lands in a human inbox and gets evaluated as a message from a person, not a data record. You control the timing. You set the frame of the conversation. The "competition" is anyone they've spoken to recently — which may be no one. Response rates for well-crafted cold emails run 15–30%.</p>
+      </div>
+    </div>
+
+    <p class="prose" style="margin-top: 32px;">The practical advantage of cold email is that it creates a <strong>before the need exists</strong> relationship. When a position opens — and positions open unexpectedly, through departures, project wins, or budget approvals — the first person a hiring manager thinks of is often someone they've already had a positive interaction with. Cold emailing months before you need a job is more effective than cold emailing when you desperately need one.</p>
+  </div>
+
+  <!-- Section 2: When it works best -->
+  <div class="section">
+    <h2>When Cold Emailing Works Best</h2>
+    <p class="section-sub">Cold email isn't equally effective in every situation. These are the contexts where it consistently delivers results.</p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-icon">🏠</div>
+        <h3>Boutique and Mid-Size Firms</h3>
+        <p>Smaller firms don't have dedicated HR departments. The person who reads your email is often the person who makes hiring decisions. Your cold email goes directly to a decision-maker, not a recruiter whose job it is to screen people out. A firm of 10–50 people is far more likely to respond to a genuinely interested, well-qualified candidate than a large corporation where hiring is a formal, multi-step process.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <h3>Creative Industries</h3>
+        <p>Architecture, design, film, fashion, advertising, and similar fields have a long tradition of direct outreach. Studio directors in these fields expect — and often respect — candidates who are proactive. A strong portfolio and a specific, informed email in a creative field can open doors that formal applications never would. These industries also have smaller, interconnected communities where reputation and relationships matter more than process.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🚀</div>
+        <h3>Startups and Growing Companies</h3>
+        <p>Companies that are scaling often hire ahead of formal job postings. If a startup just raised a funding round or announced a major contract, they're likely hiring — but may not have written or posted job descriptions yet. A cold email arriving at the right moment can turn into an interview within days. Monitor company news and LinkedIn for signals of growth, then reach out before the posting goes live.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🔬</div>
+        <h3>Niche Specializations</h3>
+        <p>If your skills are highly specialized — computational design, historic preservation, healthcare architecture, sustainable engineering — the pool of firms doing that work is small and well-defined. You can identify every relevant firm, research each one specifically, and write genuinely targeted outreach. Specialists are harder to find, so a cold email from someone with the exact right background lands very differently than a generic inquiry.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🤝</div>
+        <h3>When You Have a Referral Name</h3>
+        <p>Cold email with a referral mention isn't really "cold" — it's warm outreach. If a mutual contact suggested you reach out, or if you met someone from the firm at a conference or lecture, leading with that connection transforms the dynamic entirely. Open rates and response rates both spike dramatically when the subject line includes a recognized name. Always get permission before using someone as a referral.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">💙</div>
+        <h3>When You Genuinely Admire Specific Work</h3>
+        <p>The most effective cold emails are written to firms whose work you genuinely know and respect. That genuine knowledge shows — in the specificity of your project references, in the questions you ask, in the observations you make. When your interest is real, it's impossible to fake, and hiring managers can feel the difference between a form letter and a message from someone who actually cares. Target firms whose work you'd be proud to contribute to.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Research -->
+  <div class="section">
+    <h2>Research Before You Write</h2>
+    <p class="section-sub">The research you do before writing is what separates a cold email that gets a reply from one that gets deleted. This phase is not optional.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Find the Right Person — Not HR</h3>
+          <p>Your cold email should go to the person who would actually be your manager or the person who makes hiring decisions — not a generic HR inbox. For small firms, this is typically the principal, studio director, or department head. For larger firms, it's the director of the specific team you want to join. LinkedIn is your primary tool here: search the firm name and filter by title. The right person is usually the most senior person in the relevant department who also appears engaged on the platform.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Know Two or Three Specific Things About Their Work</h3>
+          <p>Before you write, be able to name at least two specific projects, publications, or initiatives from this firm. Browse their portfolio thoroughly, not just the homepage. Read any published writing, interviews, or press coverage you can find. Look at their recent work on Instagram or Dezeen or ArchDaily. The goal is to have enough genuine knowledge that your email contains at least one observation that makes the reader think, "This person actually knows what we do."</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Find a Shared Connection or Point of Interest</h3>
+          <p>Check if you share any LinkedIn connections with the person you're emailing. Look for alumni overlap with your university. Check whether they've spoken at any events you've attended. If you have any legitimate shared connection — a mutual colleague, an alma mater, a conference — note it in your email. Even a thin connection ("I saw your talk at [School] last year") is better than a cold start, because it contextualizes who you are relative to them.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Check for Recent News or Project Announcements</h3>
+          <p>A firm that just won a major competition, completed a landmark project, or published a notable piece of writing is in a moment of heightened attention and often increased confidence about growth. Referencing something current — "I saw that you recently completed the [Project Name]" — signals that your interest is timely and current, not based on a cursory look at their homepage three years ago. Google the firm name filtered to the past six months to find recent coverage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: The Cold Email Formula -->
+  <div class="section">
+    <h2>The Cold Email Formula</h2>
+    <p class="section-sub">Every effective cold job application email follows the same five-part structure. Each part has a specific job to do.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Subject Line: Specific and Low-Pressure</h3>
+          <p>Your subject line should identify who you are and what you're reaching out about without overselling. "Inquiry — [Your Name] | [Your Specialty]" is the standard format. If you have a referral, put it first: "Referred by [Name] — Architecture Inquiry." Avoid vague subjects like "Hello" or aggressive ones like "You NEED to See My Portfolio." The goal is a subject that gets opened by someone who is slightly curious but not feeling pressured.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Opening: Why Them Specifically</h3>
+          <p>Your first one to two sentences must be about them, not you. Name a specific project or piece of work and say something genuine about it. "I've been following your studio's work on [Project Name] — the way you approached [specific aspect] is something I haven't seen done quite that way elsewhere." This signals immediately that you're not blasting the same email to 100 firms, and it earns the reader's interest for the sentences that follow. This is the hardest part of the cold email and the most important.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Middle: What You Offer</h3>
+          <p>Two to three sentences about who you are and what you bring — filtered through what's most relevant to this firm. Don't list every credential you have. Pick the two or three skills or experiences that are most directly aligned with the firm's work and lead with those. "I'm an M.Arch graduate with particular depth in computational design and sustainable envelope systems — two areas that seem central to your current project direction." Make it easy for them to see the fit immediately.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Close: A Soft, Easy Ask</h3>
+          <p>Don't ask for a job. Ask for a conversation. "I'd love to connect briefly, even just to introduce myself and hear more about your work." Or: "I'm not assuming there's an open position — but if there's ever a fit, I'd genuinely love to be considered." Low-pressure closes get far more responses than direct job asks, because they don't put the reader in the position of having to say no. The goal of the first email is a reply, not a hire.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h3>Signature: Clean and Credible</h3>
+          <p>Your signature should include your full name, phone number, LinkedIn URL, and portfolio link. Keep it to four or five lines — no elaborate graphics, no motivational quotes. For a cold email specifically, a portfolio link in the signature (in addition to any mention in the body) is especially important, because it lets curious readers browse your work before they've even decided whether to reply. Make it frictionless to learn more about you.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Full Example -->
+  <div class="section">
+    <h2>A Complete Cold Email Example</h2>
+    <p class="section-sub">Here's a full cold email applying the formula above. Each part is annotated to show what it's doing and why.</p>
+
+    <div class="template-box">
+      <div class="template-label">Full Cold Email — Architecture / Design (Annotated)</div>
+      <div class="template-subject"><strong>Subject:</strong> Inquiry — Jordan Lee | Computational Design</div>
+      <div class="template-body">Dear Ms. Reyes,
+
+[OPENING: Specific to them — references a real project and a specific observation]
+I've been following Studio NR's work on the Meridian Cultural Center, and the way your team handled the acoustic shell structure — treating it as both envelope and instrument — is one of the more thoughtful approaches to that problem I've encountered. It's the reason I'm writing to you specifically.
+
+[MIDDLE: Who you are, filtered to what's relevant to them]
+I'm a recent M.Arch graduate from Penn (2025) with a focus on computational design and parametric fabrication. Before graduating, I interned at Snøhetta in New York, where I worked on facade system development and detail coordination for a public pavilion. My tools include Grasshopper, Rhino, Revit, and Houdini — and I'm comfortable moving between early-stage design exploration and construction documentation.
+
+[SOFT ASK: Low-pressure, no explicit "I want a job"]
+I don't know whether you're currently looking to grow your team, but if there's ever a fit for someone with this background, I'd be glad to be considered. I've attached a brief resume and my portfolio is linked below — happy to share more work if anything is of interest.
+
+[CLOSE: Warm, not desperate]
+Thank you for taking the time to read this.
+
+Jordan Lee
++1 (215) 555-0192
+linkedin.com/in/jordanlee
+jordanlee.design</div>
+    </div>
+
+    <div class="highlight-box">
+      <p>Notice what this email doesn't do: it doesn't list every credential, it doesn't apologize for reaching out, it doesn't say "I am writing to express my interest," and it doesn't demand a meeting. It demonstrates knowledge, makes a clear and relevant pitch, and exits gracefully. The whole email is under 220 words — short enough to be read fully on a mobile screen in under a minute.</p>
+    </div>
+  </div>
+
+  <!-- Section 6: Follow-Up -->
+  <div class="section">
+    <h2>The Follow-Up Sequence</h2>
+    <p class="section-sub">A single follow-up email significantly increases your response rate. More than two follow-ups damages your reputation with that firm.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Wait 7–10 Business Days Before Following Up</h3>
+          <p>After your initial cold email, wait one full business week — seven to ten working days — before sending a follow-up. Any sooner reads as impatient and puts pressure on a busy person who may simply not have had time to reply yet. Mark the follow-up date in your calendar the day you send the first email, so you don't have to remember. Following up too quickly is one of the most common cold email mistakes.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Write a Brief, Polite Second Email</h3>
+          <p>Your follow-up should be three sentences or fewer. Reference your original email, reaffirm your interest in one phrase, and leave the door open without pressure. Example: "Hi Ms. Reyes — I wanted to follow up on the email I sent last week. I remain very interested in your studio's work and would welcome the chance to connect. If now isn't the right time, I'd be happy to stay in touch for future opportunities." That's it. No lengthy restatement of your qualifications. No apology for following up.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Maximum Two Contacts Total — Then Stop</h3>
+          <p>If you've sent your initial email and one follow-up with no response, stop. A second follow-up (third contact total) crosses into pushy territory and can create a negative impression with a firm you might want to work with in the future. Silence after two messages means the timing isn't right, the fit isn't there, or they're simply not hiring. That's not permanent — circumstances change. Log the outreach, note the date, and revisit in six months if you're still interested.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 7: Mistakes -->
+  <div class="section">
+    <h2>Mistakes That Kill Cold Emails</h2>
+    <p class="section-sub">These errors are the difference between a cold email that generates a conversation and one that gets deleted without a second thought.</p>
+
+    <div class="do-dont">
+      <div class="do-box">
+        <h4>What Makes Cold Emails Work</h4>
+        <ul>
+          <li>Opening with a specific reference to their actual work</li>
+          <li>Keeping the email under 250 words</li>
+          <li>Addressing a real, named person — not "To Whom It May Concern"</li>
+          <li>Making a soft ask ("if there's ever a fit") not a demand</li>
+          <li>Having a clean, credible signature with portfolio link</li>
+          <li>Sending one polite follow-up after 7–10 days</li>
+          <li>Writing in natural, professional language — not corporate jargon</li>
+          <li>Showing genuine knowledge of the firm's specific work</li>
+        </ul>
+      </div>
+      <div class="dont-box">
+        <h4>What Kills Cold Emails</h4>
+        <ul>
+          <li>Opening with "I am reaching out to express my interest..."</li>
+          <li>Writing 400+ words that the reader won't finish</li>
+          <li>"Dear Hiring Team" when you could have found a name</li>
+          <li>Asking to "pick their brain" — too casual, implies time drain</li>
+          <li>Saying "I know you're busy, but..." — apologetic tone signals insecurity</li>
+          <li>Mass-sending the same email to 50 firms simultaneously</li>
+          <li>Following up three or more times after no response</li>
+          <li>Attaching a 25MB portfolio that clogs their inbox</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 32px;">
+      <p>The most fatal mistake in cold emailing isn't any one error — it's <strong>sending an email that could have been written to any firm</strong>. If you delete the firm's name from your email and it could still be sent to 100 other companies unchanged, it's not a real cold email. It's a mass email that just happens to be addressed to one person. Hiring managers recognize this immediately, and they respond accordingly.</p>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section">
+    <h2>Frequently Asked Questions</h2>
+    <p class="section-sub">Honest answers to the most common questions about cold emailing for jobs.</p>
+
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Is cold emailing for jobs actually appropriate, or is it intrusive?</div>
+        <div class="faq-a">Cold emailing is a completely standard professional practice. It's how many jobs — particularly in creative industries, consulting, and specialized fields — are filled. A well-crafted cold email that demonstrates genuine knowledge of a firm's work and makes a respectful, low-pressure ask is almost universally welcomed. What feels intrusive is a poorly written form letter, repeated follow-ups, or an email that demands the reader's time rather than offering something of value. Write a good email and you're not imposing — you're introducing yourself.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How do I find the email addresses of hiring managers?</div>
+        <div class="faq-a">Several approaches work well in combination. First, check the firm's website for a team page — many studios list contact emails directly. Second, use LinkedIn to find the person's name and then apply a common email pattern for that domain (firstname@firmname.com, firstnamelastname@firmname.com, first.last@firmname.com). Third, tools like Hunter.io or Rocketreach can verify and surface professional email addresses. Fourth, look at press releases or published articles — authors are often credited with their firm email. When in doubt, try the pattern you've inferred and use a read receipt to confirm delivery.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What response rate should I realistically expect from cold emails?</div>
+        <div class="faq-a">A well-crafted, personalized cold email campaign targeting firms in your field should yield a 15–30% response rate. "Response" here means any reply — including "we're not hiring right now but will keep your details." A 10–15% rate is still functional. Anything below 5% suggests your email needs significant revision or your targeting is off. Compare this to standard job application response rates, which often run below 10% even for well-qualified candidates. Cold emailing consistently outperforms board applications when done correctly.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Should I attach my portfolio to the cold email?</div>
+        <div class="faq-a">For design and creative roles: attach a lightweight portfolio PDF (under 10MB) and also include a portfolio URL in your signature. This gives the reader options — they can browse the link immediately or open the PDF at their convenience. For non-creative roles, skip the portfolio attachment but include a LinkedIn URL and any relevant work samples as links rather than attachments. Never send a portfolio PDF over 15MB as an email attachment — it creates technical problems and signals poor judgment about email communication norms.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How many firms should I cold email at once?</div>
+        <div class="faq-a">Quality over quantity — always. Five to ten deeply researched, genuinely personalized cold emails will outperform fifty generic ones every time. When you're cold emailing properly, each email takes 20–30 minutes to write, because it requires real research. If you're sending more than ten per day, the personalization is likely suffering. Build a target list of 30–50 firms you'd genuinely want to work for, tier them by how interested you are, and work through them methodically over several weeks rather than blasting all at once.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">What if they say they're not currently hiring?</div>
+        <div class="faq-a">A "not hiring right now" reply is a success — not a failure. You've been read, you made an impression, and you're now on their radar. Reply with a gracious two-sentence thank-you: "Thank you for letting me know — I have a lot of respect for your studio's work, and I'd love to stay in touch for future opportunities." Then actually follow up in three to six months with a brief note: "Hi — I reached out earlier this year and wanted to check in as I'm still actively looking for the right fit." Firms hire from their mental file of "impressive people who reached out" more often than you'd think.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="container">
+    <h2>Write Cold Emails That Actually Work</h2>
+    <p>ApplyDraft helps you research firms, craft personalized cold emails, and track your outreach — so you can reach the hidden job market without spending hours per email.</p>
+    <a href="https://applydraft.com" class="btn-cta">Try ApplyDraft Free →</a>
+    <p class="trust" style="margin-top: 16px;">Free to start · Built for serious job seekers</p>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 ApplyDraft</span>
+  <span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+</footer>
+</body>
+</html>

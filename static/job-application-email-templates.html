@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Email Templates for Every Situation | ApplyDraft</title>
+  <meta name="description" content="6 ready-to-use job application email templates — for job postings, cold outreach, referrals, internships, creative fields, and follow-ups. Copy, customize, send.">
+  <link rel="canonical" href="https://applydraft.com/job-application-email-templates">
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f18; --bg2: #161929; --bg3: #1f2336;
+      --border: #2a2f47; --text: #e4e7f2; --text2: #7c839e;
+      --accent: #6c8cff; --green: #4ade80; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--accent); text-decoration: none; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); }
+    .nav-cta { background: var(--accent); color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .hero { padding: 80px 0 60px; text-align: center; }
+    .hero-tag { display: inline-block; background: rgba(108,140,255,.12); color: var(--accent); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; }
+    h1 { font-size: clamp(32px, 5vw, 52px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px; }
+    .gradient-text { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-sub { font-size: 18px; color: var(--text2); max-width: 620px; margin: 0 auto 36px; }
+    .btn-cta { display: inline-block; background: var(--accent); color: #fff; padding: 16px 36px; border-radius: 10px; font-size: 16px; font-weight: 700; }
+    .trust { margin-top: 16px; font-size: 13px; color: var(--text2); }
+    .section { padding: 72px 0; border-top: 1px solid var(--border); }
+    h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-sub { color: var(--text2); margin-bottom: 48px; font-size: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+    .card-icon { font-size: 28px; margin-bottom: 14px; }
+    .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { display: flex; gap: 20px; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+    .step-content h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; color: var(--text2); }
+    .faq { display: flex; flex-direction: column; }
+    .faq-item { padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .faq-q { font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--text2); line-height: 1.7; }
+    .template-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+    .template-label { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .template-subject { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+    .template-subject strong { color: var(--text); }
+    .template-body { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; font-family: 'Inter', sans-serif; }
+    .highlight-box { background: rgba(108,140,255,0.08); border: 1px solid rgba(108,140,255,0.2); border-radius: 12px; padding: 24px 28px; margin: 32px 0; }
+    .highlight-box p { font-size: 15px; color: var(--text); line-height: 1.7; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 13px; color: var(--text2); }
+    .do-dont { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+    .do-box { background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.2); border-radius: 10px; padding: 20px; }
+    .dont-box { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); border-radius: 10px; padding: 20px; }
+    .do-box h4 { color: var(--green); margin-bottom: 12px; font-size: 14px; }
+    .dont-box h4 { color: #f87171; margin-bottom: 12px; font-size: 14px; }
+    .do-box li, .dont-box li { font-size: 13px; color: var(--text2); margin-bottom: 6px; margin-left: 16px; line-height: 1.5; }
+    .prose { font-size: 15px; color: var(--text2); line-height: 1.8; margin-bottom: 20px; }
+    .prose strong { color: var(--text); }
+    .cta-section { padding: 80px 0; text-align: center; border-top: 1px solid var(--border); }
+    .cta-section h2 { font-size: 36px; margin-bottom: 16px; }
+    .cta-section p { color: var(--text2); margin-bottom: 32px; font-size: 16px; }
+    footer { padding: 32px 40px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text2); }
+    @media (max-width: 600px) { .nav { padding: 16px 20px; } .do-dont { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <a href="https://applydraft.com" class="nav-logo">ApplyDraft</a>
+  <a href="https://applydraft.com" class="nav-cta">Start Free →</a>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <span class="hero-tag">Ready-to-Use Templates</span>
+    <h1>6 Job Application Email Templates You Can <span class="gradient-text">Use Today</span></h1>
+    <p class="hero-sub">Templates are starting points, not finished products. Each one below is built on what actually works — but the personalization you add is what makes the difference between a reply and silence.</p>
+    <a href="https://applydraft.com" class="btn-cta">Auto-Personalize Any Template →</a>
+    <p class="trust">Free to start · No credit card required</p>
+  </div>
+
+  <div class="highlight-box">
+    <p><strong>Before You Use Any Template:</strong> Replace every placeholder in brackets. Add the firm's real name. Reference one specific project or piece of work they've done. Adjust the tone to match the firm's culture — a boutique architecture studio and a Fortune 500 company require different registers. And always double-check that your attached files are named professionally before hitting send. A template used as-is, without personalization, performs no better than a generic email.</p>
+  </div>
+
+  <!-- Templates Section -->
+  <div class="section">
+    <h2>The Templates</h2>
+    <p class="section-sub">Six scenarios, six templates. Each includes a subject line and a complete email body with clear placeholder markers.</p>
+
+    <!-- Template 1 -->
+    <div class="template-box">
+      <div class="template-label">Template 1 — Standard Job Posting Application</div>
+      <div class="template-subject"><strong>Subject:</strong> [Position Title] Application — [Your Full Name]</div>
+      <div class="template-body">Dear [Hiring Manager's Name],
+
+I came across [FIRM NAME]'s opening for a [POSITION TITLE] and was immediately drawn to apply. Having followed your work on [SPECIFIC PROJECT OR INITIATIVE], I believe my background aligns closely with what you're building.
+
+I'm currently [a recent M.Arch graduate / a designer with X years of experience] with hands-on experience in [YOUR KEY SKILLS — e.g., computational design, Revit, sustainable building systems]. During my time at [PREVIOUS FIRM/UNIVERSITY], I [specific accomplishment or relevant experience — e.g., led the documentation for a 12-story mixed-use project from design development through construction]. I'm particularly strong in [SKILL 1] and [SKILL 2], both of which appear central to this role.
+
+[FIRM NAME]'s approach to [specific aspect of their work — methodology, project type, or stated values] is exactly the kind of environment I'm looking to grow in. [One sentence about why this firm specifically, based on something real you found in your research.]
+
+I've attached my resume and portfolio for your review. I'd welcome the chance to discuss how my background could contribute to your team — I'm available for a call any time this week or next.
+
+Thank you for your time and consideration.
+
+Best regards,
+[YOUR FULL NAME]
+[Phone Number]
+[LinkedIn URL]
+[Portfolio URL if applicable]</div>
+    </div>
+
+    <!-- Template 2 -->
+    <div class="template-box">
+      <div class="template-label">Template 2 — Cold Outreach (No Open Position)</div>
+      <div class="template-subject"><strong>Subject:</strong> Inquiry — [Your Name] | [Your Specialty]</div>
+      <div class="template-body">Dear [Hiring Manager's Name / Studio Director's Name],
+
+I'll be brief: I'm a [TITLE/SPECIALTY] who has been following [FIRM NAME]'s work closely — in particular, [SPECIFIC PROJECT OR RECENT WORK]. I'm reaching out to introduce myself in case there's a fit, either now or in the future.
+
+My background is in [CORE SPECIALTY], with specific experience in [SKILL 1], [SKILL 2], and [SKILL 3]. Most recently, I [one-line description of your most relevant experience or accomplishment]. I hold a [DEGREE] from [UNIVERSITY] and have previously worked with [NOTABLE EXPERIENCE / FIRM].
+
+I'm not assuming you have an open position — but if there's ever a need for someone with this background, I'd genuinely love to be considered. I've attached a resume and portfolio for context, and I'm happy to share more if anything looks promising.
+
+Thank you for taking the time to read this.
+
+Best,
+[YOUR FULL NAME]
+[Phone Number]
+[LinkedIn URL]
+[Portfolio URL]</div>
+    </div>
+
+    <!-- Template 3 -->
+    <div class="template-box">
+      <div class="template-label">Template 3 — Referral Mention</div>
+      <div class="template-subject"><strong>Subject:</strong> Referred by [Contact's Full Name] — [Position] Application</div>
+      <div class="template-body">Dear [Hiring Manager's Name],
+
+[REFERRER'S NAME] suggested I reach out to you directly. They spoke highly of [FIRM NAME]'s work and thought my background might be a strong match for your [POSITION / TEAM].
+
+I'm a [TITLE] with [X years of experience / recent degree] in [SPECIALTY]. At [PREVIOUS FIRM/UNIVERSITY], I [specific relevant accomplishment or responsibility]. My core skills include [SKILL 1], [SKILL 2], and [SKILL 3] — areas that [REFERRER'S NAME] mentioned are priorities for your current work.
+
+I've been particularly drawn to [FIRM NAME]'s [specific project, publication, or methodology] — [one sentence on what genuinely interests you about it and why it resonates with your background]. That kind of work is exactly where I want to develop professionally.
+
+I've attached my resume and portfolio. I'd welcome a brief conversation at your convenience — [REFERRER'S NAME] offered to make a more formal introduction if that would be helpful.
+
+Thank you for your consideration.
+
+Best regards,
+[YOUR FULL NAME]
+[Phone Number]
+[LinkedIn URL]</div>
+    </div>
+
+    <!-- Template 4 -->
+    <div class="template-box">
+      <div class="template-label">Template 4 — Internship Application</div>
+      <div class="template-subject"><strong>Subject:</strong> Internship Application — [Your Name] | [University] [Year]</div>
+      <div class="template-body">Dear [Hiring Manager's Name / Studio Director],
+
+I'm a [YEAR — e.g., second-year M.Arch] student at [UNIVERSITY] writing to apply for an internship at [FIRM NAME]. Your work on [SPECIFIC PROJECT] — particularly [one specific detail that shows you actually looked at it] — is the reason I'm reaching out to your studio specifically.
+
+Through my coursework and previous internships, I've developed hands-on skills in [SKILL 1], [SKILL 2], and [SKILL 3]. This past [semester/summer], I [one relevant project or experience — e.g., worked on a computational facade study using Grasshopper that was shortlisted for a school award]. I'm eager to bring that energy and curiosity into a professional setting where I can contribute meaningfully while continuing to learn.
+
+I'm available from [START DATE] to [END DATE] and am flexible on hours. I'd be glad to work on any phase of a project — documentation, design development, research, or model-making — wherever I'm most useful to your team.
+
+I've attached my resume and a portfolio. Thank you so much for considering my application — I'd love the opportunity to speak with you.
+
+Best,
+[YOUR FULL NAME]
+[University] | [Program] | Class of [YEAR]
+[Phone Number]
+[Portfolio URL]</div>
+    </div>
+
+    <!-- Template 5 -->
+    <div class="template-box">
+      <div class="template-label">Template 5 — Portfolio / Creative Field Application</div>
+      <div class="template-subject"><strong>Subject:</strong> [Position] Application — Portfolio Attached | [Your Name]</div>
+      <div class="template-body">Dear [Hiring Manager's Name],
+
+I'm applying for the [POSITION] role at [FIRM NAME]. I've been following your studio's work for some time — [SPECIFIC PROJECT OR PUBLICATION] stands out to me as a strong example of [what you admire about it — process, materiality, concept, etc.].
+
+My background combines [DESIGN DISCIPLINE] with a focus on [SPECIALTY — e.g., adaptive reuse, brand identity, spatial experience]. You can see my approach in the attached portfolio — specifically [mention one project or section that's most relevant to their work]. My technical toolkit includes [TOOLS — e.g., Rhino, Grasshopper, Adobe Suite, Figma], and I'm equally comfortable working conceptually and on detailed execution.
+
+At [PREVIOUS FIRM/SCHOOL], I [one specific accomplishment that demonstrates your capability]. I'm looking to bring that same level of engagement to a studio whose work I genuinely respect.
+
+Portfolio and resume are attached. My full portfolio is also available at [PORTFOLIO URL] if you'd like to browse a wider selection of work. I'd welcome a conversation at your convenience.
+
+Thank you,
+[YOUR FULL NAME]
+[Phone Number]
+[Portfolio URL]
+[LinkedIn URL]</div>
+    </div>
+
+    <!-- Template 6 -->
+    <div class="template-box">
+      <div class="template-label">Template 6 — Reapplication or Previous Contact Follow-Up</div>
+      <div class="template-subject"><strong>Subject:</strong> Re: [Position] — [Your Name] (Following Up)</div>
+      <div class="template-body">Dear [Hiring Manager's Name],
+
+I applied for the [POSITION] role at [FIRM NAME] on [DATE / approximately X weeks ago] and wanted to follow up briefly to reaffirm my interest. I understand you're likely reviewing many applications, and I don't want to be presumptuous — I simply wanted to make sure my application was received and to reiterate that this role is a genuine priority for me.
+
+[If you have a previous conversation to reference: "We briefly spoke at [EVENT / VIA EMAIL] in [MONTH], and you encouraged me to reach out when a relevant position opened. I've been hoping for the right moment to reconnect."]
+
+Since I last reached out, I've [any update worth mentioning — completed a degree, finished a relevant project, gained a new skill]. I remain very interested in [FIRM NAME]'s work, particularly [specific recent project or development if possible].
+
+My resume and portfolio remain attached. Please let me know if there's anything additional I can provide to support your review.
+
+Thank you again for your time.
+
+Best regards,
+[YOUR FULL NAME]
+[Phone Number]
+[LinkedIn URL]</div>
+    </div>
+  </div>
+
+  <!-- Customization Steps -->
+  <div class="section">
+    <h2>How to Customize These Templates</h2>
+    <p class="section-sub">A template used without customization will read like a template. These five steps convert a starting point into a compelling, personal email.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Replace Every Bracket Placeholder</h3>
+          <p>Search for every instance of text in brackets and replace it with real, specific information. This includes your name, the firm name, the position title, your university, and any skill placeholders. If you can't fill in a placeholder, the template is telling you something you need to research before sending. Never send an email with "[FIRM NAME]" or "[YOUR NAME]" still in the body — it happens more often than you'd think.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Add One Specific Detail About Their Work</h3>
+          <p>Every template above has a slot for a specific project or initiative you've observed about the firm. This is not optional filler — it's the most important personalization you'll make. Spend ten minutes on their website and find one project, publication, or stated value that genuinely resonates with you. Name it specifically. "Your recent renovation of [Building Name]" or "Your essay on adaptive reuse in the 2025 issue of [Publication]" shows you did the work, which sets you apart from 90% of applicants.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Match the Tone to the Firm's Culture</h3>
+          <p>A boutique design studio founded by two architects in Brooklyn reads email differently than the human resources department of a global engineering firm. Look at the firm's website copy, social media tone, and any published writing to gauge their voice. Adjust accordingly: more formal for traditional or corporate contexts, slightly warmer for studio environments. The templates above skew professional — you can loosen the language for creative firms without changing the structure.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Choose Your Strongest Accomplishment</h3>
+          <p>Each template has a slot for a relevant accomplishment. Don't default to the most recent thing you did — choose the most relevant thing. If the firm works on residential adaptive reuse and you have one project in that area among many others, lead with that one. The goal is for the hiring manager to finish reading your email and think, "This person has done something directly relevant to what we do." One specific, relevant accomplishment beats three vague ones every time.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h3>Read It Out Loud Before Sending</h3>
+          <p>After you've filled in all the placeholders and made your adjustments, read the full email out loud from the subject line to the signature. Listen for awkward transitions between your additions and the template language — these are the seams that reveal a copied-and-pasted draft. Smooth them out. Check that the flow is natural, that no sentence sounds robotic, and that the email sounds like one continuous, purposeful message rather than assembled parts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- What to Attach -->
+  <div class="section">
+    <h2>What to Attach (and How to Name Your Files)</h2>
+    <p class="section-sub">Your attachments are what get you the interview. Make sure they're the right files, named correctly, and in the right format.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h3>Resume (Always)</h3>
+        <p>Format: PDF. File name: FirstName_LastName_Resume.pdf. Keep it to one page if you have under 5 years of experience. Your resume should be tailored to the position — not the same document you've been using for every application. Make sure it opens cleanly on different systems by exporting from your design software or Word as a print-quality PDF.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">📝</div>
+        <h3>Cover Letter (When Requested or When It Helps)</h3>
+        <p>Format: PDF. File name: FirstName_LastName_CoverLetter.pdf. Attach when the posting requests it, or when you have enough to say that the email body can't contain it. Never paste the cover letter into the email body. Make sure it's addressed to the correct firm — a cover letter addressed to a different company is a disqualifying mistake that happens more than you'd think.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">🖼️</div>
+        <h3>Portfolio (For Design and Creative Roles)</h3>
+        <p>Format: PDF, ideally under 15MB. File name: FirstName_LastName_Portfolio.pdf. If your portfolio PDF is large, host it online (on your personal site or a service like Issuu or Cargo) and include the link in the email body — this avoids email size limit issues. Always mention in the body that a portfolio is attached or linked. A portfolio that goes unmentioned often goes unopened.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h3>References (Only if Requested)</h3>
+        <p>Format: PDF. File name: FirstName_LastName_References.pdf. Don't attach references unless the posting specifically asks for them. Most firms request references only during later stages. Attaching them unsolicited can make your email feel disorganized and adds file weight. Have a references document ready to send on request — with three professional contacts, their titles, their relationship to you, and their direct contact info.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <p><strong>The attachment rule:</strong> Mention every file you've attached by name in the email body. "I've attached my resume and portfolio" tells the reader what to expect and invites them to open the files. Always do a final check to confirm the files are actually attached before hitting send — this is the most common and most embarrassing mistake in job application emails.</p>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="section">
+    <h2>Frequently Asked Questions</h2>
+    <p class="section-sub">Common questions about using and customizing job application email templates.</p>
+
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">Will hiring managers know I used a template?</div>
+        <div class="faq-a">If you personalize it properly, no — and it doesn't matter. Every professional writer uses frameworks. What hiring managers notice is poor personalization: generic company references, obvious placeholder text left in, or an email that could have been written for any firm. A well-customized template that has a specific project reference, the right tone, and a genuine call to action reads as a strong professional email, full stop. The goal is never the template — it's the final product.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How much should I change from the template?</div>
+        <div class="faq-a">At minimum: every placeholder filled in, one specific company detail added, and one specific accomplishment included. Beyond that, change whatever doesn't sound like you. The templates are structures — the voice should be yours. If a sentence feels unnatural when you read it aloud, rewrite it. The goal is an email that is both professionally structured and distinctly personal.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Should I use a different template for each application?</div>
+        <div class="faq-a">Yes — match the template to your situation. If you're responding to a posted opening, use Template 1. If you're cold-reaching a firm, use Template 2. If a colleague referred you, use Template 3. Using the wrong template for your situation can create a tone mismatch — for example, Template 4's student-appropriate humility would read as strange from a seasoned professional.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">Can I combine elements from multiple templates?</div>
+        <div class="faq-a">Yes, and this is often the right approach. If you're a student with a referral, blend Template 3's referral opening with Template 4's student-appropriate framing. If you're doing cold outreach for a creative role, take Template 2's structure and add Template 5's portfolio emphasis. The templates are modular — mix and match what's most appropriate for your specific situation.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">How long should the final email be?</div>
+        <div class="faq-a">The email body — not counting subject line, greeting, or signature — should be 200–300 words. The templates above are written to land around that range when filled in. If your personalization is pushing you past 350 words, cut rather than expand. Your attached cover letter and portfolio carry the full narrative — the email's job is to get them opened, not to replace them.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-section">
+  <div class="container">
+    <h2>Skip the Template — Let ApplyDraft Write It</h2>
+    <p>ApplyDraft generates a fully personalized job application email for any firm in under a minute. No copy-pasting, no forgotten placeholders, no missed subject line formats.</p>
+    <a href="https://applydraft.com" class="btn-cta">Generate Your Email Now →</a>
+    <p class="trust" style="margin-top: 16px;">Free to start · Personalized for every application</p>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 ApplyDraft</span>
+  <span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span>
+</footer>
+</body>
+</html>

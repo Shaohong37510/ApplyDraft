@@ -67,6 +67,48 @@ def job_application_tracker():
     return FileResponse(str(static_dir / "job-application-tracker.html"))
 
 
+@app.get("/job-application-email-guide")
+@app.get("/job-application-email-guide.html")
+def job_application_email_guide():
+    return FileResponse(str(static_dir / "job-application-email-guide.html"))
+
+
+@app.get("/job-application-email-subject-line")
+@app.get("/job-application-email-subject-line.html")
+def job_application_email_subject_line():
+    return FileResponse(str(static_dir / "job-application-email-subject-line.html"))
+
+
+@app.get("/job-application-email-templates")
+@app.get("/job-application-email-templates.html")
+def job_application_email_templates():
+    return FileResponse(str(static_dir / "job-application-email-templates.html"))
+
+
+@app.get("/cold-email-job-application")
+@app.get("/cold-email-job-application.html")
+def cold_email_job_application():
+    return FileResponse(str(static_dir / "cold-email-job-application.html"))
+
+
+@app.get("/follow-up-email-after-job-application")
+@app.get("/follow-up-email-after-job-application.html")
+def follow_up_email_after_job_application():
+    return FileResponse(str(static_dir / "follow-up-email-after-job-application.html"))
+
+
+@app.get("/why-email-job-applications-work")
+@app.get("/why-email-job-applications-work.html")
+def why_email_job_applications_work():
+    return FileResponse(str(static_dir / "why-email-job-applications-work.html"))
+
+
+@app.get("/ai-job-application-email")
+@app.get("/ai-job-application-email.html")
+def ai_job_application_email():
+    return FileResponse(str(static_dir / "ai-job-application-email.html"))
+
+
 @app.get("/sitemap.xml")
 def sitemap():
     return FileResponse(str(static_dir / "sitemap.xml"), media_type="application/xml")
