@@ -673,6 +673,7 @@
     </div>
     <div class="top-bar-right">
       <span class="credits-display" id="creditsDisplay">0 credits</span>
+      <button class="btn btn-sm btn-invite" onclick="openReferralModal()" id="inviteBtn" style="display:none">🎁 Invite</button>
       <button class="btn btn-sm btn-buy" onclick="buyCredits()">Buy Credits</button>
       <span class="user-email" id="userEmail"></span>
       <button class="btn btn-sm btn-logout" onclick="logout()">Sign Out</button>
@@ -754,8 +755,8 @@
       </div>
       <button class="modal-close" onclick="document.getElementById('creditModal').style.display='none'">×</button>
     </div>
-    <div class="credit-modal-promo">🎉 Launch Special — 50% Off All Plans</div>
-    <div class="credit-cards">
+    <div id="creditModalPromo" class="credit-modal-promo">🎉 Launch Special — 50% Off All Plans</div>
+    <div class="credit-cards" id="creditCardsContainer">
 
       <div class="credit-card" onclick="purchaseCredits(10)">
         <div class="credit-card-name">Starter</div>
@@ -784,6 +785,54 @@
 
     </div>
     <p class="modal-note">Delivering one application ≈ 1 credit</p>
+  </div>
+</div>
+
+<!-- ═══ Referral Modal ══════════════════════════════════════ -->
+<div id="referralModal" class="modal-overlay" style="display:none" onclick="closeReferralModal(event)">
+  <div class="modal-box" style="max-width:480px;padding:32px;">
+    <div class="modal-header" style="margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;">🎁 Invite Friends, Earn Rewards</h2>
+        <p class="modal-subtitle">Share ApplyDraft and unlock credits &amp; discounts</p>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('referralModal').style.display='none'">×</button>
+    </div>
+
+    <!-- Progress -->
+    <div id="referralProgress" style="margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:14px;color:#7c839e;">Successful invites this round</span>
+        <span id="referralCount" style="font-size:22px;font-weight:800;color:#6c8cff;">0 / 5</span>
+      </div>
+      <div style="background:#1f2336;border-radius:8px;height:8px;overflow:hidden;">
+        <div id="referralBar" style="height:100%;background:linear-gradient(90deg,#6c8cff,#a78bfa);border-radius:8px;width:0%;transition:width 0.4s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#4a5068;">
+        <span>0</span><span>3 → 6 credits</span><span>5 → 7折券</span>
+      </div>
+    </div>
+
+    <!-- Claim buttons -->
+    <div id="referralClaims" style="display:flex;gap:12px;margin-bottom:24px;"></div>
+
+    <!-- Invite text -->
+    <div style="background:#1f2336;border:1px solid #2a2f47;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:600;color:#6c8cff;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Your Invite Message</div>
+      <div id="referralMessage" style="font-size:13px;color:#c8ccdc;line-height:1.7;"></div>
+    </div>
+    <button onclick="copyReferralMessage()" style="width:100%;padding:12px;background:#6c8cff;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">📋 Copy Invite Message</button>
+
+    <!-- Rules -->
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid #2a2f47;">
+      <div style="font-size:12px;font-weight:600;color:#4a5068;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Reward Rules</div>
+      <div style="font-size:13px;color:#7c839e;line-height:1.8;">
+        ✅ Invite 3 friends → <strong style="color:#e4e7f2;">6 free credits</strong><br>
+        🎉 Invite 5 friends → <strong style="color:#e4e7f2;">7折 discount on next purchase</strong><br>
+        📌 Friend must complete profile setup to count<br>
+        🔄 After claiming, make 1 purchase to start a new round
+      </div>
+    </div>
   </div>
 </div>
 

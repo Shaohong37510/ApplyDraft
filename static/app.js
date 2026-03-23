@@ -341,11 +341,65 @@ function updateCreditsDisplay(balance) {
   if (balance == null || isNaN(Number(balance))) return;
   const el = document.getElementById("creditsDisplay");
   if (el) el.textContent = `${Number(balance).toFixed(1)} credits`;
+  // Show invite button once user is logged in
+  const inviteBtn = document.getElementById("inviteBtn");
+  if (inviteBtn) inviteBtn.style.display = "";
 }
 
-function buyCredits() {
+let _hasDiscount = false;
+
+async function buyCredits() {
+  // Load referral status to check discount
+  try {
+    const ref = await api("GET", "/referral/status");
+    _hasDiscount = ref.has_discount || false;
+  } catch(e) {
+    _hasDiscount = false;
+  }
+  _updateCreditModal(_hasDiscount);
   const modal = document.getElementById("creditModal");
   modal.style.cssText = "display:flex!important; position:fixed!important; top:0!important; left:0!important; width:100%!important; height:100%!important; background:rgba(0,0,0,.65)!important; z-index:9999!important; align-items:center!important; justify-content:center!important;";
+}
+
+function _updateCreditModal(hasDiscount) {
+  const promo = document.getElementById("creditModalPromo");
+  const container = document.getElementById("creditCardsContainer");
+  if (!promo || !container) return;
+
+  const packages = [
+    { name: "Starter", credits: 10, price: 4.50, original: 9, rate: "0.45", featured: false },
+    { name: "Standard", credits: 100, price: 34.50, original: 69, rate: "0.35", featured: true },
+    { name: "Pro", credits: 300, price: 82.50, original: 165, rate: "0.28", featured: false },
+  ];
+
+  if (hasDiscount) {
+    promo.innerHTML = '🎉 <strong>7折优惠已激活</strong> — 所有套餐享受7折优惠！本次购买后优惠失效。';
+    promo.style.background = 'linear-gradient(135deg,rgba(108,140,255,0.2),rgba(167,139,250,0.2))';
+    promo.style.border = '1px solid rgba(108,140,255,0.4)';
+    promo.style.color = '#a78bfa';
+  } else {
+    promo.innerHTML = '🎉 Launch Special — 50% Off All Plans';
+    promo.style.background = '';
+    promo.style.border = '';
+    promo.style.color = '';
+  }
+
+  container.innerHTML = packages.map(p => {
+    const displayPrice = hasDiscount ? (p.price * 0.7).toFixed(2) : p.price.toFixed(2);
+    const displayRate = hasDiscount ? (p.price * 0.7 / p.credits).toFixed(3) : (p.price / p.credits).toFixed(2);
+    const originalStr = hasDiscount ? `<span class="pricing-original">$${p.price.toFixed(2)}</span>` : `<span class="pricing-original">$${p.original}</span>`;
+    const discountBadge = hasDiscount ? '<div style="position:absolute;top:-10px;right:12px;background:linear-gradient(135deg,#6c8cff,#a78bfa);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;">7折</div>' : '';
+    return `
+      <div class="credit-card ${p.featured ? 'credit-card-featured' : ''}" onclick="purchaseCredits(${p.credits})" style="position:relative;">
+        ${p.featured ? '<div class="credit-card-badge">Most Popular</div>' : ''}
+        ${discountBadge}
+        <div class="credit-card-name">${p.name}</div>
+        <div class="credit-card-amount">${p.credits} <span>credits</span></div>
+        <div class="credit-card-price">$${displayPrice} ${originalStr}</div>
+        <div class="credit-card-rate">$${displayRate} / credit</div>
+        <button class="btn ${p.featured ? 'btn-primary' : 'btn-outline'} btn-block">Buy</button>
+      </div>`;
+  }).join('');
 }
 
 function closeCreditModal(e) {
@@ -357,11 +411,120 @@ function closeCreditModal(e) {
 async function purchaseCredits(credits) {
   document.getElementById("creditModal").style.display = "none";
   try {
-    const { checkout_url } = await api("POST", "/stripe/checkout", { credits });
+    const { checkout_url } = await api("POST", "/stripe/checkout", { credits, use_discount: _hasDiscount });
     window.open(checkout_url, "_blank");
   } catch (e) {
     toast(e.message, "error");
   }
+}
+
+// ── Referral Modal ────────────────────────────────────────
+
+let _referralData = null;
+
+async function openReferralModal() {
+  const modal = document.getElementById("referralModal");
+  modal.style.cssText = "display:flex!important; position:fixed!important; top:0!important; left:0!important; width:100%!important; height:100%!important; background:rgba(0,0,0,.65)!important; z-index:9999!important; align-items:center!important; justify-content:center!important;";
+  await loadReferralStatus();
+}
+
+function closeReferralModal(e) {
+  if (e.target.id === "referralModal") {
+    document.getElementById("referralModal").style.display = "none";
+  }
+}
+
+async function loadReferralStatus() {
+  try {
+    const ref = await api("GET", "/referral/status");
+    _referralData = ref;
+    _renderReferralModal(ref);
+  } catch(e) {
+    console.error("Failed to load referral status", e);
+  }
+}
+
+function _renderReferralModal(ref) {
+  const count = ref.count || 0;
+
+  // Progress bar
+  const pct = Math.min((count / 5) * 100, 100);
+  const bar = document.getElementById("referralBar");
+  const countEl = document.getElementById("referralCount");
+  if (bar) bar.style.width = pct + "%";
+  if (countEl) countEl.textContent = `${count} / 5`;
+
+  // Claim buttons
+  const claims = document.getElementById("referralClaims");
+  if (claims) {
+    let html = "";
+    // 3-person credits claim
+    const canClaimCredits = count >= 3 && !ref.credits_claimed;
+    const claimedCredits = ref.credits_claimed;
+    html += `<button onclick="claimReferralCredits()" style="flex:1;padding:12px;border-radius:8px;border:none;cursor:${canClaimCredits ? 'pointer' : 'default'};font-size:13px;font-weight:600;
+      background:${claimedCredits ? '#1f2336' : canClaimCredits ? 'linear-gradient(135deg,#4ade80,#22c55e)' : '#1f2336'};
+      color:${claimedCredits ? '#4a5068' : canClaimCredits ? '#0d0f18' : '#4a5068'};
+      opacity:${count < 3 && !claimedCredits ? '0.5' : '1'};"
+      ${!canClaimCredits ? 'disabled' : ''}>
+      ${claimedCredits ? '✅ 6 Credits Claimed' : count >= 3 ? '🎁 Claim 6 Credits' : `🎁 6 Credits (${count}/3)`}
+    </button>`;
+
+    // 5-person coupon claim
+    const canClaimCoupon = count >= 5 && !ref.coupon_claimed;
+    const claimedCoupon = ref.coupon_claimed;
+    html += `<button onclick="claimReferralCoupon()" style="flex:1;padding:12px;border-radius:8px;border:none;cursor:${canClaimCoupon ? 'pointer' : 'default'};font-size:13px;font-weight:600;
+      background:${claimedCoupon ? '#1f2336' : canClaimCoupon ? 'linear-gradient(135deg,#6c8cff,#a78bfa)' : '#1f2336'};
+      color:${claimedCoupon ? '#4a5068' : canClaimCoupon ? '#fff' : '#4a5068'};
+      opacity:${count < 5 && !claimedCoupon ? '0.5' : '1'};"
+      ${!canClaimCoupon ? 'disabled' : ''}>
+      ${claimedCoupon ? (ref.has_discount ? '🎉 7折 Active!' : '✅ 7折 Claimed') : count >= 5 ? '🎉 Claim 7折 Coupon' : `🎉 7折 Coupon (${count}/5)`}
+    </button>`;
+    claims.innerHTML = html;
+  }
+
+  // Invite message
+  const msg = document.getElementById("referralMessage");
+  if (msg) {
+    msg.textContent = `Hey! I've been using ApplyDraft to automate my job applications — it writes personalized cover letters and sends drafts directly to Gmail/Outlook. Really saves time. Try it free: ${ref.invite_link}`;
+  }
+}
+
+async function claimReferralCredits() {
+  if (!_referralData || _referralData.count < 3 || _referralData.credits_claimed) return;
+  try {
+    const result = await api("POST", "/referral/claim-credits");
+    toast(`🎁 6 credits added! New balance: ${result.new_balance.toFixed(1)}`);
+    await loadReferralStatus();
+    // Refresh credits display
+    const credits = await api("GET", "/auth/me").catch(() => null);
+    if (credits) updateCreditsDisplay(credits.credits);
+  } catch(e) {
+    toast(e.message, "error");
+  }
+}
+
+async function claimReferralCoupon() {
+  if (!_referralData || _referralData.count < 5 || _referralData.coupon_claimed) return;
+  try {
+    await api("POST", "/referral/claim-coupon");
+    toast("🎉 7折优惠券已激活！下次购买自动享受7折。");
+    await loadReferralStatus();
+    // Auto-open buy credits modal with discount
+    document.getElementById("referralModal").style.display = "none";
+    await buyCredits();
+  } catch(e) {
+    toast(e.message, "error");
+  }
+}
+
+function copyReferralMessage() {
+  if (!_referralData) return;
+  const text = `Hey! I've been using ApplyDraft to automate my job applications — it writes personalized cover letters and sends drafts directly to Gmail/Outlook. Really saves time. Try it free: ${_referralData.invite_link}`;
+  navigator.clipboard.writeText(text).then(() => {
+    toast("Invite message copied!");
+  }).catch(() => {
+    toast("Copy failed — please copy manually", "error");
+  });
 }
 
 // ── Toast ─────────────────────────────────────────────────
@@ -379,6 +542,12 @@ function toast(msg, type = "success") {
 async function init() {
   supabaseClient = await initSupabase();
 
+  // Capture referral code from URL before any redirects
+  const urlRef = new URLSearchParams(window.location.search).get("ref");
+  if (urlRef) {
+    localStorage.setItem("applydraft_ref", urlRef.toUpperCase());
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("payment") === "success") {
     toast("Payment successful! Credits added.");
@@ -394,6 +563,12 @@ async function init() {
         accessToken = session.access_token;
         showApp();
         await loadApp();
+        // Handle referral code from URL
+        const refCode = localStorage.getItem("applydraft_ref");
+        if (refCode) {
+          localStorage.removeItem("applydraft_ref");
+          api("POST", "/referral/set-referred-by", { code: refCode }).catch(() => {});
+        }
       } else if (event === 'TOKEN_REFRESHED' && session) {
         accessToken = session.access_token; // just update token, don't reset view
       } else if (!session) {
@@ -407,6 +582,12 @@ async function init() {
       accessToken = session.access_token;
       showApp();
       await loadApp();
+      // Handle referral code from URL (existing session case)
+      const refCode = localStorage.getItem("applydraft_ref");
+      if (refCode) {
+        localStorage.removeItem("applydraft_ref");
+        api("POST", "/referral/set-referred-by", { code: refCode }).catch(() => {});
+      }
     } else {
       // Guest: show landing page first; "Get Started Free" will call showApp()
       showLanding();

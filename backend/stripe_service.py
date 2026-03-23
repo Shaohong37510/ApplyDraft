@@ -11,7 +11,7 @@ def _init_stripe():
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
 
-def create_checkout_session(user_id: str, credits: int, success_url: str, cancel_url: str) -> str:
+def create_checkout_session(user_id: str, credits: int, success_url: str, cancel_url: str, use_discount: bool = False) -> str:
     """Create a Stripe Checkout session for purchasing credits.
 
     Returns the checkout URL.
@@ -27,7 +27,7 @@ def create_checkout_session(user_id: str, credits: int, success_url: str, cancel
                     "name": f"{credits} Credits - ApplyDraft",
                     "description": f"Purchase {credits} credits for AI-powered job applications",
                 },
-                "unit_amount": _credits_to_cents(credits),
+                "unit_amount": int(_credits_to_cents(credits) * 0.7) if use_discount else _credits_to_cents(credits),
             },
             "quantity": 1,
         }],
@@ -37,6 +37,7 @@ def create_checkout_session(user_id: str, credits: int, success_url: str, cancel
         metadata={
             "user_id": user_id,
             "credits": str(credits),
+            "used_discount": "1" if use_discount else "0",
         },
     )
     return session.url
@@ -67,6 +68,8 @@ def handle_webhook(payload: bytes, sig_header: str) -> dict:
                 description=f"Purchased {credits} credits",
                 stripe_session_id=session_id,
             )
+            if session["metadata"].get("used_discount") == "1":
+                db.use_referral_discount(user_id)
             return {"ok": True, "credits": credits, "balance": new_balance}
 
     return {"ok": True, "event": event["type"]}

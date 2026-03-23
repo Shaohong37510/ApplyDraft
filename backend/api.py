@@ -239,6 +239,12 @@ def create_checkout(data: dict, request: Request, user_id: str = Depends(get_cur
     credits = int(data.get("credits", 100))
     if credits < 10:
         raise HTTPException(400, "Minimum 10 credits")
+    use_discount = bool(data.get("use_discount", False))
+    # Validate discount eligibility
+    if use_discount:
+        ref = db.get_or_create_referral(user_id)
+        if not ref.get("has_discount"):
+            use_discount = False
     host = request.headers.get("host", "localhost:8899")
     scheme = "https" if "localhost" not in host else "http"
     base_url = f"{scheme}://{host}"
@@ -247,6 +253,7 @@ def create_checkout(data: dict, request: Request, user_id: str = Depends(get_cur
         credits=credits,
         success_url=f"{base_url}/?payment=success",
         cancel_url=f"{base_url}/?payment=cancelled",
+        use_discount=use_discount,
     )
     return {"checkout_url": url}
 
@@ -260,6 +267,56 @@ async def stripe_webhook(request: Request):
     if not result.get("ok"):
         raise HTTPException(400, result.get("error", "Webhook failed"))
     return result
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Referral
+# ═══════════════════════════════════════════════════════════════
+
+@router.get("/referral/status")
+def get_referral_status(user_id: str = Depends(get_current_user)):
+    """Get user's referral status and invite link."""
+    ref = db.get_or_create_referral(user_id)
+    return {
+        "referral_code": ref["referral_code"],
+        "invite_link": f"https://applydraft.com/?ref={ref['referral_code']}",
+        "count": ref["count"],
+        "credits_claimed": ref["credits_claimed"],
+        "coupon_claimed": ref["coupon_claimed"],
+        "has_discount": ref["has_discount"],
+        "round": ref["round"],
+    }
+
+
+@router.post("/referral/set-referred-by")
+def set_referred_by_endpoint(data: dict, user_id: str = Depends(get_current_user)):
+    """Set who referred this user (call after login if ?ref= was in URL)."""
+    code = data.get("code", "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Missing referral code")
+    ok = db.set_referred_by(user_id, code)
+    return {"ok": ok}
+
+
+@router.post("/referral/claim-credits")
+def claim_referral_credits_endpoint(user_id: str = Depends(get_current_user)):
+    """Claim 6 credits for reaching 3 referrals."""
+    try:
+        db.claim_referral_credits(user_id)
+        credits = db.get_user_credits(user_id)
+        return {"ok": True, "new_balance": credits}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/referral/claim-coupon")
+def claim_referral_coupon_endpoint(user_id: str = Depends(get_current_user)):
+    """Claim 70% discount coupon for reaching 5 referrals."""
+    try:
+        db.claim_referral_coupon(user_id)
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -542,7 +599,14 @@ def get_project(project_id: str, user_id: str = Depends(get_current_user)):
 
 @router.put("/projects/{project_id}/config")
 def update_project_config(project_id: str, data: dict, user_id: str = Depends(get_current_user)):
-    return pm.update_project_config(user_id, project_id, data)
+    result = pm.update_project_config(user_id, project_id, data)
+    # Trigger referral completion when onboarding is marked done
+    if data.get("onboarding_complete"):
+        try:
+            db.process_referral_completion(user_id)
+        except Exception:
+            pass
+    return result
 
 
 @router.delete("/projects/{project_id}")
