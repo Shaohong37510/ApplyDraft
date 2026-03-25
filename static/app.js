@@ -390,7 +390,7 @@ function _updateCreditModal(hasDiscount) {
     const displayPrice = hasDiscount ? (p.price * 0.7).toFixed(2) : p.price.toFixed(2);
     const displayRate = hasDiscount ? (p.price * 0.7 / p.credits).toFixed(3) : (p.price / p.credits).toFixed(2);
     const originalStr = hasDiscount ? `<span class="pricing-original">$${p.price.toFixed(2)}</span>` : `<span class="pricing-original">$${p.original}</span>`;
-    const discountBadge = hasDiscount ? '<div style="position:absolute;top:-10px;right:12px;background:linear-gradient(135deg,#6c8cff,#a78bfa);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px;">30% OFF</div>' : '';
+    const discountBadge = hasDiscount ? '<div style="position:absolute;top:-10px;right:12px;background:#ef4444;color:#fff;font-size:12px;font-weight:800;padding:5px 12px;border-radius:100px;box-shadow:0 2px 8px rgba(239,68,68,0.5);letter-spacing:0.02em;">🔥 30% OFF</div>' : '';
     return `
       <div class="credit-card ${p.featured ? 'credit-card-featured' : ''}" onclick="purchaseCredits(${p.credits})" style="position:relative;">
         ${p.featured ? '<div class="credit-card-badge">Most Popular</div>' : ''}
@@ -495,7 +495,7 @@ async function claimReferralCredits() {
   if (!_referralData || _referralData.count < 3 || _referralData.credits_claimed) return;
   try {
     const result = await api("POST", "/referral/claim-credits");
-    toast(`🎁 6 credits added! New balance: ${result.new_balance.toFixed(1)}`);
+    showClaimAnimation("🎁", "6 Credits Added!", `New balance: ${result.new_balance.toFixed(1)} credits`);
     await loadReferralStatus();
     // Refresh credits display
     const credits = await api("GET", "/auth/me").catch(() => null);
@@ -509,7 +509,7 @@ async function claimReferralCoupon() {
   if (!_referralData || _referralData.count < 5 || _referralData.coupon_claimed) return;
   try {
     await api("POST", "/referral/claim-coupon");
-    toast("🎉 30% discount activated! Your next purchase will be 30% off.");
+    showClaimAnimation("🎉", "30% Discount Activated!", "Your next purchase is 30% off — use it now!");
     await loadReferralStatus();
     // Auto-open buy credits modal with discount
     document.getElementById("referralModal").style.display = "none";
@@ -3758,3 +3758,36 @@ init().catch(e => {
     requestAnimationFrame(tick);
   })();
 })();
+
+// ── Claim success animation ───────────────────────────────
+
+function showClaimAnimation(icon, title, sub) {
+  const colors = ['#6c8cff','#a78bfa','#4ade80','#f472b6','#facc15','#ef4444'];
+  const overlay = document.createElement('div');
+  overlay.className = 'claim-success-overlay';
+
+  // Confetti
+  for (let i = 0; i < 18; i++) {
+    const c = document.createElement('div');
+    c.className = 'claim-confetti';
+    c.style.cssText = `
+      left:${10 + Math.random()*80}%;
+      top:${20 + Math.random()*40}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      width:${6+Math.random()*8}px; height:${6+Math.random()*8}px;
+      animation-delay:${Math.random()*0.4}s;
+      animation-duration:${1.4+Math.random()*0.8}s;
+    `;
+    overlay.appendChild(c);
+  }
+
+  overlay.innerHTML += `
+    <div class="claim-success-box">
+      <span class="claim-success-icon">${icon}</span>
+      <div class="claim-success-title">${title}</div>
+      <div class="claim-success-sub">${sub}</div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 2600);
+}
